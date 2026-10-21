@@ -1,0 +1,14 @@
+{
+  "name": "yuksalish-front",
+  "version": "0.1.0",
+  "private": true,
+  "description": "O'quvchilar intizomi reytingi — admin panel",
+  "scripts": {
+    "install:all": "npm install --prefix admin",
+    "dev:admin": "npm run dev --prefix admin",
+    "build:admin": "npm run build --prefix admin",
+    "typecheck:admin": "npm run typecheck --prefix admin",
+    "lint:admin": "npm run lint --prefix admin",
+    "test:admin": "npm test --prefix admin"
+  }
+}

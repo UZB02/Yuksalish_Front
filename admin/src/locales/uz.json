@@ -1,0 +1,1386 @@
+{
+  "app": {
+    "name": "Intizom reytingi",
+    "tagline": "O'quvchilar intizomi reytingi - admin panel"
+  },
+  "common": {
+    "loading": "Yuklanmoqda",
+    "save": "Saqlash",
+    "cancel": "Bekor qilish",
+    "confirm": "Tasdiqlash",
+    "close": "Yopish",
+    "edit": "Tahrirlash",
+    "retry": "Qayta urinish",
+    "search": "Qidirish",
+    "all": "Barchasi",
+    "active": "Faol",
+    "inactive": "Nofaol",
+    "activate": "Faollashtirish",
+    "deactivate": "Nofaol qilish",
+    "status": "Holati",
+    "actions": "Amallar",
+    "fullName": "F.I.Sh.",
+    "phone": "Telefon",
+    "lastLogin": "Oxirgi kirish",
+    "never": "Hali kirmagan",
+    "comingSoon": "Tez orada",
+    "showPassword": "Parolni ko'rsatish",
+    "hidePassword": "Parolni yashirish",
+    "pagination": "Sahifalash",
+    "paginationInfo": "{from}-{to} / {total}",
+    "prev": "Oldingi sahifa",
+    "next": "Keyingi sahifa",
+    "delete": "O'chirish",
+    "view": "Ko'rish"
+  },
+  "roles": {
+    "superadmin": "Super admin",
+    "school_admin": "Maktab administratori",
+    "teacher": "O'qituvchi"
+  },
+  "nav": {
+    "main": "Asosiy menyu",
+    "openMenu": "Menyuni ochish",
+    "dashboard": "Boshqaruv paneli",
+    "myClasses": "Mening sinflarim",
+    "schools": "Maktablar",
+    "schoolAdmins": "Maktab adminlari",
+    "academicYears": "O'quv yillari",
+    "classes": "Sinflar",
+    "students": "O'quvchilar",
+    "teachers": "O'qituvchilar",
+    "profile": "Profil",
+    "myScores": "Mening baholarim",
+    "scoring": "Baholash",
+    "scoresHistory": "Baholar tarixi",
+    "behaviorTypes": "Xulq turlari",
+    "settings": "Sozlamalar",
+    "ratings": "Reyting",
+    "attendance": "Davomat",
+    "attendanceHistory": "Davomat hisoboti",
+    "attendanceStatuses": "Davomat holatlari",
+    "reports": "Hisobotlar",
+    "audit": "Audit log"
+  },
+  "theme": {
+    "light": "Yorug' mavzu",
+    "dark": "Qorong'i mavzu",
+    "system": "Tizim mavzusi",
+    "toggle": "Mavzuni almashtirish (hozir: {current})"
+  },
+  "userMenu": {
+    "open": "Foydalanuvchi menyusi"
+  },
+  "schoolSwitcher": {
+    "label": "Maktabni tanlash",
+    "none": "Maktab tanlanmagan",
+    "selectFirst": "Avval maktab tanlang",
+    "selectFirstText": "Bu bo'lim maktab doirasida ishlaydi. Yuqoridagi ro'yxatdan maktabni tanlang."
+  },
+  "auth": {
+    "title": "Tizimga kirish",
+    "subtitle": "Login va parolingizni kiriting",
+    "username": "Login",
+    "password": "Parol",
+    "login": "Kirish",
+    "logout": "Chiqish",
+    "invalidCredentials": "Login yoki parol noto'g'ri"
+  },
+  "validation": {
+    "required": "Bu maydon to'ldirilishi shart",
+    "minLength": "Kamida {min} ta belgi bo'lishi kerak",
+    "maxLength": "Ko'pi bilan {max} ta belgi bo'lishi mumkin",
+    "slug": "Faqat kichik lotin harflari, raqamlar va tire (masalan: 5-maktab)",
+    "phone": "Telefon raqami noto'g'ri formatda",
+    "url": "To'g'ri havola kiriting (https://...)",
+    "username": "Faqat lotin harflari, raqamlar, nuqta, tire va pastki chiziq",
+    "selectSchool": "Maktabni tanlang",
+    "passwordHint": "Kamida 8 ta belgi",
+    "passwordMismatch": "Parollar mos kelmadi",
+    "passwordComplexity": "Parolda kamida bitta harf va bitta raqam bo'lishi kerak",
+    "passwordSame": "Yangi parol joriy paroldan farq qilishi kerak",
+    "date": "Sanani to'g'ri kiriting",
+    "endAfterStart": "Tugash sanasi boshlanish sanasidan keyin bo'lishi kerak",
+    "periodOutside": "Chorak o'quv yili oralig'ida bo'lishi kerak",
+    "grade": "Parallel 1 dan 11 gacha bo'lishi kerak",
+    "selectClass": "Sinfni tanlang",
+    "birthFuture": "Tug'ilgan sana kelajakda bo'lishi mumkin emas",
+    "gender": "Jinsni to'g'ri tanlang",
+    "periodOverlap": "Chorak oldingi chorak tugaganidan keyin boshlanishi kerak",
+    "integer": "Butun son kiriting",
+    "color": "Rang #RRGGBB ko'rinishida bo'lishi kerak",
+    "rangeOrder": "Maksimal ball minimaldan kichik bo'lmasligi kerak"
+  },
+  "errors": {
+    "unknown": "Kutilmagan xatolik yuz berdi. Qayta urinib ko'ring.",
+    "loadFailed": "Ma'lumotlarni yuklab bo'lmadi",
+    "forbiddenTitle": "Ruxsat yo'q",
+    "forbiddenText": "Bu sahifani ko'rish uchun sizda yetarli huquq yo'q. Administratorga murojaat qiling.",
+    "notFoundTitle": "Sahifa topilmadi",
+    "notFoundText": "Siz izlagan sahifa mavjud emas yoki ko'chirilgan.",
+    "toHome": "Bosh sahifaga qaytish",
+    "codes": {
+      "VALIDATION_ERROR": "Kiritilgan ma'lumotlar noto'g'ri. Maydonlarni tekshiring.",
+      "UNAUTHORIZED": "Sessiya tugagan. Qaytadan kiring.",
+      "FORBIDDEN": "Bu amalni bajarish uchun ruxsatingiz yo'q.",
+      "NOT_FOUND": "So'ralgan ma'lumot topilmadi.",
+      "CONFLICT": "Bunday ma'lumot allaqachon mavjud.",
+      "RATE_LIMITED": "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.",
+      "INTERNAL": "Serverda xatolik yuz berdi. Keyinroq urinib ko'ring.",
+      "NETWORK": "Server bilan aloqa yo'q. Internetni tekshiring."
+    }
+  },
+  "dashboard": {
+    "greeting": "Xush kelibsiz, {name}",
+    "ownSchool": "Sizning maktabingiz ko'rsatkichlari",
+    "schoolScope": "Maktab: {name}",
+    "allSchools": "Barcha maktablar bo'yicha umumiy ko'rinish",
+    "cards": {
+      "students": "O'quvchilar",
+      "classes": "Sinflar",
+      "teachers": "O'qituvchilar",
+      "scores": "Bugungi baholar",
+      "schools": "Maktablar",
+      "scoresToday": "Bugungi baholar",
+      "unscoredClassesToday": "Bugun baholanmagan sinflar"
+    },
+    "chartTitle": "O'rtacha ball dinamikasi",
+    "chartPlaceholder": "Grafik keyingi bosqichda qo'shiladi.",
+    "noAccessTitle": "Ruxsat yo'q",
+    "noAccessText": "Boshqaruv panelini ko'rish uchun sizda ruxsat yo'q.",
+    "todayProgress": "Bugungi baholash progressi",
+    "attendanceTitle": "Bugungi davomat",
+    "attendanceUnmarked": "Davomat olinmagan sinflar: {n}",
+    "attendanceTotal": "Jami o'quvchilar: {n}",
+    "attendanceProgress": "Bugungi davomat progressi"
+  },
+  "myClasses": {
+    "title": "Mening sinflarim",
+    "description": "Sizga biriktirilgan sinflar",
+    "emptyTitle": "Sinflar biriktirilmagan",
+    "emptyText": "Sizga hali sinf biriktirilmagan. Administratorga murojaat qiling."
+  },
+  "schools": {
+    "title": "Maktablar",
+    "description": "Tizimdagi maktablarni boshqarish",
+    "add": "Maktab qo'shish",
+    "edit": "Maktabni tahrirlash",
+    "name": "Nomi",
+    "slug": "Qisqa nom (slug)",
+    "slugHint": "Ochiq reyting manzilida ishlatiladi: /slug",
+    "slugTaken": "Bunday qisqa nom band. Boshqasini tanlang.",
+    "address": "Manzil",
+    "phone": "Telefon",
+    "logoUrl": "Logotip havolasi",
+    "searchPlaceholder": "Maktab nomi bo'yicha qidirish",
+    "emptyTitle": "Maktablar topilmadi",
+    "emptyText": "Birinchi maktabni qo'shishdan boshlang.",
+    "created": "Maktab yaratildi",
+    "updated": "Maktab ma'lumotlari saqlandi",
+    "activateTitle": "Maktabni faollashtirish",
+    "activateText": "\"{name}\" maktabi qayta faollashtiriladi. Davom etasizmi?",
+    "deactivateTitle": "Maktabni nofaol qilish",
+    "deactivateText": "\"{name}\" maktabi nofaol qilinadi. Davom etasizmi?",
+    "activated": "Maktab faollashtirildi",
+    "deactivated": "Maktab nofaol qilindi"
+  },
+  "schoolAdmins": {
+    "title": "Maktab adminlari",
+    "description": "Maktab administratorlari va ularning ruxsatlari",
+    "add": "Admin qo'shish",
+    "edit": "Adminni tahrirlash",
+    "school": "Maktab",
+    "selectSchool": "Maktabni tanlang",
+    "allSchools": "Barcha maktablar",
+    "searchPlaceholder": "Ism yoki login bo'yicha qidirish",
+    "usernameTaken": "Bu login band. Boshqasini tanlang.",
+    "emptyTitle": "Maktab adminlari topilmadi",
+    "emptyText": "Maktab uchun administrator yarating.",
+    "created": "Maktab admini yaratildi",
+    "updated": "Ma'lumotlar saqlandi",
+    "activateTitle": "Adminni faollashtirish",
+    "activateText": "{name} qayta faollashtiriladi. Davom etasizmi?",
+    "deactivateTitle": "Adminni nofaol qilish",
+    "deactivateText": "{name} tizimga kira olmaydi. Davom etasizmi?",
+    "activated": "Admin faollashtirildi",
+    "deactivated": "Admin nofaol qilindi"
+  },
+  "teachers": {
+    "title": "O'qituvchilar",
+    "description": "Maktab o'qituvchilari va ularning ruxsatlari",
+    "add": "O'qituvchi qo'shish",
+    "edit": "O'qituvchini tahrirlash",
+    "searchPlaceholder": "Ism yoki login bo'yicha qidirish",
+    "usernameTaken": "Bu login band. Boshqasini tanlang.",
+    "emptyTitle": "O'qituvchilar topilmadi",
+    "emptyText": "Birinchi o'qituvchini qo'shing.",
+    "created": "O'qituvchi yaratildi",
+    "updated": "Ma'lumotlar saqlandi",
+    "activateTitle": "O'qituvchini faollashtirish",
+    "activateText": "{name} qayta faollashtiriladi. Davom etasizmi?",
+    "deactivateTitle": "O'qituvchini nofaol qilish",
+    "deactivateText": "{name} tizimga kira olmaydi. Davom etasizmi?",
+    "activated": "O'qituvchi faollashtirildi",
+    "deactivated": "O'qituvchi nofaol qilindi",
+    "classes": "Sinflar",
+    "assignClasses": "Sinflarni biriktirish",
+    "classesSaved": "Sinflar biriktirildi",
+    "noClasses": "Sinflar yo'q yoki ro'yxatni yuklab bo'lmadi."
+  },
+  "permissions": {
+    "title": "Ruxsatlar",
+    "empty": "Ruxsatlar ro'yxati bo'sh",
+    "saved": "Ruxsatlar saqlandi",
+    "notAvailable": "Sizda bu ruxsat yo'q",
+    "limitedHint": "Faqat o'zingizda mavjud ruxsatlarni bera olasiz.",
+    "groups": {
+      "dashboard": "Boshqaruv paneli",
+      "classes": "Sinflar",
+      "students": "O'quvchilar",
+      "teachers": "O'qituvchilar",
+      "scores": "Baholar",
+      "reports": "Hisobotlar",
+      "audit": "Audit",
+      "attendance": "Davomat"
+    },
+    "items": {
+      "dashboard_view": "Boshqaruv panelini ko'rish",
+      "classes_manage": "Sinflarni boshqarish",
+      "students_view": "O'quvchilarni ko'rish",
+      "students_manage": "O'quvchilarni boshqarish",
+      "teachers_manage": "O'qituvchilarni boshqarish",
+      "scores_create": "Ball qo'yish",
+      "scores_edit": "Ballni tahrirlash",
+      "reports_view": "Hisobotlarni ko'rish",
+      "reports_export": "Hisobotlarni eksport qilish",
+      "audit_view": "Audit logni ko'rish",
+      "attendance_take": "Davomat olish",
+      "attendance_edit": "Davomatni tahrirlash",
+      "attendance_view": "Davomat hisobotlarini ko'rish",
+      "attendance_settings": "Davomat sozlamalari (o'z maktabi)"
+    }
+  },
+  "resetPassword": {
+    "title": "Parolni tiklash",
+    "newPassword": "Yangi parol",
+    "confirm": "Yangi parolni tasdiqlang",
+    "submit": "Parolni tiklash",
+    "success": "Parol muvaffaqiyatli tiklandi"
+  },
+  "profile": {
+    "title": "Profil",
+    "info": "Shaxsiy ma'lumotlar",
+    "fullName": "F.I.Sh.",
+    "role": "Rol",
+    "lastLogin": "Oxirgi kirish",
+    "changePassword": "Parolni o'zgartirish",
+    "currentPassword": "Joriy parol",
+    "newPassword": "Yangi parol",
+    "confirmPassword": "Yangi parolni tasdiqlang",
+    "save": "Parolni saqlash",
+    "passwordChanged": "Parol muvaffaqiyatli o'zgartirildi"
+  },
+  "academicYears": {
+    "title": "O'quv yillari",
+    "description": "O'quv yillari va choraklarni boshqarish",
+    "add": "O'quv yili qo'shish",
+    "edit": "O'quv yilini tahrirlash",
+    "name": "Nomi",
+    "nameTaken": "Bunday nomli o'quv yili mavjud",
+    "startDate": "Boshlanish sanasi",
+    "endDate": "Tugash sanasi",
+    "range": "Davr",
+    "periods": "Choraklar",
+    "addPeriod": "Chorak qo'shish",
+    "removePeriod": "Chorakni o'chirish",
+    "periodName": "Chorak nomi",
+    "noPeriods": "Choraklar qo'shilmagan",
+    "created": "O'quv yili yaratildi",
+    "updated": "O'quv yili saqlandi",
+    "activateTitle": "O'quv yilini faollashtirish",
+    "activateText": "\"{name}\" faol o'quv yili bo'ladi, avvalgi faol yil nofaol qilinadi. Davom etasizmi?",
+    "activated": "O'quv yili faollashtirildi",
+    "deleteTitle": "O'quv yilini o'chirish",
+    "deleteText": "\"{name}\" o'quv yili o'chiriladi. Davom etasizmi?",
+    "deleted": "O'quv yili o'chirildi",
+    "hasClasses": "Bu o'quv yilida sinflar bor, avval ularni o'chiring yoki ko'chiring.",
+    "emptyTitle": "O'quv yillari yo'q",
+    "emptyText": "Sinflar yaratish uchun avval o'quv yilini qo'shing.",
+    "createdInactive": "O'quv yili yaratildi. Sinflar yaratish uchun uni faollashtiring."
+  },
+  "classes": {
+    "title": "Sinflar",
+    "description": "Sinflar, sinf rahbarlari va biriktirilgan o'qituvchilar",
+    "add": "Sinf qo'shish",
+    "edit": "Sinfni tahrirlash",
+    "name": "Sinf nomi",
+    "nameTaken": "Bunday sinf bu o'quv yilida mavjud",
+    "grade": "Parallel",
+    "gradeLabel": "{n}-sinf",
+    "selectGrade": "Parallelni tanlang",
+    "allGrades": "Barcha parallellar",
+    "section": "Harf",
+    "academicYear": "O'quv yili",
+    "activeYear": "Faol o'quv yili",
+    "homeroom": "Sinf rahbari",
+    "noHomeroom": "Tayinlanmagan",
+    "teachers": "O'qituvchilar",
+    "students": "O'quvchilar",
+    "assignTeachers": "O'qituvchilarni biriktirish",
+    "noTeachers": "O'qituvchilar ro'yxatini yuklab bo'lmadi yoki o'qituvchilar yo'q.",
+    "teachersSaved": "O'qituvchilar biriktirildi",
+    "searchPlaceholder": "Sinf nomi bo'yicha qidirish",
+    "archived": "Arxiv",
+    "activeClasses": "Faol sinflar",
+    "archive": "Arxivlash",
+    "unarchive": "Arxivdan chiqarish",
+    "archiveTitle": "Sinfni arxivlash",
+    "archiveText": "\"{name}\" sinfi arxivga o'tkaziladi. Davom etasizmi?",
+    "unarchiveTitle": "Sinfni arxivdan chiqarish",
+    "unarchiveText": "\"{name}\" sinfi qayta faollashtiriladi. Davom etasizmi?",
+    "archivedOk": "Sinf arxivlandi",
+    "unarchivedOk": "Sinf arxivdan chiqarildi",
+    "created": "Sinf yaratildi",
+    "updated": "Sinf saqlandi",
+    "emptyTitle": "Sinflar topilmadi",
+    "emptyText": "Filtrlarni o'zgartiring yoki yangi sinf qo'shing.",
+    "back": "Sinflarga qaytish",
+    "loadFailed": "Sinfni yuklab bo'lmadi",
+    "gradeAction": "Baholash",
+    "noActiveYearTitle": "Avval o'quv yilini faollashtiring",
+    "noActiveYearText": "Sinf yaratish uchun faol o'quv yili kerak. O'quv yillari sahifasida yilni yarating va faollashtiring.",
+    "toYears": "O'quv yillariga o'tish",
+    "classReport": "Sinf hisoboti"
+  },
+  "students": {
+    "title": "O'quvchilar",
+    "description": "Maktab o'quvchilari ro'yxati",
+    "add": "O'quvchi qo'shish",
+    "edit": "O'quvchini tahrirlash",
+    "class": "Sinf",
+    "selectClass": "Sinfni tanlang",
+    "allClasses": "Barcha sinflar",
+    "allStatuses": "Barcha holatlar",
+    "newClass": "Yangi sinf",
+    "code": "ID raqami",
+    "birthDate": "Tug'ilgan sana",
+    "gender": "Jinsi",
+    "genders": {
+      "male": "O'g'il bola",
+      "female": "Qiz bola"
+    },
+    "notSpecified": "Ko'rsatilmagan",
+    "parentPhone": "Ota-ona telefoni",
+    "searchPlaceholder": "F.I.Sh. yoki ID bo'yicha qidirish",
+    "statuses": {
+      "active": "Faol",
+      "transferred": "Ko'chgan",
+      "graduated": "Bitirgan"
+    },
+    "transfer": "Boshqa sinfga o'tkazish",
+    "transferHint": "O'quvchining eski baholari eski sinf hisobida qoladi.",
+    "transferred": "O'quvchi o'tkazildi",
+    "created": "O'quvchi qo'shildi",
+    "updated": "O'quvchi ma'lumotlari saqlandi",
+    "duplicate": "Bunday o'quvchi allaqachon mavjud (ID yoki F.I.Sh. va tug'ilgan sana)",
+    "deleteTitle": "O'quvchini o'chirish",
+    "deleteText": "{name} ro'yxatdan o'chiriladi. Davom etasizmi?",
+    "deleted": "O'quvchi o'chirildi",
+    "export": "Eksport",
+    "importExcel": "Excel orqali yuklash",
+    "emptyTitle": "O'quvchilar topilmadi",
+    "emptyText": "O'quvchi qo'shing yoki Excel fayldan yuklang."
+  },
+  "import": {
+    "title": {
+      "upload": "Excel orqali yuklash",
+      "preview": "Oldindan ko'rish",
+      "result": "Yuklash natijasi"
+    },
+    "stepOf": "{n}-qadam, jami 3 ta",
+    "forClass": "O'quvchilar {name} sinfiga yuklanadi",
+    "step1": "1. Shablonni yuklab oling",
+    "step2": "2. To'ldirilgan faylni tanlang",
+    "templateHint": "Ustunlar: F.I.Sh., Sinf, Tug'ilgan sana, Jinsi, ID, Ota-ona telefoni. Sinf ustuni majburiy.",
+    "templateHintClass": "Sinf tanlangani uchun Sinf ustuni ixtiyoriy.",
+    "downloadTemplate": "Shablonni yuklab olish",
+    "chooseFile": "Excel faylni tanlash",
+    "changeFile": "Boshqa faylni tanlash",
+    "dropHere": "Faylni shu yerga tashlang yoki bosib tanlang",
+    "limits": "Faqat .xlsx, 5 MB gacha, {rows} qatorgacha",
+    "uploading": "Fayl yuklanmoqda",
+    "uploadingPercent": "Yuklanmoqda: {p}%",
+    "checking": "Fayl tekshirilmoqda...",
+    "errors": {
+      "notXlsx": "Faqat .xlsx formatidagi fayl qabul qilinadi",
+      "empty": "Fayl bo'sh",
+      "tooLarge": "Fayl hajmi 5 MB dan oshmasligi kerak",
+      "expired": "Sessiya muddati tugadi, faylni qayta yuklang",
+      "alreadyDone": "Bu fayl allaqachon import qilingan"
+    },
+    "summary": {
+      "total": "Jami qatorlar",
+      "valid": "To'g'ri",
+      "invalid": "Xato",
+      "duplicates": "Dublikat"
+    },
+    "filter": "Qatorlarni filtrlash",
+    "filterAll": "Hammasi",
+    "filterInvalid": "Xatolar",
+    "filterDuplicate": "Dublikatlar",
+    "row": "Qator",
+    "problem": "Izoh",
+    "status": {
+      "valid": "To'g'ri",
+      "invalid": "Xato",
+      "duplicate": "Dublikat"
+    },
+    "alreadyExists": "O'quvchi allaqachon mavjud",
+    "downloadErrors": "Xato qatorlarini yuklab olish",
+    "duplicateMode": "Dublikatlar bilan nima qilinsin?",
+    "skip": "O'tkazib yuborish",
+    "update": "Mavjud o'quvchini yangilash",
+    "previewTable": "Import qatorlari",
+    "noRows": "Bu filtr bo'yicha qatorlar yo'q",
+    "noValid": "Saqlash uchun to'g'ri qator yo'q. Faylni tuzatib qayta yuklang.",
+    "check": "Tekshirish",
+    "back": "Orqaga",
+    "confirm": "Saqlash ({n})",
+    "done": "Yuklash yakunlandi",
+    "result": {
+      "created": "Qo'shildi",
+      "updated": "Yangilandi",
+      "skipped": "O'tkazib yuborildi",
+      "failed": "Xato"
+    }
+  },
+  "scoring": {
+    "title": "Baholash",
+    "pickTitle": "Baholash uchun sinfni tanlang",
+    "pickDescription": "Sinfni tanlab, bugungi baholashni boshlang",
+    "backToClass": "Sinfga qaytish",
+    "date": "Sana",
+    "prevDay": "Oldingi kun",
+    "nextDay": "Keyingi kun",
+    "progress": "{done}/{total} baholandi",
+    "progressLabel": "Baholash progressi",
+    "score": "Ball",
+    "slider": "slayder",
+    "selectRow": "{name} ni tanlash",
+    "dayScore": "Kunlik ball",
+    "dayScoreHint": "Shu kun uchun {n} ta bahodan hisoblangan ball",
+    "status": {
+      "locked": "Tahrirlab bo'lmaydi",
+      "saved": "Saqlangan",
+      "dirty": "O'zgargan",
+      "error": "Xato"
+    },
+    "lockedReason": "Tahrirlash vaqti o'tgan ({hours} soat). Faqat ruxsati borlar o'zgartira oladi.",
+    "behaviorType": "Xulq turi",
+    "kinds": {
+      "positive": "Ijobiy",
+      "negative": "Salbiy",
+      "neutral": "Neytral"
+    },
+    "comment": "Izoh",
+    "commentPlaceholder": "Izoh (ixtiyoriy)",
+    "commentRequiredPlaceholder": "Izoh majburiy",
+    "errors": {
+      "required": "Ballni kiriting",
+      "integer": "Ball butun son bo'lishi kerak",
+      "range": "Ball {min} dan {max} gacha bo'lishi kerak",
+      "commentRequired": "{below} dan past ballda izoh majburiy",
+      "behaviorRequired": "Xulq turini tanlang",
+      "commentTooLong": "Izoh {limit} belgidan oshmasligi kerak"
+    },
+    "onlyUnscored": "Faqat baholanmaganlar",
+    "selectAll": "Hammasini belgilash",
+    "bulk": {
+      "title": "Ommaviy baholash",
+      "selected": "{n} ta tanlandi",
+      "clear": "Tanlovni bekor qilish",
+      "apply": "Tanlanganlarga qo'llash",
+      "applied": "{n} ta o'quvchiga qo'llandi (saqlash kerak)"
+    },
+    "unsaved": {
+      "title": "Saqlanmagan o'zgarishlar",
+      "dateText": "Sanani almashtirsangiz, saqlanmagan o'zgarishlar yo'qoladi. Davom etasizmi?",
+      "leaveText": "Saqlanmagan o'zgarishlar bor. Sahifadan chiqsangiz, ular yo'qoladi.",
+      "discard": "Bekor qilib o'tish",
+      "leave": "Chiqish"
+    },
+    "savedPartial": "{ok} ta baho saqlandi, {failed} ta qator xato bilan qoldi",
+    "saved": "{n} ta baho saqlandi",
+    "invalidRows": "{n} ta qatorda xato bor",
+    "unsavedHint": "Saqlanmagan o'zgarishlar bor",
+    "discard": "Bekor qilish",
+    "save": "Saqlash ({n} ta o'zgarish)",
+    "emptyTitle": "Sinfda o'quvchilar yo'q",
+    "emptyText": "Baholash uchun avval sinfga o'quvchi qo'shing.",
+    "noMatches": "Qidiruv bo'yicha o'quvchi topilmadi"
+  },
+  "scores": {
+    "updated": "Baho yangilandi",
+    "edit": "Bahoni tahrirlash",
+    "student": "O'quvchi",
+    "teacher": "O'qituvchi",
+    "deleteTitle": "Bahoni o'chirish",
+    "deleteText": "{name} ning {date} dagi bahosi o'chiriladi. Davom etasizmi?",
+    "deleted": "Baho o'chirildi",
+    "historyTitle": "Baholar tarixi",
+    "historyDescription": "Maktabda qo'yilgan baholar",
+    "myTitle": "Mening baholarim",
+    "myDescription": "Siz qo'ygan baholar tarixi",
+    "from": "Boshlanish sanasi",
+    "to": "Tugash sanasi",
+    "allBehaviors": "Barcha xulq turlari",
+    "notEditable": "Qulflangan",
+    "notEditableHint": "Tahrirlash vaqti ({hours} soat) o'tgan",
+    "emptyTitle": "Baholar topilmadi",
+    "emptyText": "Tanlangan davrda baholar yo'q."
+  },
+  "profile2": {
+    "noTrend": "Tanlangan davrda baholar yo'q",
+    "trendLabel": "{from} dan {to} gacha {n} kunlik ball dinamikasi",
+    "noBehaviors": "Xulq turlari bo'yicha ma'lumot yo'q",
+    "back": "Orqaga",
+    "loadFailed": "O'quvchini yuklab bo'lmadi",
+    "period": "Davr",
+    "periods": {
+      "7": "Oxirgi 7 kun",
+      "30": "Oxirgi 30 kun",
+      "custom": "Boshqa davr"
+    },
+    "stats": {
+      "average": "O'rtacha ball",
+      "days": "Baholangan kunlar",
+      "count": "Baholar soni"
+    },
+    "trend": "Ball dinamikasi",
+    "behaviors": "Xulq turlari taqsimoti",
+    "recent": "Oxirgi baholar",
+    "noRecent": "Baholar yo'q",
+    "reportPdf": "Hisobot (PDF)"
+  },
+  "behaviorTypes": {
+    "title": "Xulq turlari",
+    "description": "Baho qo'yishda tanlanadigan xulq turlari (reytingga ta'sir qilmaydi)",
+    "add": "Xulq turi qo'shish",
+    "edit": "Xulq turini tahrirlash",
+    "name": "Nomi",
+    "kind": "Turi",
+    "order": "Tartib raqami",
+    "color": "Rang",
+    "pickColor": "Rang tanlash",
+    "hex": "Rang kodi",
+    "minScore": "Tavsiya etilgan min ball",
+    "maxScore": "Tavsiya etilgan max ball",
+    "rangeHint": "Ixtiyoriy",
+    "range": "Ball oralig'i",
+    "scope": "Ko'lami",
+    "global": "Global (barcha maktablar)",
+    "scopes": {
+      "all": "Hammasi",
+      "global": "Faqat global",
+      "school": "Tanlangan maktab"
+    },
+    "created": "Xulq turi yaratildi",
+    "updated": "Xulq turi saqlandi",
+    "nameTaken": "Bunday nomli xulq turi mavjud",
+    "emptyTitle": "Xulq turlari yo'q",
+    "emptyText": "Birinchi xulq turini qo'shing.",
+    "activateTitle": "Xulq turini faollashtirish",
+    "activateText": "\"{name}\" yana tanlash mumkin bo'ladi. Davom etasizmi?",
+    "deactivateTitle": "Xulq turini nofaol qilish",
+    "deactivateText": "\"{name}\" yangi baholarda tanlanmaydi (eski baholar saqlanadi). Davom etasizmi?",
+    "activated": "Xulq turi faollashtirildi",
+    "deactivated": "Xulq turi nofaol qilindi"
+  },
+  "settings": {
+    "title": "Sozlamalar",
+    "description": "Tizim sozlamalari",
+    "tabs": {
+      "scoring": "Baholash qoidalari",
+      "rating": "Reyting",
+      "public": "Ochiq ko'rinish",
+      "attendance": "Davomat"
+    },
+    "fields": {
+      "minScore": {
+        "label": "Minimal ball",
+        "hint": "Qo'yish mumkin bo'lgan eng kichik ball"
+      },
+      "maxScore": {
+        "label": "Maksimal ball",
+        "hint": "Qo'yish mumkin bo'lgan eng katta ball"
+      },
+      "requireBehaviorType": {
+        "label": "Xulq turi majburiy",
+        "hint": "Yoqilsa, har bir bahoda xulq turi tanlanishi shart"
+      },
+      "commentRequiredBelow": {
+        "label": "Izoh majburiy chegarasi",
+        "hint": "Shu balldan past baholarda izoh majburiy bo'ladi"
+      },
+      "editWindowHours": {
+        "label": "Tahrirlash oynasi (soat)",
+        "hint": "O'qituvchi bahoni qo'ygandan keyin shuncha soat ichida tahrirlay oladi"
+      },
+      "backdateDays": {
+        "label": "Orqaga sana (kun)",
+        "hint": "Bugundan necha kun oldingacha baho qo'yish mumkin"
+      },
+      "dailyAggregation": {
+        "label": "Kunlik ball usuli",
+        "hint": "Bir kunda bir nechta o'qituvchi baholasa, kunlik ball qanday olinadi"
+      },
+      "periodType": {
+        "label": "Reyting davri",
+        "hint": "Reyting qaysi davr uchun hisoblanadi"
+      },
+      "method": {
+        "label": "Hisoblash usuli",
+        "hint": "Kunlik ballardan reyting balli qanday olinadi"
+      },
+      "minScoresCount": {
+        "label": "Minimal baholangan kunlar",
+        "hint": "Reytingga kirish uchun kamida shuncha kun baholangan bo'lishi kerak"
+      },
+      "tieBreak": {
+        "label": "Teng ballarda tartiblash",
+        "hint": "Ballar teng bo'lsa, o'rin shu tartib bo'yicha aniqlanadi"
+      },
+      "refreshMode": {
+        "label": "Yangilanish rejimi",
+        "hint": "Reyting qachon qayta hisoblanadi"
+      },
+      "enabled": {
+        "label": "Ochiq reyting yoqilgan",
+        "hint": "Maktab reytingi ochiq sahifada ko'rinadimi"
+      },
+      "showScope": {
+        "label": "Ko'rsatish ko'lami",
+        "hint": "Ochiq sahifada faqat o'z maktabi yoki umumiy reyting ham"
+      },
+      "includeInGlobal": {
+        "label": "Umumiy reytingga qo'shish",
+        "hint": "Maktab umumiy reytingda ishtirok etadimi"
+      },
+      "showClasses": {
+        "label": "Sinflar reytingi",
+        "hint": "Ochiq sahifada sinflar reytingini ko'rsatish"
+      },
+      "showStudents": {
+        "label": "O'quvchilar reytingi",
+        "hint": "Ochiq sahifada o'quvchilar reytingini ko'rsatish"
+      },
+      "topStudents": {
+        "label": "Top o'quvchilar soni",
+        "hint": "Ochiq sahifada nechta o'quvchi ko'rsatiladi"
+      },
+      "showScores": {
+        "label": "Ballni ko'rsatish",
+        "hint": "Ochiq sahifada ballar ko'rinadimi"
+      },
+      "showMedals": {
+        "label": "Medallar",
+        "hint": "Birinchi uchta o'rin uchun medal belgisi"
+      },
+      "showTrend": {
+        "label": "O'rin o'zgarishi",
+        "hint": "Oldingi davrga nisbatan o'rin o'zgarishi (yuqoriga/pastga)"
+      },
+      "title": {
+        "label": "Sarlavha",
+        "hint": "Belgilanmasa maktab nomi ishlatiladi (80 belgigacha)"
+      },
+      "subtitle": {
+        "label": "Qo'shimcha sarlavha",
+        "hint": "160 belgigacha"
+      },
+      "primaryColor": {
+        "label": "Asosiy rang",
+        "hint": "Ochiq sahifaning asosiy rangi"
+      },
+      "autoRefreshSeconds": {
+        "label": "Avtomatik yangilanish (soniya)",
+        "hint": "30 dan 3600 gacha"
+      },
+      "tvSlideSeconds": {
+        "label": "TV slayd vaqti (soniya)",
+        "hint": "TV rejimida slaydlar almashinish vaqti, 5 dan 120 gacha"
+      },
+      "globalRatingEnabled": {
+        "label": "Umumiy reyting",
+        "hint": "Barcha maktablar umumiy reytingi"
+      },
+      "customFrom": {
+        "label": "Boshlanish sanasi",
+        "hint": ""
+      },
+      "customTo": {
+        "label": "Tugash sanasi",
+        "hint": ""
+      }
+    },
+    "aggregation": {
+      "average": "O'rtacha",
+      "min": "Eng past",
+      "last": "Oxirgi"
+    },
+    "off": "O'chirilgan",
+    "yes": "Ha",
+    "no": "Yo'q",
+    "thresholdEnabled": "Chegara yoqilgan",
+    "errors": {
+      "nonNegativeInt": "Manfiy bo'lmagan butun son kiriting",
+      "maxGtMin": "Maksimal ball minimaldan katta bo'lishi kerak",
+      "integer": "Butun son kiriting",
+      "thresholdRange": "Chegara {min} dan katta va {max} dan oshmasligi kerak"
+    },
+    "override": {
+      "useOwn": "Maktab uchun alohida",
+      "globalValue": "Global qiymat",
+      "schoolValue": "maktab qiymati"
+    },
+    "globalTitle": "Global qiymatlar",
+    "globalText": "Barcha maktablar uchun standart baholash qoidalari.",
+    "schoolTitle": "Maktab bo'yicha alohida sozlash",
+    "schoolText": "Tanlangan maktab uchun global qiymatni bekor qiladigan maydonlarni belgilang.",
+    "school": "Maktab",
+    "selectSchool": "Maktabni tanlang",
+    "hasOverride": "Bu maktabda alohida qiymatlar belgilangan.",
+    "noOverride": "Bu maktab global qiymatlardan foydalanadi.",
+    "confirmGlobalTitle": "Global sozlamalarni saqlash",
+    "confirmChanges": "Quyidagi o'zgarishlar saqlanadi:",
+    "confirmSchoolTitle": "{name} sozlamalarini saqlash",
+    "noValueChanges": "Qiymatlar o'zgarmaydi, faqat alohida belgilash holati yangilanadi.",
+    "saved": "Sozlamalar saqlandi",
+    "undo": "O'zgarishlarni bekor qilish",
+    "reset": "Global qiymatga qaytarish",
+    "resetTitle": "Global qiymatga qaytarish",
+    "resetText": "{name} uchun alohida qiymatlar o'chiriladi va global qiymatlar qo'llanadi. Davom etasizmi?",
+    "resetDone": "Maktab global qiymatlarga qaytarildi",
+    "defaults": "Standart qiymatlarga qaytarish",
+    "defaultsTitle": "Standart qiymatlar",
+    "defaultsText": "Global sozlamalar tizimning standart qiymatlariga qaytariladi (0-100, xulq turi majburiy, 24 soat, 3 kun, o'rtacha). Davom etasizmi?",
+    "defaultsDone": "Global sozlamalar standartga qaytarildi",
+    "options": {
+      "periodType": {
+        "week": "Haftalik",
+        "month": "Oylik",
+        "quarter": "Chorak",
+        "academic_year": "O'quv yili",
+        "custom": "Erkin davr"
+      },
+      "method": {
+        "average": "O'rtacha",
+        "sum": "Yig'indi"
+      },
+      "refreshMode": {
+        "realtime": "Real vaqtda",
+        "nightly": "Kechasi (kuniga bir marta)"
+      },
+      "tieBreak": {
+        "daysCount": "Baholangan kunlar soni",
+        "scoresCount": "Baholar soni",
+        "alphabetical": "Alifbo tartibi"
+      },
+      "showScope": {
+        "own": "Faqat o'z maktabi",
+        "global": "Umumiy reyting ham ko'rsatilsin"
+      },
+      "topStudents": {
+        "all": "Hammasi"
+      },
+      "mode": {
+        "daily": "Kunlik",
+        "lesson": "Dars bo'yicha"
+      }
+    },
+    "methodHelp": {
+      "average": "Kunlik ballarning o'rtacha arifmetigi. Kam baholangan o'quvchi ham adolatli taqqoslanadi.",
+      "sum": "Kunlik ballar yig'indisi. Ko'p kun baholangan o'quvchi ustunlikka ega bo'ladi."
+    },
+    "tie": {
+      "up": "Yuqoriga",
+      "down": "Pastga",
+      "remove": "Olib tashlash",
+      "locked": "Alifbo tartibi doim oxirida turadi va o'zgartirilmaydi"
+    },
+    "notSet": "Belgilanmagan",
+    "ownSchool": "Maktabingiz",
+    "ownSchoolTitle": "Maktabingiz davomat sozlamalari",
+    "ownSchoolText": "Belgilangan maydonlar faqat sizning maktabingiz uchun global qiymatni bekor qiladi."
+  },
+  "settingsRating": {
+    "errors": {
+      "minDays": "Kamida 1 kun bo'lishi kerak (butun son)"
+    },
+    "pickSchoolForPeriod": "Joriy davrni ko'rish uchun yuqoridan maktabni tanlang.",
+    "currentPeriod": "Joriy davr"
+  },
+  "settingsPublic": {
+    "errors": {
+      "range": "{min} dan {max} gacha butun son kiriting"
+    },
+    "scopeHelp": {
+      "own": "Ochiq sahifada faqat shu maktab o'quvchilari va sinflari ko'rinadi.",
+      "global": "Shu maktab sahifasida maktablarning umumiy reytingi ham ko'rsatiladi (platforma darajasida yoqilgan bo'lsa)."
+    },
+    "defaultColor": "Standart",
+    "top": {
+      "n": "Top {n}",
+      "custom": "Boshqa son"
+    },
+    "preview": {
+      "title": "Jonli ko'rinish",
+      "label": "Ochiq reyting ko'rinishining namunasi",
+      "defaultTitle": "Maktab nomi",
+      "disabled": "Ochiq reyting o'chirilgan - tashrifchilar ko'rmaydi",
+      "students": "O'quvchilar",
+      "classes": "Sinflar",
+      "nothing": "Hech narsa ko'rsatilmaydi",
+      "footer": "Har {refresh} soniyada yangilanadi, TV slayd: {slide} soniya",
+      "student1": "Aliyev Vali",
+      "student2": "Karimova Malika",
+      "student3": "Rahimov Sardor",
+      "student4": "Qodirova Nodira",
+      "student5": "Tursunov Bobur"
+    },
+    "link": {
+      "title": "Maktabning ochiq reyting havolasi",
+      "column": "Ochiq reyting",
+      "copy": "Havolani nusxalash",
+      "copied": "Havola nusxalandi",
+      "copyFailed": "Nusxalab bo'lmadi",
+      "open": "Yangi oynada ochish",
+      "on": "Yoqilgan",
+      "off": "O'chirilgan"
+    },
+    "global": {
+      "title": "Umumiy reyting (barcha maktablar)",
+      "text": "Yoqilsa, ochiq sahifada maktablar o'rtacha ball bo'yicha tartiblanib birga ko'rsatiladi. Bu platforma darajasidagi sozlama va maktab uchun alohida belgilanmaydi.",
+      "switch": "Umumiy reytingni yoqish",
+      "included": "Umumiy reytingda ishtirok etayotgan maktablar:",
+      "none": "Hozircha ochiq reytingi yoqilgan maktab yo'q",
+      "listFailed": "Maktablar ro'yxatini yuklab bo'lmadi"
+    }
+  },
+  "ratings": {
+    "title": "Reyting",
+    "description": "O'quvchilar, sinflar va maktablar reytingi",
+    "recalculate": "Qayta hisoblash",
+    "recalculated": "Reyting qayta hisoblandi",
+    "fallbackNote": "Joriy davr uchun ma'lumot yo'q, oxirgi mavjud davr ko'rsatilmoqda",
+    "calculatedAt": "Hisoblangan",
+    "notCalculated": "hali hisoblanmagan",
+    "tabs": {
+      "students": "O'quvchilar",
+      "classes": "Sinflar",
+      "schools": "Maktablar"
+    },
+    "rank": "O'rin",
+    "place": "{n}-o'rin",
+    "daysCount": "Baholangan kunlar",
+    "changeCol": "O'zgarish",
+    "change": {
+      "up": "{n} o'ringa ko'tarildi",
+      "down": "{n} o'ringa tushdi",
+      "none": "O'zgarish yo'q"
+    },
+    "notEnough": "Yetarli baho yo'q ({n}/{m} kun)",
+    "rated": "Baholangan / jami",
+    "school": "Maktab",
+    "inPublic": "Ochiq reytingda",
+    "openClassStudents": "Sinf o'quvchilarini ko'rish",
+    "period": {
+      "current": "Joriy davr",
+      "custom": "Maxsus oraliq"
+    },
+    "periodLabel": "Davr",
+    "customHint": "Maxsus davr uchun boshlanish va tugash sanasini kiriting (boshlanish tugashdan oldin bo'lsin).",
+    "includeIneligible": "Reytingga kirmaganlarni ham ko'rsat",
+    "emptyTitle": "Reyting hali yo'q",
+    "emptyText": "Tanlangan davrda baholar yo'q yoki hali hisoblanmagan.",
+    "top": {
+      "students": "Top 5 o'quvchi",
+      "classes": "Top 3 sinf",
+      "all": "Hammasini ko'rish"
+    },
+    "penalty": "Davomat jarimasi",
+    "penaltyHint": "Davomat bo'yicha ayirilgan ball (reytingga ta'sir yoqilgan)"
+  },
+  "settingsAttendance": {
+    "weekdays": {
+      "1": "Du",
+      "2": "Se",
+      "3": "Ch",
+      "4": "Pa",
+      "5": "Ju",
+      "6": "Sh",
+      "7": "Ya"
+    },
+    "fields": {
+      "mode": {
+        "label": "Davomat birligi",
+        "hint": "Davomat har kuni bir marta yoki har bir dars uchun olinadi"
+      },
+      "lessonsPerDay": {
+        "label": "Kunlik darslar soni",
+        "hint": "1 dan 12 gacha"
+      },
+      "workingWeekdays": {
+        "label": "Ish kunlari",
+        "hint": "Dam olish kunlari uchun davomat olinmaydi va 'olinmagan' hisobiga kirmaydi"
+      },
+      "editWindowHours": {
+        "label": "Tahrirlash oynasi (soat)",
+        "hint": "O'qituvchi o'z yozuvini shuncha soat ichida tahrirlay oladi"
+      },
+      "backdateDays": {
+        "label": "Orqaga sana (kun)",
+        "hint": "Bugundan necha kun oldingacha davomat olish mumkin"
+      },
+      "noteRequiredCategories": {
+        "label": "Izoh majburiy kategoriyalar",
+        "hint": "Tanlangan kategoriyadagi holatda izoh yozish shart"
+      },
+      "ratingImpact": {
+        "label": "Davomatning reytingga ta'siri",
+        "hint": "Standart: ta'sir yo'q (reyting faqat ball bo'yicha)"
+      }
+    },
+    "penalty": {
+      "penaltyLate": "Kechikish jarimasi (ball)",
+      "penaltyAbsentExcused": "Sababli yo'qlik jarimasi (ball)",
+      "penaltyAbsentUnexcused": "Sababsiz yo'qlik jarimasi (ball)"
+    },
+    "impactHelp": "Davr ichidagi har bir davomat birligi uchun jarima davr ballidan ayiriladi, natija 0 dan pastga tushmaydi. Jarimalar ball shkalasida kiritiladi. Reyting avtomatik qayta hisoblanadi.",
+    "impactSummary": "kechikish {late}, sababli {excused}, sababsiz {unexcused}",
+    "confirmImpact": "DIQQAT: davomatning reytingga ta'siri yoqilmoqda. Barcha o'quvchilar reytingi jarimalarga ko'ra qayta hisoblanadi.",
+    "errors": {
+      "lessons": "Darslar soni 1 dan 12 gacha butun son bo'lishi kerak",
+      "weekdays": "Kamida bitta ish kunini tanlang",
+      "penalty": "Jarimalar manfiy bo'lmagan son bo'lishi kerak"
+    }
+  },
+  "attendance": {
+    "title": "Davomat",
+    "action": "Davomat",
+    "pickTitle": "Davomat uchun sinfni tanlang",
+    "pickDescription": "Sinfni tanlab, bugungi davomatni oling",
+    "status": "Holat",
+    "note": "Izoh",
+    "notePlaceholder": "Izoh (ixtiyoriy)",
+    "noteRequiredPlaceholder": "Izoh majburiy",
+    "minutesLate": "Kechikish",
+    "minutesUnit": "daq.",
+    "lesson": "Dars",
+    "lessonN": "{n}-dars",
+    "lessonProgress": "{done}/{total} o'quvchi belgilangan",
+    "notWorkingDay": "Bu kun ish kuni emas. Dam olish kuni uchun davomat olinmaydi.",
+    "saveBlocked": "Ish kuni bo'lmagan kun uchun saqlab bo'lmaydi",
+    "onlyUnmarked": "Faqat olinmaganlar",
+    "markAll": "Hammasi: {name}",
+    "markRemaining": "Qolganlari: {name}",
+    "stats": {
+      "label": "Davomat statistikasi",
+      "present": "Keldi",
+      "late": "Kechikdi",
+      "absent": "Yo'q",
+      "unmarked": "Olinmagan"
+    },
+    "state": {
+      "locked": "Tahrirlab bo'lmaydi",
+      "saved": "Saqlangan",
+      "dirty": "O'zgargan",
+      "error": "Xato"
+    },
+    "lockedReason": "{name} belgilagan; tahrirlash vaqti ({hours} soat) o'tgan yoki boshqa o'qituvchi yozuvi.",
+    "errors": {
+      "statusRequired": "Holatni tanlang",
+      "minutesRange": "Kechikish 1 dan 600 daqiqagacha bo'lishi kerak",
+      "noteRequired": "Bu holat uchun izoh majburiy",
+      "noteTooLong": "Izoh {max} belgidan oshmasligi kerak"
+    },
+    "unsaved": {
+      "title": "Saqlanmagan o'zgarishlar",
+      "dateText": "Sanani almashtirsangiz, saqlanmagan o'zgarishlar yo'qoladi. Davom etasizmi?",
+      "lessonText": "Darsni almashtirsangiz, saqlanmagan o'zgarishlar yo'qoladi. Davom etasizmi?",
+      "leaveText": "Saqlanmagan o'zgarishlar bor. Sahifadan chiqsangiz, ular yo'qoladi.",
+      "discard": "Bekor qilib o'tish",
+      "leave": "Chiqish"
+    },
+    "savedPartial": "{ok} ta yozuv saqlandi, {failed} ta qator xato bilan qoldi",
+    "saved": "{n} ta yozuv saqlandi",
+    "save": "Saqlash ({n} ta o'zgarish)",
+    "progress": "{done}/{total} belgilandi",
+    "notTakenToday": "Bugun olinmagan",
+    "categories": {
+      "present": "Keldi",
+      "late": "Kechikdi",
+      "absent_excused": "Sababli yo'q",
+      "absent_unexcused": "Sababsiz yo'q"
+    },
+    "historyTitle": "Davomat hisoboti",
+    "historyDescription": "Sinf bo'yicha davomat statistikasi va yozuvlar",
+    "pickClass": "Sinfni tanlang",
+    "pickClassText": "Hisobotni ko'rish uchun sinf tanlang.",
+    "quickRange": "Tezkor davr",
+    "presets": {
+      "today": "Bugun",
+      "week": "7 kun",
+      "month": "Oy (30 kun)",
+      "quarter": "Chorak (90 kun)"
+    },
+    "tabs": {
+      "stats": "Statistika",
+      "records": "Yozuvlar"
+    },
+    "summary": {
+      "caption": "Davomat statistikasi ({unit} bo'yicha)",
+      "total": "Jami",
+      "rate": "Davomat foizi",
+      "classRate": "Sinf davomati",
+      "unitInfo": "Hisob birligi: {unit}, jami: {n}",
+      "totalN": "Jami: {n}"
+    },
+    "units": {
+      "day": "kun",
+      "lesson": "dars"
+    },
+    "records": "Davomat yozuvlari",
+    "recordsEmptyTitle": "Yozuvlar topilmadi",
+    "recordsEmptyText": "Tanlangan davrda davomat yozuvlari yo'q.",
+    "allStatuses": "Barcha holatlar",
+    "allLessons": "Barcha darslar",
+    "markedBy": "Belgilagan",
+    "edit": "Davomatni tahrirlash",
+    "updated": "Yozuv yangilandi",
+    "deleteTitle": "Yozuvni o'chirish",
+    "deleteText": "{name} ning {date} dagi davomat yozuvi o'chiriladi. Davom etasizmi?",
+    "deleted": "Yozuv o'chirildi",
+    "notEditableHint": "Tahrirlash vaqti ({hours} soat) o'tgan yoki boshqa o'qituvchi yozuvi",
+    "profileTitle": "Davomat",
+    "calendarTitle": "Oylik kalendar",
+    "byStatus": "Holatlar bo'yicha taqsimot",
+    "recent": "Oxirgi yozuvlar"
+  },
+  "attendanceStatuses": {
+    "title": "Davomat holatlari",
+    "description": "Davomat olishda tanlanadigan holatlar (kategoriya hisobot va reytingga ta'sir qiladi)",
+    "add": "Holat qo'shish",
+    "edit": "Holatni tahrirlash",
+    "name": "Nomi",
+    "shortName": "Qisqa belgi",
+    "category": "Kategoriya",
+    "default": "Standart holat",
+    "defaultHint": "Faqat 'Keldi' kategoriyasida; 'Hammasi keldi' tugmasi shuni qo'llaydi",
+    "defaultOnlyPresent": "Standart holat faqat 'Keldi' kategoriyasida bo'ladi",
+    "categoryLockedHint": "Yozuvlar buzilmasligi uchun mavjud holat kategoriyasi qulflangan.",
+    "unlockCategory": "Kategoriyani o'zgartirish (yozuvlari bor holatda mumkin emas)",
+    "categoryInUse": "Bu holatda yozuvlar bor, kategoriyani o'zgartirib bo'lmaydi",
+    "nameTaken": "Bunday nomli holat mavjud",
+    "created": "Holat yaratildi",
+    "updated": "Holat saqlandi",
+    "emptyTitle": "Holatlar yo'q",
+    "emptyText": "Birinchi davomat holatini qo'shing.",
+    "activateTitle": "Holatni faollashtirish",
+    "activateText": "\"{name}\" davomat olishda yana tanlanadi. Davom etasizmi?",
+    "deactivateTitle": "Holatni nofaol qilish",
+    "deactivateText": "\"{name}\" yangi davomatda tanlanmaydi (eski yozuvlar saqlanadi). Davom etasizmi?",
+    "activated": "Holat faollashtirildi",
+    "deactivated": "Holat nofaol qilindi"
+  },
+  "calendar": {
+    "months": {
+      "1": "Yanvar",
+      "2": "Fevral",
+      "3": "Mart",
+      "4": "Aprel",
+      "5": "May",
+      "6": "Iyun",
+      "7": "Iyul",
+      "8": "Avgust",
+      "9": "Sentabr",
+      "10": "Oktabr",
+      "11": "Noyabr",
+      "12": "Dekabr"
+    },
+    "rest": "Dam olish kuni",
+    "noRecord": "Davomat olinmagan",
+    "lessons": "{n} ta dars",
+    "prev": "Oldingi oy",
+    "next": "Keyingi oy"
+  },
+  "reports": {
+    "title": "Hisobotlar",
+    "description": "Sinf, o'quvchi, o'qituvchi va maktab bo'yicha hisobotlar; Excel va PDF eksport.",
+    "periodLabel": "Davr",
+    "presets": {
+      "today": "Bugun",
+      "week": "7 kun",
+      "month": "Joriy oy",
+      "lastMonth": "O'tgan oy",
+      "year": "O'quv yili",
+      "custom": "Maxsus"
+    },
+    "periodErrors": {
+      "required": "Boshlanish va tugash sanasini tanlang",
+      "order": "Boshlanish sanasi tugash sanasidan keyin bo'lmasligi kerak",
+      "future": "Davr kelajakka chiqmasligi kerak",
+      "tooLong": "Davr 366 kundan oshmasligi kerak"
+    },
+    "tabs": {
+      "class": "Sinf",
+      "student": "O'quvchi",
+      "teachers": "O'qituvchilar faolligi",
+      "school": "Maktab umumiy",
+      "behavior": "Xulq statistikasi",
+      "schools": "Maktablar"
+    },
+    "excel": "Excel",
+    "pdf": "PDF",
+    "print": "Chop etish",
+    "downloaded": "Fayl yuklandi: {name}",
+    "exportForbidden": "Hisobotni eksport qilish uchun ruxsat yo'q",
+    "idle": "Hisobotni ko'rish uchun filtrni tanlang",
+    "pickClass": "Hisobot uchun sinfni tanlang",
+    "pickClassOption": "Sinfni tanlang",
+    "pickStudent": "Hisobot uchun o'quvchini tanlang",
+    "pickStudentOption": "O'quvchini tanlang",
+    "pickPeriod": "Davrni tanlang",
+    "student": "O'quvchi",
+    "emptyTitle": "Bu davrda ma'lumot yo'q",
+    "emptyText": "Tanlangan davr va filtr bo'yicha ma'lumot topilmadi. Davrni o'zgartirib ko'ring.",
+    "shown": "{n} / {total} ta ko'rsatilgan",
+    "showMore": "Ko'proq ko'rsatish",
+    "homeroom": "Sinf rahbari",
+    "behaviorDistribution": "Xulq turlari taqsimoti",
+    "attendanceBlock": "Davomat",
+    "entries": "Baholar ro'yxati",
+    "noEntries": "Bu davrda baholar yo'q",
+    "classesTable": "Sinflar",
+    "dailyScore": "Kunlik o'rtacha ball",
+    "dailyAttendance": "Kunlik davomat (%)",
+    "coverageHint": "Qamrov: kutilgan sinf-kunlarning nechtasida baho qo'yilgan. 50% dan past - sariq, 20% dan past - qizil.",
+    "noActivity": "Faollik yo'q",
+    "kindRatio": "Ijobiy / salbiy / neytral nisbati",
+    "byType": "Tur bo'yicha",
+    "byClass": "Sinflar bo'yicha",
+    "noTop": "Ma'lumot yo'q",
+    "top": {
+      "positive": "Eng ko'p ijobiy xulq (top 10)",
+      "negative": "Eng ko'p salbiy xulq (top 10)"
+    },
+    "kinds": {
+      "positive": "Ijobiy",
+      "negative": "Salbiy",
+      "neutral": "Neytral"
+    },
+    "stats": {
+      "students": "O'quvchilar",
+      "rated": "{n} tasi baholangan",
+      "avgScore": "O'rtacha ball",
+      "attendance": "Davomat",
+      "penalty": "Jarima",
+      "rank": "Reyting o'rni (maktab)",
+      "days": "Baholangan kunlar",
+      "scores": "Baholar soni",
+      "classes": "Sinflar",
+      "teachers": "O'qituvchilar",
+      "lowCoverage": "Qamrovi past (faol)",
+      "ratedInClass": "Sinfda reytingdagilar: {n} ta",
+      "classRank": "Sinfda o'rin",
+      "schoolRank": "Maktabda o'rin",
+      "outOf": "{n} dan"
+    },
+    "cols": {
+      "rank": "Reyting o'rni",
+      "avgScore": "O'rtacha ball",
+      "ratingScore": "Reyting bali",
+      "days": "Kunlar",
+      "attendanceRate": "Davomat",
+      "penalty": "Jarima",
+      "topBehavior": "Asosiy xulq",
+      "teacher": "O'qituvchi",
+      "classes": "Sinflar",
+      "scoresCount": "Baholar",
+      "daysActive": "Faol kunlar",
+      "studentsScored": "Baholangan o'quvchilar",
+      "attendanceUnits": "Davomat birliklari",
+      "lastActivity": "Oxirgi faollik",
+      "coverage": "Qamrov",
+      "class": "Sinf",
+      "students": "O'quvchilar",
+      "total": "Jami",
+      "school": "Maktab",
+      "activeTeachers": "Faol o'qituvchilar",
+      "classRank": "Sinfda",
+      "schoolRank": "Maktabda"
+    }
+  },
+  "audit": {
+    "title": "Audit log",
+    "description": "Tizimdagi muhim harakatlar: kim, qachon, nima qilgani. Faqat o'qish.",
+    "filters": "Filtrlar",
+    "reset": "Filtrlarni tozalash",
+    "quick": {
+      "today": "Bugun",
+      "week": "7 kun",
+      "month": "30 kun"
+    },
+    "allUsers": "Barcha foydalanuvchilar",
+    "allSchools": "Barcha maktablar",
+    "allGroups": "Barcha guruhlar",
+    "allActions": "Barcha harakatlar",
+    "allInGroup": "Guruhdagi barcha harakatlar",
+    "allEntities": "Barcha obyektlar",
+    "actionGroup": "Harakat guruhi",
+    "searchPlaceholder": "Qidirish...",
+    "cols": {
+      "time": "Vaqt",
+      "user": "Foydalanuvchi",
+      "action": "Harakat",
+      "entity": "Obyekt",
+      "school": "Maktab"
+    },
+    "system": "Tizim",
+    "emptyTitle": "Yozuvlar topilmadi",
+    "emptyText": "Tanlangan filtr bo'yicha audit yozuvlari yo'q.",
+    "perPage": "Sahifada",
+    "rel": {
+      "now": "hozirgina",
+      "minutes": "{n} daqiqa oldin",
+      "hours": "{n} soat oldin",
+      "days": "{n} kun oldin"
+    },
+    "detailTitle": "Audit yozuvi",
+    "changes": "O'zgarishlar",
+    "rawJson": "Xom JSON",
+    "showRaw": "Xom JSON",
+    "showDiff": "O'zgarishlar",
+    "copy": "Nusxalash",
+    "copied": "Nusxalandi",
+    "copyFailed": "Nusxalab bo'lmadi",
+    "noChanges": "O'zgargan maydon yo'q",
+    "truncated": "Katta obyekt qisqartirilgan: ba'zi maydonlar ko'rsatilmaydi.",
+    "kinds": {
+      "added": "qo'shildi",
+      "removed": "olib tashlandi",
+      "changed": "o'zgardi"
+    },
+    "groups": {
+      "auth": "Kirish",
+      "scores": "Baholar",
+      "attendance": "Davomat",
+      "attendance_status": "Davomat holatlari",
+      "settings": "Sozlamalar",
+      "student": "O'quvchilar",
+      "students": "O'quvchilar (ommaviy)",
+      "class": "Sinflar",
+      "school": "Maktablar",
+      "academic_year": "O'quv yillari",
+      "behavior_type": "Xulq turlari",
+      "ratings": "Reyting",
+      "teacher": "O'qituvchilar",
+      "user": "Foydalanuvchilar",
+      "school_admin": "Maktab adminlari",
+      "reports": "Hisobotlar"
+    },
+    "entities": {
+      "academic_year": "O'quv yili",
+      "attendance": "Davomat",
+      "attendance_status": "Davomat holati",
+      "behavior_type": "Xulq turi",
+      "class": "Sinf",
+      "rating": "Reyting",
+      "school": "Maktab",
+      "score": "Baho",
+      "settings": "Sozlama",
+      "student": "O'quvchi",
+      "user": "Foydalanuvchi",
+      "report": "Hisobot"
+    },
+    "actions": {
+      "auth": {
+        "login": "Tizimga kirdi",
+        "locked": "Hisob bloklandi",
+        "password_change": "Parolni o'zgartirdi",
+        "refresh_reuse": "Token qayta ishlatildi (shubhali)"
+      },
+      "scores": {
+        "create": "Baho qo'ydi",
+        "update": "Bahoni o'zgartirdi",
+        "delete": "Bahoni o'chirdi",
+        "bulk": "Ommaviy baholadi"
+      },
+      "attendance": {
+        "bulk": "Davomat oldi",
+        "update": "Davomatni o'zgartirdi",
+        "delete": "Davomatni o'chirdi"
+      },
+      "attendance_status": {
+        "create": "Davomat holati qo'shdi",
+        "update": "Davomat holatini o'zgartirdi",
+        "activate": "Davomat holatini faollashtirdi",
+        "deactivate": "Davomat holatini nofaol qildi"
+      },
+      "settings": {
+        "update": "Sozlamani o'zgartirdi"
+      },
+      "student": {
+        "create": "O'quvchi qo'shdi",
+        "update": "O'quvchini o'zgartirdi",
+        "delete": "O'quvchini o'chirdi",
+        "transfer": "O'quvchini ko'chirdi"
+      },
+      "students": {
+        "import": "O'quvchilarni import qildi"
+      },
+      "class": {
+        "create": "Sinf qo'shdi",
+        "update": "Sinfni o'zgartirdi",
+        "teachers": "Sinf o'qituvchilarini o'zgartirdi",
+        "archive": "Sinfni arxivladi",
+        "unarchive": "Sinfni arxivdan chiqardi"
+      },
+      "school": {
+        "create": "Maktab qo'shdi",
+        "update": "Maktabni o'zgartirdi"
+      },
+      "academic_year": {
+        "create": "O'quv yili qo'shdi",
+        "update": "O'quv yilini o'zgartirdi",
+        "delete": "O'quv yilini o'chirdi",
+        "activate": "O'quv yilini faollashtirdi"
+      },
+      "behavior_type": {
+        "create": "Xulq turi qo'shdi",
+        "update": "Xulq turini o'zgartirdi",
+        "activate": "Xulq turini faollashtirdi",
+        "deactivate": "Xulq turini nofaol qildi"
+      },
+      "ratings": {
+        "recalculate": "Reytingni qayta hisobladi"
+      },
+      "teacher": {
+        "classes": "O'qituvchi sinflarini o'zgartirdi",
+        "create": "O'qituvchi qo'shdi",
+        "update": "O'qituvchini o'zgartirdi",
+        "permissions": "O'qituvchi ruxsatlarini o'zgartirdi",
+        "password_reset": "O'qituvchi parolini tikladi"
+      },
+      "reports": {
+        "export": "Hisobotni eksport qildi"
+      },
+      "school_admin": {
+        "create": "Maktab admini qo'shdi",
+        "update": "Maktab adminini o'zgartirdi",
+        "permissions": "Maktab admini ruxsatlarini o'zgartirdi",
+        "password_reset": "Maktab admini parolini tikladi"
+      }
+    }
+  }
+}
