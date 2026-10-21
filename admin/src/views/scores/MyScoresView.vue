@@ -20,10 +20,13 @@ import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { usePagination } from '@/composables/usePagination'
 import { useEffectiveScoring } from '@/composables/useScoringSettings'
 import { useToast } from '@/composables/useToast'
+import { PERMISSIONS } from '@/constants/permissions'
+import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
 import { shiftDate, todayTashkent, withAlpha } from '@/utils/scoring'
+import MyGradesTable from './MyGradesTable.vue'
 import ScoreEditModal from './ScoreEditModal.vue'
 
 const { t } = useI18n()
@@ -35,6 +38,18 @@ const schoolCtx = useSchoolContextStore()
 
 // /my-scores (o'qituvchi) va /scores (admin: barcha o'qituvchilar baholari tarixi)
 const isHistory = computed(() => route.name === 'scores-history')
+
+// Ikki bo'lim: xulq baholari (0-100) va fan baholari (2-5)
+const auth = useAuthStore()
+const tab = ref<'conduct' | 'subjects'>('conduct')
+const canGrades = computed(() =>
+  [
+    PERMISSIONS.GRADES_CREATE,
+    PERMISSIONS.GRADES_EDIT,
+    PERMISSIONS.REPORTS_VIEW,
+    PERMISSIONS.STUDENTS_VIEW,
+  ].some((p) => auth.hasPermission(p)),
+)
 
 const today = todayTashkent()
 const from = ref(shiftDate(today, -30))
@@ -121,7 +136,29 @@ async function remove(s: Score) {
     :description="isHistory ? t('scores.historyDescription') : t('scores.myDescription')"
   />
 
+  <div
+    v-if="canGrades"
+    role="tablist"
+    :aria-label="t('scores.tabsLabel')"
+    class="mb-4 inline-flex rounded-lg border border-border bg-surface p-1"
+  >
+    <button
+      v-for="x in ['conduct', 'subjects'] as const"
+      :key="x"
+      type="button"
+      role="tab"
+      :aria-selected="tab === x"
+      class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+      :class="tab === x ? 'bg-primary-600 text-white' : 'text-fg-muted hover:bg-surface-muted'"
+      :data-tab="x"
+      @click="tab = x"
+    >
+      {{ t(x === 'conduct' ? 'scores.tabConduct' : 'scores.tabSubjects') }}
+    </button>
+  </div>
+
   <NeedsSchool v-if="needsSchool" />
+  <MyGradesTable v-else-if="tab === 'subjects' && canGrades" :is-history="isHistory" />
   <div v-else class="card">
     <div class="grid gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-4">
       <BaseInput v-model="from" type="date" :label="t('scores.from')" :max="to || undefined" />

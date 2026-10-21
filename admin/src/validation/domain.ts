@@ -162,6 +162,23 @@ export function behaviorTypeSchema(t: Translate) {
     )
 }
 
+// ---- Fan ----
+export function subjectSchema(t: Translate) {
+  return z.object({
+    name: z
+      .string()
+      .trim()
+      .min(2, t('validation.minLength', { min: 2 }))
+      .max(60, t('validation.maxLength', { max: 60 })),
+    order: z
+      .string()
+      .trim()
+      .min(1, t('validation.required'))
+      .refine((v) => /^\d+$/.test(v), t('validation.integer')),
+    schoolId: z.string().optional().default(''),
+  })
+}
+
 // ---- Davomat holati ----
 export function attendanceStatusSchema(t: Translate) {
   return (

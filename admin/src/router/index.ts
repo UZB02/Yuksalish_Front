@@ -106,6 +106,15 @@ const router = createRouter({
           },
         },
         {
+          path: 'grading',
+          name: 'grading',
+          component: () => import('@/views/grading/GradingView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.GRADES_CREATE, PERMISSIONS.GRADES_EDIT],
+            titleKey: 'nav.grading',
+          },
+        },
+        {
           path: 'my-scores',
           name: 'my-scores',
           component: () => import('@/views/scores/MyScoresView.vue'),
@@ -139,6 +148,7 @@ const router = createRouter({
               PERMISSIONS.STUDENTS_MANAGE,
               PERMISSIONS.SCORES_CREATE,
               PERMISSIONS.SCORES_EDIT,
+              PERMISSIONS.GRADES_CREATE,
               PERMISSIONS.REPORTS_VIEW,
             ],
             titleKey: 'nav.students',
@@ -200,6 +210,16 @@ const router = createRouter({
           name: 'behavior-types',
           component: () => import('@/views/behavior-types/BehaviorTypesView.vue'),
           meta: { roles: ['superadmin'], titleKey: 'nav.behaviorTypes' },
+        },
+        {
+          path: 'subjects',
+          name: 'subjects',
+          component: () => import('@/views/subjects/SubjectsView.vue'),
+          meta: {
+            roles: ['superadmin', 'school_admin'],
+            permission: PERMISSIONS.SUBJECTS_MANAGE,
+            titleKey: 'nav.subjects',
+          },
         },
         {
           path: 'settings',

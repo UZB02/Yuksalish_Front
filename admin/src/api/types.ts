@@ -65,6 +65,17 @@ export type SchoolAdmin = User
 export interface Teacher extends User {
   phone?: string | null
   classes?: { id: string; name: string }[]
+  /** Faol yildagi sinf+fan biriktirishlari */
+  subjectAssignments?: TeacherSubjectAssignment[]
+  /** Sinf rahbari bo'lgan sinflar (xulq bahosini shu sinflarda qo'yadi) */
+  homeroomClasses?: { id: string; name: string }[]
+}
+
+export interface TeacherSubjectAssignment {
+  classId: string
+  className: string
+  subjectId: string
+  subjectName: string
 }
 
 export interface School {
@@ -199,9 +210,23 @@ export interface SchoolClass {
   homeroomTeacher: PersonRef | null
   teacherIds: string[]
   teachers: PersonRef[]
+  /** Fan -> o'qituvchi biriktirishlari */
+  subjects?: ClassSubjectAssignment[]
   studentsCount: number
   isArchived: boolean
   createdAt: string
+}
+
+export interface ClassSubjectAssignment {
+  subjectId: string
+  subject: { id: string; name: string } | null
+  teacherId: string
+  teacher: PersonRef | null
+}
+
+export interface ClassSubjectInput {
+  subjectId: string
+  teacherId: string
 }
 
 export interface ClassListParams extends PageParams {
@@ -217,6 +242,7 @@ export interface ClassPayload {
   academicYearId?: string
   homeroomTeacherId?: string | null
   teacherIds?: string[]
+  subjects?: ClassSubjectInput[]
 }
 
 export interface ClassTeachersPayload {
@@ -335,6 +361,132 @@ export interface BehaviorTypePayload {
 export interface BehaviorTypeCreatePayload extends BehaviorTypePayload {
   /** null - global */
   schoolId: string | null
+}
+
+// ---- Fanlar va fan baholari ----
+export interface Subject {
+  id: string
+  /** null - global */
+  schoolId: string | null
+  name: string
+  order: number
+  isActive: boolean
+  createdAt: string
+}
+
+export interface SubjectListParams {
+  isActive?: boolean
+  scope?: 'global' | 'school' | 'all'
+}
+
+export interface SubjectPayload {
+  name: string
+  order?: number
+}
+
+export interface SubjectCreatePayload extends SubjectPayload {
+  /** null - global (faqat superadmin) */
+  schoolId?: string | null
+}
+
+export type GradeValue = 2 | 3 | 4 | 5
+
+export interface SubjectGrade {
+  id: string
+  studentId: string
+  student: PersonRef
+  classId: string
+  class: { id: string; name: string }
+  subjectId: string
+  subject: { id: string; name: string }
+  teacherId: string
+  teacher: PersonRef
+  academicYearId: string
+  value: number
+  comment: string | null
+  date: string
+  editable: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface GradeAssignment {
+  classId: string
+  className: string
+  grade: number
+  subjectId: string
+  subjectName: string
+}
+
+export interface GradeAssignments {
+  /** assigned - o'qituvchi (faqat biriktirilganlar); all - admin (istalgan sinf/fan) */
+  mode: 'assigned' | 'all'
+  assignments: GradeAssignment[]
+}
+
+export interface GradeSheetStudent {
+  studentId: string
+  fullName: string
+  studentCode: string | null
+  grade: SubjectGrade | null
+  alreadyGraded: boolean
+}
+
+export interface GradeSheet {
+  class: { id: string; name: string }
+  subject: { id: string; name: string }
+  date: string
+  settings: { editWindowHours: number; backdateDays: number }
+  students: GradeSheetStudent[]
+}
+
+export interface GradeUpdatePayload {
+  value?: number
+  comment?: string | null
+}
+
+export interface BulkGradeItem {
+  studentId: string
+  value: number
+  comment?: string | null
+}
+
+export interface BulkGradesPayload {
+  classId: string
+  subjectId: string
+  date: string
+  items: BulkGradeItem[]
+}
+
+export interface GradeListParams extends PageParams {
+  classId?: string
+  subjectId?: string
+  studentId?: string
+  teacherId?: string
+  from?: string
+  to?: string
+  sort?: string
+}
+
+export interface SubjectAverage {
+  subjectId: string
+  name: string
+  average: number
+  count: number
+  lastValue: number
+  lastDate: string
+}
+
+export interface StudentGradeSummary {
+  studentId: string
+  from: string
+  to: string
+  average: number | null
+  /** 100 ballik shkala (o'rtacha x 20) */
+  average100: number | null
+  gradesCount: number
+  bySubject: SubjectAverage[]
+  recent: SubjectGrade[]
 }
 
 // ---- Baholash sozlamalari ----
@@ -506,6 +658,13 @@ export interface RatingSettings {
   minScoresCount: number
   tieBreak: TieBreakKey[]
   refreshMode: RefreshMode
+  /** Reyting tarkibi: xulq va fan baholari ulushlari (yig'indisi 100) */
+  weights: RatingWeights
+}
+
+export interface RatingWeights {
+  conduct: number
+  subjects: number
 }
 
 export interface PublicSettings {

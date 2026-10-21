@@ -40,6 +40,14 @@ const canAttend = computed(
     auth.hasPermission(PERMISSIONS.ATTENDANCE_EDIT),
 )
 const showScoring = computed(() => mode.value !== 'attendance' && canScore.value)
+// Xulq bahosini o'qituvchilardan faqat sinf rahbari qo'ya oladi (admin rollari cheklanmaydi).
+const canScoreClass = (c: SchoolClass) =>
+  showScoring.value && (auth.user?.role !== 'teacher' || c.homeroomTeacherId === auth.user?.id)
+/** Fan baholari: o'qituvchiga shu sinfda fan biriktirilgan bo'lsa (admin - ruxsat bilan) */
+const canGradeSubjectsIn = (c: SchoolClass) =>
+  mode.value === 'mine' &&
+  (auth.hasPermission(PERMISSIONS.GRADES_CREATE) || auth.hasPermission(PERMISSIONS.GRADES_EDIT)) &&
+  (auth.user?.role !== 'teacher' || !!c.subjects?.some((s) => s.teacherId === auth.user?.id))
 const showAttendance = computed(() => mode.value !== 'scoring' && canAttend.value)
 const attendanceProgress = ref<Map<string, AttendanceProgress>>(new Map())
 
@@ -131,7 +139,7 @@ onMounted(load)
         </p>
       </RouterLink>
       <ProgressBar
-        v-if="showScoring && progress.get(c.id)"
+        v-if="canScoreClass(c) && progress.get(c.id)"
         class="mt-3"
         :done="progress.get(c.id)!.scored"
         :total="progress.get(c.id)!.total"
@@ -157,7 +165,7 @@ onMounted(load)
       </div>
       <div class="mt-4 flex flex-col gap-2 sm:flex-row">
         <RouterLink
-          v-if="showScoring"
+          v-if="canScoreClass(c)"
           :to="{ name: 'class-scoring', params: { id: c.id } }"
           class="block flex-1"
         >
@@ -166,11 +174,29 @@ onMounted(load)
           </BaseButton>
         </RouterLink>
         <RouterLink
+          v-if="canGradeSubjectsIn(c)"
+          :to="{ name: 'grading', query: { tab: 'subjects', classId: c.id } }"
+          class="block flex-1"
+          data-testid="subject-grading-link"
+        >
+          <BaseButton
+            class="w-full"
+            size="sm"
+            :variant="canScoreClass(c) ? 'secondary' : 'primary'"
+          >
+            <BookOpenCheck class="h-4 w-4" /> {{ t('classes.subjectGradeAction') }}
+          </BaseButton>
+        </RouterLink>
+        <RouterLink
           v-if="showAttendance"
           :to="{ name: 'class-attendance', params: { id: c.id } }"
           class="block flex-1"
         >
-          <BaseButton class="w-full" size="sm" :variant="showScoring ? 'secondary' : 'primary'">
+          <BaseButton
+            class="w-full"
+            size="sm"
+            :variant="canScoreClass(c) || canGradeSubjectsIn(c) ? 'secondary' : 'primary'"
+          >
             <CalendarCheck class="h-4 w-4" /> {{ t('attendance.action') }}
           </BaseButton>
         </RouterLink>

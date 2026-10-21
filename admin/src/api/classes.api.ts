@@ -1,6 +1,7 @@
 import { getData, getPage, sendData } from './http'
 import type {
   ClassListParams,
+  ClassSubjectInput,
   ClassPayload,
   ClassTeachersPayload,
   Paginated,
@@ -16,6 +17,8 @@ export const classesApi = {
     sendData<SchoolClass>('patch', `/classes/${id}`, payload),
   archive: (id: string) => sendData<SchoolClass>('post', `/classes/${id}/archive`),
   unarchive: (id: string) => sendData<SchoolClass>('post', `/classes/${id}/unarchive`),
+  setSubjects: (id: string, subjects: ClassSubjectInput[]) =>
+    sendData<SchoolClass>('put', `/classes/${id}/subjects`, { subjects }),
   setTeachers: (id: string, payload: ClassTeachersPayload) =>
     sendData<SchoolClass>('put', `/classes/${id}/teachers`, payload),
 }

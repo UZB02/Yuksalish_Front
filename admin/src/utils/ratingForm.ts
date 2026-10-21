@@ -10,6 +10,7 @@ export const RATING_KEYS = [
   'minScoresCount',
   'tieBreak',
   'refreshMode',
+  'weights',
 ] as const
 export type RatingKey = (typeof RATING_KEYS)[number]
 export type RatingErrors = Partial<Record<RatingKey, string>>
@@ -22,6 +23,7 @@ export const DEFAULT_RATING: RatingSettings = {
   minScoresCount: 3,
   tieBreak: ['daysCount', 'alphabetical'],
   refreshMode: 'realtime',
+  weights: { conduct: 50, subjects: 50 },
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -37,6 +39,20 @@ export function validateRating(v: RatingSettings, t: Translate): RatingErrors {
   }
   if (!Number.isInteger(v.minScoresCount) || v.minScoresCount < 1) {
     e.minScoresCount = t('settingsRating.errors.minDays')
+  }
+  const w = v.weights
+  if (
+    !w ||
+    !Number.isInteger(w.conduct) ||
+    !Number.isInteger(w.subjects) ||
+    w.conduct < 0 ||
+    w.subjects < 0 ||
+    w.conduct > 100 ||
+    w.subjects > 100
+  ) {
+    e.weights = t('settingsRating.errors.weightsInt')
+  } else if (w.conduct + w.subjects !== 100) {
+    e.weights = t('settingsRating.errors.weightsSum')
   }
   return e
 }

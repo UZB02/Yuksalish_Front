@@ -51,7 +51,7 @@
     "teachers": "O'qituvchilar",
     "profile": "Profil",
     "myScores": "Mening baholarim",
-    "scoring": "Baholash",
+    "scoring": "Xulq bahosi",
     "scoresHistory": "Baholar tarixi",
     "behaviorTypes": "Xulq turlari",
     "settings": "Sozlamalar",
@@ -60,7 +60,9 @@
     "attendanceHistory": "Davomat hisoboti",
     "attendanceStatuses": "Davomat holatlari",
     "reports": "Hisobotlar",
-    "audit": "Audit log"
+    "audit": "Audit log",
+    "subjects": "Fanlar",
+    "grading": "Fan baholari"
   },
   "theme": {
     "light": "Yorug' mavzu",
@@ -225,7 +227,9 @@
     "classes": "Sinflar",
     "assignClasses": "Sinflarni biriktirish",
     "classesSaved": "Sinflar biriktirildi",
-    "noClasses": "Sinflar yo'q yoki ro'yxatni yuklab bo'lmadi."
+    "noClasses": "Sinflar yo'q yoki ro'yxatni yuklab bo'lmadi.",
+    "subjects": "Fanlar va rahbarlik",
+    "homeroomOf": "Sinf rahbari: {name}"
   },
   "permissions": {
     "title": "Ruxsatlar",
@@ -241,7 +245,9 @@
       "scores": "Baholar",
       "reports": "Hisobotlar",
       "audit": "Audit",
-      "attendance": "Davomat"
+      "attendance": "Davomat",
+      "grades": "Fan baholari",
+      "subjects": "Fanlar"
     },
     "items": {
       "dashboard_view": "Boshqaruv panelini ko'rish",
@@ -257,7 +263,10 @@
       "attendance_take": "Davomat olish",
       "attendance_edit": "Davomatni tahrirlash",
       "attendance_view": "Davomat hisobotlarini ko'rish",
-      "attendance_settings": "Davomat sozlamalari (o'z maktabi)"
+      "attendance_settings": "Davomat sozlamalari (o'z maktabi)",
+      "grades_create": "Fan bahosi qo'yish",
+      "grades_edit": "Fan baholarini tahrirlash va o'chirish",
+      "subjects_manage": "Fanlarni boshqarish (o'z maktabi)"
     }
   },
   "resetPassword": {
@@ -346,11 +355,22 @@
     "emptyText": "Filtrlarni o'zgartiring yoki yangi sinf qo'shing.",
     "back": "Sinflarga qaytish",
     "loadFailed": "Sinfni yuklab bo'lmadi",
-    "gradeAction": "Baholash",
+    "gradeAction": "Xulq bahosi",
+    "subjectGradeAction": "Fan baholari",
     "noActiveYearTitle": "Avval o'quv yilini faollashtiring",
     "noActiveYearText": "Sinf yaratish uchun faol o'quv yili kerak. O'quv yillari sahifasida yilni yarating va faollashtiring.",
     "toYears": "O'quv yillariga o'tish",
-    "classReport": "Sinf hisoboti"
+    "classReport": "Sinf hisoboti",
+    "subjectsSection": "Fanlar va o'qituvchilar",
+    "subjectsHint": "Har bir fanga bitta o'qituvchi biriktiriladi. Biriktirilgan o'qituvchi sinfga ham qo'shiladi.",
+    "subjectsFailed": "Fanlar ro'yxatini yuklab bo'lmadi.",
+    "noSubjects": "Fan biriktirilmagan.",
+    "subject": "Fan",
+    "subjectTeacher": "Fan o'qituvchisi",
+    "pickSubject": "Fanni tanlang",
+    "pickTeacher": "O'qituvchini tanlang",
+    "addSubject": "Fan qo'shish",
+    "removeSubject": "Fanni olib tashlash"
   },
   "students": {
     "title": "O'quvchilar",
@@ -455,7 +475,7 @@
     }
   },
   "scoring": {
-    "title": "Baholash",
+    "title": "Xulq bahosi",
     "pickTitle": "Baholash uchun sinfni tanlang",
     "pickDescription": "Sinfni tanlab, bugungi baholashni boshlang",
     "backToClass": "Sinfga qaytish",
@@ -537,7 +557,10 @@
     "notEditable": "Qulflangan",
     "notEditableHint": "Tahrirlash vaqti ({hours} soat) o'tgan",
     "emptyTitle": "Baholar topilmadi",
-    "emptyText": "Tanlangan davrda baholar yo'q."
+    "emptyText": "Tanlangan davrda baholar yo'q.",
+    "tabsLabel": "Baholar turi",
+    "tabConduct": "Xulq baholari",
+    "tabSubjects": "Fan baholari"
   },
   "profile2": {
     "noTrend": "Tanlangan davrda baholar yo'q",
@@ -560,7 +583,18 @@
     "behaviors": "Xulq turlari taqsimoti",
     "recent": "Oxirgi baholar",
     "noRecent": "Baholar yo'q",
-    "reportPdf": "Hisobot (PDF)"
+    "reportPdf": "Hisobot (PDF)",
+    "grades": {
+      "title": "Fan baholari",
+      "average": "O'rtacha baho",
+      "average100": "100 ballik shkalada",
+      "count": "Baholar soni",
+      "bySubject": "Fanlar bo'yicha o'rtacha",
+      "subjectCount": "{n} ta baho",
+      "recent": "Oxirgi fan baholari",
+      "emptyTitle": "Fan baholari yo'q",
+      "emptyText": "Tanlangan davrda fan baholari qo'yilmagan."
+    }
   },
   "behaviorTypes": {
     "title": "Xulq turlari",
@@ -721,6 +755,10 @@
       "customTo": {
         "label": "Tugash sanasi",
         "hint": ""
+      },
+      "weights": {
+        "label": "Reyting tarkibi",
+        "hint": "Reytingda xulq bahosi va fan baholarining ulushi (yig'indisi 100)"
       }
     },
     "aggregation": {
@@ -815,10 +853,18 @@
   },
   "settingsRating": {
     "errors": {
-      "minDays": "Kamida 1 kun bo'lishi kerak (butun son)"
+      "minDays": "Kamida 1 kun bo'lishi kerak (butun son)",
+      "weightsInt": "Ulushlar 0 dan 100 gacha butun son bo'lishi kerak",
+      "weightsSum": "Ulushlar yig'indisi 100 bo'lishi kerak"
     },
     "pickSchoolForPeriod": "Joriy davrni ko'rish uchun yuqoridan maktabni tanlang.",
-    "currentPeriod": "Joriy davr"
+    "currentPeriod": "Joriy davr",
+    "weights": {
+      "conduct": "Xulq bahosi ulushi, %",
+      "subjects": "Fan baholari ulushi, %",
+      "formula": "Ball = xulq o'rtachasi × xulq ulushi + fan baholari o'rtachasi × 20 × fan ulushi. Faqat bitta turdagi baho bo'lsa, o'sha tur o'zi hisobga olinadi."
+    },
+    "weightsSummary": "Xulq {conduct}% / Fan {subjects}%"
   },
   "settingsPublic": {
     "errors": {
@@ -1382,5 +1428,89 @@
         "password_reset": "Maktab admini parolini tikladi"
       }
     }
+  },
+  "subjects": {
+    "title": "Fanlar",
+    "description": "O'quv fanlari: umumiy fanlarni superadmin, maktab fanlarini maktab administratori boshqaradi",
+    "add": "Fan qo'shish",
+    "edit": "Fanni tahrirlash",
+    "name": "Fan nomi",
+    "order": "Tartib raqami",
+    "scope": "Ko'lami",
+    "global": "Umumiy (barcha maktablar)",
+    "ownSchool": "Maktabingiz",
+    "ownSchoolHint": "Fan sizning maktabingiz uchun qo'shiladi.",
+    "scopes": {
+      "all": "Hammasi",
+      "global": "Faqat umumiy",
+      "school": "Faqat maktab fanlari"
+    },
+    "created": "Fan qo'shildi",
+    "updated": "Fan saqlandi",
+    "nameTaken": "Bunday nomli fan mavjud",
+    "emptyTitle": "Fanlar yo'q",
+    "emptyText": "Birinchi fanni qo'shing.",
+    "activateTitle": "Fanni faollashtirish",
+    "activateText": "\"{name}\" yana tanlash mumkin bo'ladi. Davom etasizmi?",
+    "deactivateTitle": "Fanni nofaol qilish",
+    "deactivateText": "\"{name}\" yangi sinf biriktirishlarida tanlanmaydi (eski baholar saqlanadi). Davom etasizmi?",
+    "activated": "Fan faollashtirildi",
+    "deactivated": "Fan nofaol qilindi",
+    "deleteTitle": "Fanni o'chirish",
+    "deleteText": "\"{name}\" fani o'chiriladi. Sinfga biriktirilgan yoki baholangan fanni o'chirib bo'lmaydi — uni nofaol qiling. Davom etasizmi?",
+    "deleted": "Fan o'chirildi",
+    "readOnly": "Faqat ko'rish",
+    "globalReadOnly": "Umumiy fanlarni faqat superadmin o'zgartiradi"
+  },
+  "grading": {
+    "title": "Baholash",
+    "description": "Fan baholari (2–5) va xulq bahosi (0–100)",
+    "tabs": {
+      "subjects": "Fan baholari",
+      "conduct": "Xulq bahosi"
+    },
+    "subject": "Fan",
+    "grade": "Baho",
+    "gradeFor": "{name} uchun baho",
+    "pickClass": "Sinfni tanlang",
+    "pickSubject": "Fanni tanlang",
+    "pickTitle": "Sinf va fanni tanlang",
+    "pickText": "Baholash varag'i tanlangan sinf, fan va sana uchun ochiladi.",
+    "noAssignmentsTitle": "Sizga fan biriktirilmagan",
+    "noAssignmentsText": "Fan bahosini qo'yish uchun maktab administratori sizni sinf va fanga biriktirishi kerak.",
+    "alreadyGraded": "Allaqachon baholangan",
+    "addComment": "Izoh qo'shish",
+    "commentPlaceholder": "Izoh (ixtiyoriy)",
+    "onlyUngraded": "Faqat baholanmaganlar",
+    "progress": "{done} / {total} o'quvchi baholangan",
+    "saved": "{n} ta baho saqlandi",
+    "unsavedChange": "Saqlanmagan baholar bor. O'zgartirsangiz, ular yo'qoladi.",
+    "status": {
+      "locked": "Qulflangan",
+      "saved": "Saqlangan",
+      "dirty": "O'zgargan",
+      "error": "Xato"
+    },
+    "errors": {
+      "required": "Bahoni tanlang (2, 3, 4 yoki 5)",
+      "range": "Baho 2 dan 5 gacha bo'lishi kerak",
+      "commentTooLong": "Izoh {limit} belgidan oshmasligi kerak"
+    },
+    "conduct": {
+      "notHomeroomTitle": "Siz sinf rahbari emassiz",
+      "notHomeroomText": "Xulq bahosini faqat sinf rahbari qo'ya oladi. Fan baholarini \"Fan baholari\" bo'limida qo'yishingiz mumkin.",
+      "hint": "Siz sinf rahbari bo'lgan sinflar ko'rsatilgan."
+    }
+  },
+  "grades": {
+    "title": "Fan baholari",
+    "edit": "Fan bahosini tahrirlash",
+    "updated": "Baho yangilandi",
+    "deleteTitle": "Bahoni o'chirish",
+    "deleteText": "{name} ning {date} dagi \"{subject}\" bahosi o'chiriladi. Davom etasizmi?",
+    "deleted": "Baho o'chirildi",
+    "allSubjects": "Barcha fanlar",
+    "emptyTitle": "Fan baholari topilmadi",
+    "emptyText": "Tanlangan davrda fan baholari yo'q."
   }
 }

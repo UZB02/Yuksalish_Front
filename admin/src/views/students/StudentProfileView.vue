@@ -15,6 +15,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import StudentAttendanceSection from '@/components/attendance/StudentAttendanceSection.vue'
+import StudentGradesSection from '@/components/grading/StudentGradesSection.vue'
 import { PERMISSIONS } from '@/constants/permissions'
 import { useAcademicYearLookup } from '@/composables/useLookups'
 import { useReportExport } from '@/composables/useReportExport'
@@ -57,6 +58,16 @@ const canAttendance = computed(() =>
   [PERMISSIONS.ATTENDANCE_VIEW, PERMISSIONS.ATTENDANCE_TAKE, PERMISSIONS.STUDENTS_VIEW].some((p) =>
     auth.hasPermission(p),
   ),
+)
+
+// Fan baholari bo'limi: o'quvchini ko'rish yoki baholash huquqi bor foydalanuvchilarga
+const canGrades = computed(() =>
+  [
+    PERMISSIONS.STUDENTS_VIEW,
+    PERMISSIONS.GRADES_CREATE,
+    PERMISSIONS.GRADES_EDIT,
+    PERMISSIONS.REPORTS_VIEW,
+  ].some((p) => auth.hasPermission(p)),
 )
 
 const range = computed(() => {
@@ -262,6 +273,13 @@ const stats = computed(() => [
         </section>
       </div>
     </template>
+
+    <StudentGradesSection
+      v-if="canGrades && range.from && range.to && range.from <= range.to"
+      :student-id="studentId"
+      :from="range.from"
+      :to="range.to"
+    />
 
     <StudentAttendanceSection
       v-if="canAttendance && range.from && range.to && range.from <= range.to"

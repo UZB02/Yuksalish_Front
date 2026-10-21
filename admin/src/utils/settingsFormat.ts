@@ -35,6 +35,10 @@ export function formatSetting(t: Translate, key: string, value: unknown): string
         })
       : t('settings.no')
   }
+  if (key === 'weights' && typeof value === 'object') {
+    const w = value as { conduct: number; subjects: number }
+    return t('settingsRating.weightsSummary', { conduct: w.conduct, subjects: w.subjects })
+  }
   if (typeof value === 'boolean') return value ? t('settings.yes') : t('settings.no')
   if (Array.isArray(value)) {
     return value.map((v) => formatSetting(t, key, v)).join(' > ')

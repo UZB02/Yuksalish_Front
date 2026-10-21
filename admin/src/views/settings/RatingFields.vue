@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n'
 import type { RatingMethod, RatingPeriodType, RatingSettings, RefreshMode } from '@/api/types'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import TieBreakEditor from '@/components/settings/TieBreakEditor.vue'
+import RatingWeightsEditor from '@/components/settings/RatingWeightsEditor.vue'
 import { RATING_KEYS, type RatingErrors, type RatingKey } from '@/utils/ratingForm'
 import { formatSetting } from '@/utils/settingsFormat'
 import SettingRow from './SettingRow.vue'
@@ -139,6 +140,14 @@ function toggle(k: RatingKey, on: boolean) {
         :model-value="modelValue.tieBreak"
         :disabled="!enabled(k)"
         @update:model-value="set('tieBreak', $event)"
+      />
+
+      <RatingWeightsEditor
+        v-else-if="k === 'weights'"
+        :model-value="modelValue.weights"
+        :disabled="!enabled(k)"
+        :error="errors.weights"
+        @update:model-value="set('weights', $event)"
       />
 
       <div v-else class="space-y-2">

@@ -15,6 +15,7 @@ import {
 import AttendanceRow from '@/components/attendance/AttendanceRow.vue'
 import AttendanceStats from '@/components/attendance/AttendanceStats.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import StickySaveBar from '@/components/ui/StickySaveBar.vue'
 import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
@@ -292,34 +293,24 @@ watch(classId, () => void sheet.init(initialDate()))
       />
     </ul>
 
-    <div
-      class="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:left-64"
-    >
-      <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
-        <p
-          class="text-sm"
-          :class="sheet.invalidDirty.value.length ? 'text-danger' : 'text-fg-muted'"
-        >
-          <template v-if="!sheet.isWorkingDay.value">{{ t('attendance.saveBlocked') }}</template>
-          <template v-else-if="sheet.invalidDirty.value.length">
-            {{ t('scoring.invalidRows', { n: sheet.invalidDirty.value.length }) }}
-          </template>
-          <template v-else-if="sheet.hasUnsaved.value">{{ t('scoring.unsavedHint') }}</template>
-        </p>
-        <div class="flex gap-2">
-          <BaseButton
-            v-if="sheet.hasUnsaved.value"
-            variant="secondary"
-            :disabled="sheet.saving.value"
-            @click="sheet.discard()"
-          >
-            {{ t('scoring.discard') }}
-          </BaseButton>
-          <BaseButton :disabled="!sheet.canSave.value" :loading="sheet.saving.value" @click="save">
-            {{ t('attendance.save', { n: sheet.changedCount.value }) }}
-          </BaseButton>
-        </div>
-      </div>
-    </div>
+    <StickySaveBar
+      :message="
+        !sheet.isWorkingDay.value
+          ? t('attendance.saveBlocked')
+          : sheet.invalidDirty.value.length
+            ? t('scoring.invalidRows', { n: sheet.invalidDirty.value.length })
+            : sheet.hasUnsaved.value
+              ? t('scoring.unsavedHint')
+              : ''
+      "
+      :danger="sheet.invalidDirty.value.length > 0"
+      :show-discard="sheet.hasUnsaved.value"
+      :saving="sheet.saving.value"
+      :can-save="sheet.canSave.value"
+      :count="sheet.changedCount.value"
+      :save-label="t('attendance.save', { n: sheet.changedCount.value })"
+      @discard="sheet.discard()"
+      @save="save"
+    />
   </template>
 </template>

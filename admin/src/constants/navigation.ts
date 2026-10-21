@@ -9,7 +9,9 @@ import {
   GraduationCap,
   Layers,
   ListChecks,
+  NotebookPen,
   Palette,
+  Shapes,
   Trophy,
   Settings as SettingsIcon,
   Users,
@@ -71,6 +73,12 @@ export const NAV_ITEMS: NavItem[] = [
     anyPermission: [PERMISSIONS.SCORES_CREATE, PERMISSIONS.SCORES_EDIT],
   },
   {
+    name: 'grading',
+    labelKey: 'nav.grading',
+    icon: NotebookPen,
+    anyPermission: [PERMISSIONS.GRADES_CREATE, PERMISSIONS.GRADES_EDIT],
+  },
+  {
     name: 'scores-history',
     labelKey: 'nav.scoresHistory',
     icon: History,
@@ -115,6 +123,13 @@ export const NAV_ITEMS: NavItem[] = [
     permission: PERMISSIONS.TEACHERS_MANAGE,
   },
   { name: 'behavior-types', labelKey: 'nav.behaviorTypes', icon: Palette, roles: ['superadmin'] },
+  {
+    name: 'subjects',
+    labelKey: 'nav.subjects',
+    icon: Shapes,
+    roles: ['superadmin', 'school_admin'],
+    permission: PERMISSIONS.SUBJECTS_MANAGE,
+  },
   {
     name: 'attendance-statuses',
     labelKey: 'nav.attendanceStatuses',

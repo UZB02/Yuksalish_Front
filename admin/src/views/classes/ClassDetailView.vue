@@ -2,7 +2,14 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, CalendarCheck, ClipboardCheck, FileBarChart, UserPlus } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  BookOpenCheck,
+  CalendarCheck,
+  ClipboardCheck,
+  FileBarChart,
+  UserPlus,
+} from 'lucide-vue-next'
 import { classesApi } from '@/api/classes.api'
 import type { SchoolClass } from '@/api/types'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
@@ -29,6 +36,17 @@ const assignOpen = ref(false)
 const classId = computed(() => String(route.params.id))
 const canManage = computed(() => auth.hasPermission(PERMISSIONS.CLASSES_MANAGE))
 const backTo = computed(() => ({ name: auth.role === 'teacher' ? 'my-classes' : 'classes' }))
+/** O'qituvchi faqat o'ziga shu sinfda fan biriktirilgan bo'lsa; admin ruxsat bilan barcha sinflarda */
+const canGradeSubjects = computed(() => {
+  if (
+    !auth.hasPermission(PERMISSIONS.GRADES_CREATE) &&
+    !auth.hasPermission(PERMISSIONS.GRADES_EDIT)
+  ) {
+    return false
+  }
+  if (auth.role !== 'teacher') return true
+  return !!schoolClass.value?.subjects?.some((s) => s.teacherId === auth.user?.id)
+})
 
 /** silent: sarlavha ma'lumotlarini skeletonsiz yangilash (ochiq modallar yopilib ketmasligi uchun). */
 async function load(silent = false) {
@@ -111,12 +129,22 @@ watch(classId, () => load())
           v-if="
             (auth.hasPermission(PERMISSIONS.SCORES_CREATE) ||
               auth.hasPermission(PERMISSIONS.SCORES_EDIT)) &&
+            (auth.role !== 'teacher' || schoolClass.homeroomTeacherId === auth.user?.id) &&
             !schoolClass.isArchived
           "
           :to="{ name: 'class-scoring', params: { id: schoolClass.id } }"
         >
           <BaseButton>
             <ClipboardCheck class="h-4 w-4" /> {{ t('classes.gradeAction') }}
+          </BaseButton>
+        </RouterLink>
+        <RouterLink
+          v-if="canGradeSubjects && !schoolClass.isArchived"
+          :to="{ name: 'grading', query: { tab: 'subjects', classId: schoolClass.id } }"
+          data-testid="class-subject-grading-link"
+        >
+          <BaseButton variant="secondary">
+            <BookOpenCheck class="h-4 w-4" /> {{ t('classes.subjectGradeAction') }}
           </BaseButton>
         </RouterLink>
         <RouterLink

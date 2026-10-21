@@ -5,7 +5,11 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { classesApi } from '@/api/classes.api'
 import { isApiError } from '@/api/errors'
-import type { AcademicYear, ClassPayload, SchoolClass, Teacher } from '@/api/types'
+import { subjectsApi } from '@/api/subjects.api'
+import type { AcademicYear, ClassPayload, SchoolClass, Subject, Teacher } from '@/api/types'
+import SubjectAssignmentsEditor, {
+  type AssignmentRow,
+} from '@/components/domain/SubjectAssignmentsEditor.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
@@ -26,6 +30,10 @@ const { t } = useI18n()
 const toast = useToast()
 const submitting = ref(false)
 const nameTouched = ref(false)
+const subjectRows = ref<AssignmentRow[]>([])
+const subjectList = ref<Subject[]>([])
+const subjectsFailed = ref(false)
+const rowsSubmitted = ref(false)
 const isEdit = computed(() => !!props.schoolClass)
 
 const { errors, defineField, handleSubmit, resetForm, setErrors, setFieldValue } = useForm({
@@ -59,9 +67,26 @@ watch(
       },
     })
     nameTouched.value = !!c
+    rowsSubmitted.value = false
+    subjectRows.value = (c?.subjects ?? []).map((s) => ({
+      subjectId: s.subjectId,
+      teacherId: s.teacherId,
+    }))
+    void loadSubjects()
   },
   { immediate: true },
 )
+
+async function loadSubjects() {
+  subjectsFailed.value = false
+  try {
+    // Faol fanlar; sinfda allaqachon biriktirilgan nofaol fanlar ham tanlanadigan bo'lib qoladi.
+    subjectList.value = (await subjectsApi.list()).items
+  } catch {
+    subjectList.value = []
+    subjectsFailed.value = true
+  }
+}
 
 // Sinf nomi parallel va harfdan avtomatik yig'iladi (7-A), qo'lda tahrirlanmaguncha.
 watch([grade, section], ([g, s]) => {
@@ -80,6 +105,9 @@ const teacherOptions = computed(() =>
 const FIELDS = ['name', 'grade', 'section', 'academicYearId', 'homeroomTeacherId'] as const
 
 const onSubmit = handleSubmit(async (v) => {
+  rowsSubmitted.value = true
+  // To'liq bo'lmagan qator (fan yoki o'qituvchi tanlanmagan) saqlashga yo'l qo'ymaydi.
+  if (subjectRows.value.some((r) => !r.subjectId || !r.teacherId)) return
   submitting.value = true
   try {
     if (props.schoolClass) {
@@ -88,12 +116,14 @@ const onSubmit = handleSubmit(async (v) => {
         grade: Number(v.grade),
         section: v.section || null,
         homeroomTeacherId: v.homeroomTeacherId || null,
+        subjects: subjectRows.value.map((r) => ({ ...r })),
       })
     } else {
       const payload: ClassPayload = { name: v.name, grade: Number(v.grade) }
       if (v.section) payload.section = v.section
       if (v.academicYearId) payload.academicYearId = v.academicYearId
       if (v.homeroomTeacherId) payload.homeroomTeacherId = v.homeroomTeacherId
+      if (subjectRows.value.length) payload.subjects = subjectRows.value.map((r) => ({ ...r }))
       await classesApi.create(payload)
     }
     toast.success(t(isEdit.value ? 'classes.updated' : 'classes.created'))
@@ -160,6 +190,13 @@ const onSubmit = handleSubmit(async (v) => {
         :placeholder="t('classes.noHomeroom')"
         :options="teacherOptions"
         :error="errors.homeroomTeacherId"
+      />
+      <SubjectAssignmentsEditor
+        v-model="subjectRows"
+        :subjects="subjectList"
+        :teachers="teachers"
+        :failed="subjectsFailed"
+        :show-errors="rowsSubmitted"
       />
     </form>
     <template #footer>

@@ -80,6 +80,7 @@ const columns = computed<TableColumn[]>(() => [
   { key: 'fullName', label: t('common.fullName') },
   { key: 'phone', label: t('common.phone'), class: 'hidden md:table-cell' },
   { key: 'classes', label: t('teachers.classes'), class: 'hidden lg:table-cell' },
+  { key: 'subjects', label: t('teachers.subjects'), class: 'hidden xl:table-cell' },
   { key: 'lastLoginAt', label: t('common.lastLogin'), class: 'hidden lg:table-cell' },
   { key: 'isActive', label: t('common.status') },
   { key: 'actions', label: t('common.actions'), align: 'right' },
@@ -192,6 +193,24 @@ async function toggleActive(tc: Teacher) {
                 c.name
               }}</BaseBadge>
             </div>
+          </template>
+          <template #cell-subjects="{ row }">
+            <div
+              v-if="row.homeroomClasses?.length || row.subjectAssignments?.length"
+              class="flex max-w-sm flex-wrap gap-1"
+            >
+              <BaseBadge v-for="c in row.homeroomClasses ?? []" :key="`h-${c.id}`" tone="success">
+                {{ t('teachers.homeroomOf', { name: c.name }) }}
+              </BaseBadge>
+              <BaseBadge
+                v-for="a in row.subjectAssignments ?? []"
+                :key="`${a.classId}-${a.subjectId}`"
+                tone="info"
+              >
+                {{ a.className }}: {{ a.subjectName }}
+              </BaseBadge>
+            </div>
+            <span v-else class="text-fg-muted">-</span>
           </template>
           <template #cell-lastLoginAt="{ row }">
             {{ formatDateTime(row.lastLoginAt) || t('common.never') }}
