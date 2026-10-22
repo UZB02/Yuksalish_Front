@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { CalendarDays } from 'lucide-vue-next'
 import { attendanceApi } from '@/api/attendance.api'
 import type { StudentAttendanceSummary } from '@/api/types'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -65,21 +66,35 @@ const tone = computed(() => rateTone(summary.value?.rate ?? null))
 </script>
 
 <template>
-  <section id="attendance" ref="root" class="mt-8 scroll-mt-20" data-testid="attendance-section">
-    <h2 class="mb-3 text-lg font-semibold text-fg">{{ t('attendance.profileTitle') }}</h2>
+  <section
+    id="attendance"
+    ref="root"
+    class="card scroll-mt-20 p-4 sm:p-5"
+    data-testid="attendance-section"
+  >
+    <header class="mb-3 flex items-center gap-3">
+      <span
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"
+      >
+        <CalendarDays class="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
+      </span>
+      <h2 class="text-base font-semibold text-fg">{{ t('attendance.profileTitle') }}</h2>
+    </header>
 
     <Skeleton v-if="loading && !summary" class="h-64 w-full" />
-    <div v-else-if="error" class="card">
-      <EmptyState :title="t('errors.loadFailed')" :description="error">
-        <BaseButton variant="secondary" @click="load">{{ t('common.retry') }}</BaseButton>
-      </EmptyState>
-    </div>
+    <EmptyState
+      v-else-if="error"
+      :title="t('errors.loadFailed')"
+      class="!py-6"
+      :description="error"
+    >
+      <BaseButton variant="secondary" @click="load">{{ t('common.retry') }}</BaseButton>
+    </EmptyState>
     <template v-else-if="summary">
-      <div class="mb-4 grid gap-3 sm:grid-cols-5">
-        <div class="card p-4 sm:col-span-1">
-          <p class="text-xs text-fg-muted">{{ t('attendance.summary.rate') }}</p>
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <div class="col-span-2 min-w-0 rounded-lg bg-surface-muted px-3 py-2 sm:col-span-1">
           <p
-            class="mt-1 text-3xl font-extrabold tabular-nums"
+            class="text-xl font-bold leading-tight tabular-nums"
             :class="{
               'text-success': tone === 'success',
               'text-warning': tone === 'warning',
@@ -90,25 +105,26 @@ const tone = computed(() => rateTone(summary.value?.rate ?? null))
           >
             {{ formatRate(summary.rate) }}
           </p>
-          <p class="text-xs text-fg-muted">
+          <p class="truncate text-xs text-fg-muted">
+            {{ t('attendance.summary.rate') }} &middot;
             {{ t('attendance.summary.totalN', { n: summary.total }) }}
           </p>
         </div>
-        <div v-for="c in counts" :key="c.key" class="card p-4">
+        <div v-for="c in counts" :key="c.key" class="min-w-0 rounded-lg bg-surface-muted px-3 py-2">
+          <p class="text-xl font-semibold leading-tight tabular-nums text-fg">{{ c.n }}</p>
           <p class="flex items-center gap-1.5 text-xs text-fg-muted">
             <span
-              class="h-2.5 w-2.5 rounded-full"
+              class="h-2 w-2 shrink-0 rounded-full"
               :style="{ backgroundColor: CATEGORY_COLORS[c.key] }"
             />
-            {{ t(`attendance.categories.${c.key}`) }}
+            <span class="truncate">{{ t(`attendance.categories.${c.key}`) }}</span>
           </p>
-          <p class="mt-1 text-2xl font-semibold tabular-nums text-fg">{{ c.n }}</p>
         </div>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
-        <section class="card p-5">
-          <h3 class="mb-3 text-base font-semibold text-fg">{{ t('attendance.calendarTitle') }}</h3>
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <div class="min-w-0">
+          <h3 class="mb-2 text-sm font-semibold text-fg">{{ t('attendance.calendarTitle') }}</h3>
           <AttendanceCalendar
             v-model:month="month"
             :days="summary.days"
@@ -116,21 +132,21 @@ const tone = computed(() => rateTone(summary.value?.rate ?? null))
             :from="summary.from"
             :to="summary.to"
           />
-        </section>
+        </div>
 
-        <div class="space-y-4">
-          <section class="card p-5">
-            <h3 class="mb-3 text-base font-semibold text-fg">{{ t('attendance.byStatus') }}</h3>
-            <p v-if="summary.byStatus.length === 0" class="py-4 text-center text-sm text-fg-muted">
+        <div class="min-w-0 space-y-4">
+          <div>
+            <h3 class="mb-2 text-sm font-semibold text-fg">{{ t('attendance.byStatus') }}</h3>
+            <p v-if="summary.byStatus.length === 0" class="py-2 text-center text-sm text-fg-muted">
               {{ t('attendance.recordsEmptyTitle') }}
             </p>
-            <ul v-else class="space-y-3">
+            <ul v-else class="space-y-2.5">
               <li v-for="s in summary.byStatus" :key="s.statusId">
-                <div class="mb-1 flex justify-between text-sm">
-                  <span class="text-fg">{{ s.name }}</span>
+                <div class="mb-1 flex justify-between gap-2 text-sm">
+                  <span class="min-w-0 truncate text-fg">{{ s.name }}</span>
                   <span class="font-medium text-fg">{{ s.count }}</span>
                 </div>
-                <div class="h-2.5 overflow-hidden rounded-full bg-surface-muted">
+                <div class="h-2 overflow-hidden rounded-full bg-surface-muted">
                   <div
                     class="h-full rounded-full"
                     :style="{ width: `${(s.count / maxStatus) * 100}%`, backgroundColor: s.color }"
@@ -138,15 +154,15 @@ const tone = computed(() => rateTone(summary.value?.rate ?? null))
                 </div>
               </li>
             </ul>
-          </section>
+          </div>
 
-          <section class="card p-5">
-            <h3 class="mb-3 text-base font-semibold text-fg">{{ t('attendance.recent') }}</h3>
-            <p v-if="summary.recent.length === 0" class="py-4 text-center text-sm text-fg-muted">
+          <div>
+            <h3 class="mb-1 text-sm font-semibold text-fg">{{ t('attendance.recent') }}</h3>
+            <p v-if="summary.recent.length === 0" class="py-2 text-center text-sm text-fg-muted">
               {{ t('attendance.recordsEmptyTitle') }}
             </p>
             <ul v-else class="divide-y divide-border">
-              <li v-for="r in summary.recent" :key="r.id" class="flex items-start gap-3 py-2.5">
+              <li v-for="r in summary.recent" :key="r.id" class="flex items-start gap-3 py-2">
                 <span
                   class="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-lg px-1.5 text-xs font-bold"
                   :style="{ backgroundColor: r.status.color, color: textOn(r.status.color) }"
@@ -168,7 +184,7 @@ const tone = computed(() => rateTone(summary.value?.rate ?? null))
                 </div>
               </li>
             </ul>
-          </section>
+          </div>
         </div>
       </div>
     </template>
