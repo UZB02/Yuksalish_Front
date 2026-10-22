@@ -119,21 +119,34 @@ watch(() => schoolCtx.schoolId, load)
     </EmptyState>
   </div>
 
-  <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <!-- Ixcham kartalar: ustunlar soni kartalar soniga qarab o'zi moslashadi (bitta qatorga sig'adi) -->
+  <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
     <template v-if="loading && !summary">
-      <Skeleton v-for="n in 4" :key="n" class="h-32 w-full" />
+      <Skeleton v-for="n in 4" :key="n" class="h-[4.5rem] w-full" />
     </template>
     <template v-else>
-      <div v-for="c in cards" :key="c.key" class="card p-5" :class="loading ? 'opacity-60' : ''">
+      <div
+        v-for="c in cards"
+        :key="c.key"
+        class="card flex items-center gap-3 p-4"
+        :class="loading ? 'opacity-60' : ''"
+      >
         <span
-          class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"
         >
-          <component :is="c.icon" class="h-5 w-5" aria-hidden="true" />
+          <component :is="c.icon" class="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
         </span>
-        <p class="mt-4 text-2xl font-semibold text-fg">
-          {{ summary?.[c.key as keyof DashboardSummary] ?? 0 }}
-        </p>
-        <p class="text-sm text-fg-muted">{{ t(`dashboard.cards.${c.key}`) }}</p>
+        <div class="min-w-0">
+          <p class="text-xl font-semibold leading-tight text-fg">
+            {{ summary?.[c.key as keyof DashboardSummary] ?? 0 }}
+          </p>
+          <p
+            class="truncate text-xs text-fg-muted sm:text-sm"
+            :title="t(`dashboard.cards.${c.key}`)"
+          >
+            {{ t(`dashboard.cards.${c.key}`) }}
+          </p>
+        </div>
       </div>
     </template>
   </div>

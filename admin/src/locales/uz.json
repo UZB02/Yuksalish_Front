@@ -41,6 +41,8 @@
   "nav": {
     "main": "Asosiy menyu",
     "openMenu": "Menyuni ochish",
+    "collapse": "Menyuni yig'ish",
+    "expand": "Menyuni yoyish",
     "dashboard": "Boshqaruv paneli",
     "myClasses": "Mening sinflarim",
     "schools": "Maktablar",

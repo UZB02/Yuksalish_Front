@@ -163,24 +163,25 @@ onMounted(load)
           {{ t('attendance.notTakenToday') }}
         </BaseBadge>
       </div>
-      <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+      <!-- Joy yetmasa tugma butunligicha keyingi qatorga o'tadi, matn bo'linmaydi -->
+      <div class="mt-4 flex flex-wrap gap-2">
         <RouterLink
           v-if="canScoreClass(c)"
           :to="{ name: 'class-scoring', params: { id: c.id } }"
-          class="block flex-1"
+          class="block min-w-[8.5rem] flex-1"
         >
-          <BaseButton class="w-full" size="sm">
+          <BaseButton class="w-full whitespace-nowrap" size="sm">
             <ClipboardCheck class="h-4 w-4" /> {{ t('classes.gradeAction') }}
           </BaseButton>
         </RouterLink>
         <RouterLink
           v-if="canGradeSubjectsIn(c)"
           :to="{ name: 'grading', query: { tab: 'subjects', classId: c.id } }"
-          class="block flex-1"
+          class="block min-w-[8.5rem] flex-1"
           data-testid="subject-grading-link"
         >
           <BaseButton
-            class="w-full"
+            class="w-full whitespace-nowrap"
             size="sm"
             :variant="canScoreClass(c) ? 'secondary' : 'primary'"
           >
@@ -190,10 +191,10 @@ onMounted(load)
         <RouterLink
           v-if="showAttendance"
           :to="{ name: 'class-attendance', params: { id: c.id } }"
-          class="block flex-1"
+          class="block min-w-[8.5rem] flex-1"
         >
           <BaseButton
-            class="w-full"
+            class="w-full whitespace-nowrap"
             size="sm"
             :variant="canScoreClass(c) || canGradeSubjectsIn(c) ? 'secondary' : 'primary'"
           >

@@ -26,7 +26,7 @@ const { t } = useI18n()
 
 <template>
   <div
-    class="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:left-64"
+    class="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:left-[var(--sidebar-w,16rem)]"
   >
     <div
       class="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"

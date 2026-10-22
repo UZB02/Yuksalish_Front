@@ -4,6 +4,15 @@ import { defineStore } from 'pinia'
 export type ThemeMode = 'light' | 'dark' | 'system'
 
 const THEME_KEY = 'theme'
+export const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed'
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 function readTheme(): ThemeMode {
   try {
@@ -25,6 +34,8 @@ export function applyTheme(mode: ThemeMode) {
 export const useUiStore = defineStore('ui', () => {
   const sidebarOpen = ref(false)
   const theme = ref<ThemeMode>(readTheme())
+  /** Faqat lg+ da ta'sir qiladi: ixcham (faqat ikonka) rejim. */
+  const sidebarCollapsed = ref(readCollapsed())
 
   function openSidebar() {
     sidebarOpen.value = true
@@ -34,6 +45,18 @@ export const useUiStore = defineStore('ui', () => {
   }
   function toggleSidebar() {
     sidebarOpen.value = !sidebarOpen.value
+  }
+
+  function setSidebarCollapsed(v: boolean) {
+    sidebarCollapsed.value = v
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, v ? '1' : '0')
+    } catch {
+      // ignore
+    }
+  }
+  function toggleSidebarCollapsed() {
+    setSidebarCollapsed(!sidebarCollapsed.value)
   }
 
   function setTheme(mode: ThemeMode) {
@@ -58,6 +81,9 @@ export const useUiStore = defineStore('ui', () => {
 
   return {
     sidebarOpen,
+    sidebarCollapsed,
+    setSidebarCollapsed,
+    toggleSidebarCollapsed,
     theme,
     openSidebar,
     closeSidebar,
