@@ -8,6 +8,7 @@ import {
   CalendarCheck,
   ClipboardCheck,
   FileBarChart,
+  Pencil,
   UserPlus,
 } from 'lucide-vue-next'
 import { classesApi } from '@/api/classes.api'
@@ -166,6 +167,15 @@ watch(classId, () => load())
         >
           <BaseButton variant="secondary">
             <FileBarChart class="h-4 w-4" /> {{ t('classes.classReport') }}
+          </BaseButton>
+        </RouterLink>
+        <RouterLink
+          v-if="canManage"
+          :to="{ name: 'class-edit', params: { id: schoolClass.id }, query: { from: 'detail' } }"
+          data-testid="class-edit-link"
+        >
+          <BaseButton variant="secondary">
+            <Pencil class="h-4 w-4" /> {{ t('common.edit') }}
           </BaseButton>
         </RouterLink>
         <BaseButton v-if="canManage" @click="openAssign">

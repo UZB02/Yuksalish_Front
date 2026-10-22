@@ -241,3 +241,22 @@ describe('6-bosqich marshrutlari: hisobotlar va audit', () => {
     expect(names(ctx('school_admin', []))).not.toContain('reports')
   })
 })
+
+describe('sinf yaratish/tahrirlash sahifalari', () => {
+  it('classes/new tafsilot marshruti bilan chalkashmaydi va classes.manage talab qiladi', async () => {
+    const { default: router } = await import('./index')
+    expect(router.resolve('/classes/new').name).toBe('class-create')
+    expect(router.resolve('/classes/abc/edit').name).toBe('class-edit')
+    expect(router.resolve('/classes/abc').name).toBe('class-detail')
+    for (const path of ['/classes/new', '/classes/abc/edit']) {
+      const r = router.resolve(path)
+      const to = { name: String(r.name), fullPath: r.fullPath, meta: r.meta }
+      expect(resolveAccess(to, ctx('school_admin', ['students.view']))).toEqual({
+        name: 'forbidden',
+      })
+      expect(resolveAccess(to, ctx('teacher', ['classes.manage']))).toEqual({ name: 'forbidden' })
+      expect(resolveAccess(to, ctx('school_admin', ['classes.manage']))).toBe(true)
+      expect(r.meta.titleKey).toBeTruthy()
+    }
+  })
+})

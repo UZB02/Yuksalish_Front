@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   Archive,
@@ -33,10 +34,10 @@ import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
-import ClassFormModal from './ClassFormModal.vue'
 import ClassTeachersModal from './ClassTeachersModal.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 const toast = useToast()
 const { confirm } = useConfirm()
 const auth = useAuthStore()
@@ -68,8 +69,6 @@ const list = usePagination<SchoolClass>(({ page, limit }) =>
   }),
 )
 
-const formOpen = ref(false)
-const editing = ref<SchoolClass | null>(null)
 const assigning = ref<SchoolClass | null>(null)
 
 const columns = computed<TableColumn[]>(() => [
@@ -104,12 +103,10 @@ watch([debouncedSearch, yearFilter, gradeFilter, archiveFilter], () => {
 })
 
 function openCreate() {
-  editing.value = null
-  formOpen.value = true
+  void router.push({ name: 'class-create' })
 }
 function openEdit(c: SchoolClass) {
-  editing.value = c
-  formOpen.value = true
+  void router.push({ name: 'class-edit', params: { id: c.id } })
 }
 
 async function toggleArchive(c: SchoolClass) {
@@ -279,15 +276,6 @@ async function toggleArchive(c: SchoolClass) {
     </template>
   </div>
 
-  <ClassFormModal
-    v-if="canManage"
-    :open="formOpen"
-    :school-class="editing"
-    :years="years.items.value"
-    :teachers="teachers.items.value"
-    @close="formOpen = false"
-    @saved="list.load()"
-  />
   <ClassTeachersModal
     v-if="canManage"
     :open="!!assigning"

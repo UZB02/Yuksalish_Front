@@ -74,6 +74,26 @@ const router = createRouter({
           },
         },
         {
+          path: 'classes/new',
+          name: 'class-create',
+          component: () => import('@/views/classes/ClassFormView.vue'),
+          meta: {
+            roles: ['superadmin', 'school_admin'],
+            permission: PERMISSIONS.CLASSES_MANAGE,
+            titleKey: 'classes.add',
+          },
+        },
+        {
+          path: 'classes/:id/edit',
+          name: 'class-edit',
+          component: () => import('@/views/classes/ClassFormView.vue'),
+          meta: {
+            roles: ['superadmin', 'school_admin'],
+            permission: PERMISSIONS.CLASSES_MANAGE,
+            titleKey: 'classes.edit',
+          },
+        },
+        {
           path: 'classes/:id',
           name: 'class-detail',
           component: () => import('@/views/classes/ClassDetailView.vue'),

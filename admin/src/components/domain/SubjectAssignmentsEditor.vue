@@ -19,6 +19,8 @@ const props = defineProps<{
   /** Fan/o'qituvchilar ro'yxati yuklanmadi */
   failed?: boolean
   showErrors?: boolean
+  /** Sarlavha va izohni ota komponent o'zi ko'rsatsa (bo'lim kartasi ichida) */
+  hideHeader?: boolean
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: AssignmentRow[]] }>()
 const { t } = useI18n()
@@ -57,8 +59,10 @@ const incomplete = (r: AssignmentRow) => !r.subjectId || !r.teacherId
 
 <template>
   <fieldset class="space-y-2" data-testid="subject-assignments">
-    <legend class="mb-1 text-sm font-medium text-fg">{{ t('classes.subjectsSection') }}</legend>
-    <p class="text-xs text-fg-muted">{{ t('classes.subjectsHint') }}</p>
+    <legend :class="hideHeader ? 'sr-only' : 'mb-1 text-sm font-medium text-fg'">
+      {{ t('classes.subjectsSection') }}
+    </legend>
+    <p v-if="!hideHeader" class="text-xs text-fg-muted">{{ t('classes.subjectsHint') }}</p>
     <p v-if="failed" class="text-xs text-danger" role="alert">{{ t('classes.subjectsFailed') }}</p>
 
     <p v-if="modelValue.length === 0" class="py-2 text-sm text-fg-muted">
