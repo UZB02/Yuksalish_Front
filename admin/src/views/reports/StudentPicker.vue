@@ -64,6 +64,7 @@ watch([() => props.classId, debounced], load)
     <BaseSelect
       :model-value="classId"
       :label="t('students.class')"
+      searchable
       :placeholder="t('students.allClasses')"
       :options="classOptions"
       @update:model-value="onClass"
@@ -78,6 +79,7 @@ watch([() => props.classId, debounced], load)
     <BaseSelect
       :model-value="studentId"
       :label="t('reports.student')"
+      searchable
       :placeholder="loading ? t('common.loading') : t('reports.pickStudentOption')"
       :options="options"
       @update:model-value="emit('update:studentId', $event)"

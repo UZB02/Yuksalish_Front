@@ -148,6 +148,7 @@ const subjectsCount = computed(() => form.subjectRows.filter((r) => r.subjectId)
             v-model="form.homeroomTeacherId"
             v-bind="form.homeroomAttrs"
             :aria-label="t('classes.homeroom')"
+            searchable
             :placeholder="t('classes.noHomeroom')"
             :options="teacherOptions"
             :error="form.errors.homeroomTeacherId"

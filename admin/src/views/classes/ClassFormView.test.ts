@@ -11,6 +11,8 @@ import { subjectsApi } from '@/api/subjects.api'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirm } from '@/composables/useConfirm'
 import type { SchoolClass } from '@/api/types'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { selectOption } from '@/test-utils/selectOption'
 import ClassFormView from './ClassFormView.vue'
 
 vi.mock('@/api/classes.api', () => ({
@@ -100,7 +102,7 @@ describe('ClassFormView', () => {
     vi.mocked(classesApi.create).mockResolvedValue({ ...klass, id: 'new1', name: '5-B' })
     const { w, router } = await mountAt('/classes/new')
     expect(w.text()).toContain("Asosiy ma'lumotlar")
-    await w.find('select').setValue('5')
+    await selectOption(w.findComponent(BaseSelect), '5')
     await w.findAll('input')[0]!.setValue('b')
     await w.find('form').trigger('submit')
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('class-detail'))
@@ -128,7 +130,7 @@ describe('ClassFormView', () => {
     const { w, router } = await mountAt('/classes/c1/edit')
     expect(classesApi.get).toHaveBeenCalledWith('c1')
     expect(w.text()).toContain('Sinfni tahrirlash: 7-A')
-    expect((w.find('select').element as HTMLSelectElement).value).toBe('7')
+    expect(w.findComponent(BaseSelect).get('[role="combobox"]').text()).toBe('7-sinf')
     expect((w.findAll('input')[0]!.element as HTMLInputElement).value).toBe('A')
     expect((w.findAll('input')[1]!.element as HTMLInputElement).value).toBe('7-A')
     await w.find('form').trigger('submit')

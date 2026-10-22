@@ -107,6 +107,7 @@ async function refresh() {
         <BaseSelect
           v-if="!classId"
           v-model="classFilter"
+          searchable
           :aria-label="t('students.class')"
           :placeholder="t('students.allClasses')"
           :options="classOptions"
