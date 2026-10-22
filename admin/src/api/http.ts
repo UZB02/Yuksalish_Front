@@ -134,3 +134,16 @@ export async function sendData<T>(
   const res = await http.request<ApiSuccess<T>>({ method, url, data: body })
   return res.data.data
 }
+
+/** Rasm yuklash (multipart, maydon nomi `photo`) */
+export async function putPhoto<T>(url: string, file: File): Promise<T> {
+  const form = new FormData()
+  form.append('photo', file)
+  const res = await http.put<ApiSuccess<T>>(url, form, { timeout: 60000 })
+  return res.data.data
+}
+
+export async function deleteData<T>(url: string): Promise<T> {
+  const res = await http.delete<ApiSuccess<T>>(url)
+  return res.data.data
+}

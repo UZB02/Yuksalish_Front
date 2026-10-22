@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
@@ -8,6 +8,7 @@ import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import PhotoUploader from '@/components/ui/PhotoUploader.vue'
 import { ROLE_LABEL_KEYS } from '@/constants/roles'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
@@ -27,6 +28,15 @@ const { errors, defineField, handleSubmit, resetForm, setErrors } = useForm({
 const [currentPassword, currentAttrs] = defineField('currentPassword')
 const [newPassword, newAttrs] = defineField('newPassword')
 const [confirmPassword, confirmAttrs] = defineField('confirmPassword')
+
+// O'z rasmi: faqat maktab xodimi (o'qituvchi / maktab admini)
+const canPhoto = computed(() => auth.user?.role === 'teacher' || auth.user?.role === 'school_admin')
+async function uploadPhoto(file: File) {
+  auth.user = await authApi.setOwnPhoto(file)
+}
+async function removePhoto() {
+  auth.user = await authApi.removeOwnPhoto()
+}
 
 const onSubmit = handleSubmit(async (values) => {
   submitting.value = true
@@ -54,6 +64,14 @@ const onSubmit = handleSubmit(async (values) => {
   <div class="grid gap-6 lg:grid-cols-2">
     <section v-if="auth.user" class="card p-6" :aria-label="t('profile.info')">
       <h2 class="mb-4 text-base font-semibold text-fg">{{ t('profile.info') }}</h2>
+      <PhotoUploader
+        v-if="canPhoto"
+        class="mb-5"
+        :name="auth.user.fullName"
+        :photo="auth.user.photo"
+        :upload="uploadPhoto"
+        :remove="removePhoto"
+      />
       <dl class="space-y-3 text-sm">
         <div class="flex justify-between gap-4">
           <dt class="text-fg-muted">{{ t('profile.fullName') }}</dt>

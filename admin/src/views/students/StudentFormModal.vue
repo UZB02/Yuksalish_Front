@@ -10,6 +10,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import PhotoUploader from '@/components/ui/PhotoUploader.vue'
 import { useToast } from '@/composables/useToast'
 import { applyServerErrors, errorMessage } from '@/utils/errors'
 import { toDateInput } from '@/utils/format'
@@ -72,6 +73,28 @@ const genderOptions = computed(() => [
   { value: 'female', label: t('students.genders.female') },
 ])
 
+// Rasm (ixtiyoriy): tahrirlashda darhol serverga; yangi o'quvchida yaratilgandan so'ng yuboriladi
+const currentPhoto = ref<string | null>(null)
+const pendingPhoto = ref<File | null>(null)
+watch(
+  () => [props.open, props.student] as const,
+  () => {
+    currentPhoto.value = props.student?.photo ?? null
+    pendingPhoto.value = null
+  },
+  { immediate: true },
+)
+async function uploadPhoto(file: File) {
+  const updated = await studentsApi.setPhoto(props.student!.id, file)
+  currentPhoto.value = updated.photo ?? null
+  emit('saved')
+}
+async function removePhoto() {
+  await studentsApi.removePhoto(props.student!.id)
+  currentPhoto.value = null
+  emit('saved')
+}
+
 const FIELDS = ['fullName', 'classId', 'birthDate', 'gender', 'studentCode', 'parentPhone'] as const
 
 const onSubmit = handleSubmit(async (v) => {
@@ -92,7 +115,15 @@ const onSubmit = handleSubmit(async (v) => {
       if (v.gender) payload.gender = v.gender as Gender
       if (v.studentCode) payload.studentCode = v.studentCode
       if (v.parentPhone) payload.parentPhone = v.parentPhone
-      await studentsApi.create(payload)
+      const createdStudent = await studentsApi.create(payload)
+      if (pendingPhoto.value) {
+        try {
+          await studentsApi.setPhoto(createdStudent.id, pendingPhoto.value)
+        } catch (photoError) {
+          // O'quvchi yaratildi; rasm keyinroq profilda yuklanishi mumkin
+          toast.error(t('photo.uploadFailedAfterSave', { message: errorMessage(photoError, t) }))
+        }
+      }
     }
     toast.success(t(isEdit.value ? 'students.updated' : 'students.created'))
     emit('saved')
@@ -118,6 +149,19 @@ const onSubmit = handleSubmit(async (v) => {
     @close="emit('close')"
   >
     <form id="student-form" class="space-y-4" novalidate @submit.prevent="onSubmit">
+      <PhotoUploader
+        v-if="isEdit && student"
+        :name="student.fullName"
+        :photo="currentPhoto"
+        :upload="uploadPhoto"
+        :remove="removePhoto"
+      />
+      <PhotoUploader
+        v-else
+        :name="fullName || t('students.add')"
+        @pick="pendingPhoto = $event"
+        @clear="pendingPhoto = null"
+      />
       <BaseInput
         v-model="fullName"
         v-bind="fullNameAttrs"

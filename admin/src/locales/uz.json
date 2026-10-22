@@ -385,6 +385,25 @@
     "addSubject": "Fan qo'shish",
     "removeSubject": "Fanni olib tashlash"
   },
+  "photo": {
+    "title": "Rasm",
+    "upload": "Rasm yuklash",
+    "replace": "Almashtirish",
+    "remove": "O'chirish",
+    "change": "Rasmni o'zgartirish",
+    "hint": "JPG, PNG yoki WebP, 5 MB gacha. Rasm avtomatik kvadrat qilib kesiladi.",
+    "pending": "Rasm tanlandi, saqlanganda yuklanadi.",
+    "uploaded": "Rasm yuklandi",
+    "removed": "Rasm o'chirildi",
+    "removeTitle": "Rasmni o'chirish",
+    "removeText": "{name} rasmi o'chirilsin? Bu amalni qaytarib bo'lmaydi.",
+    "alt": "{name} rasmi",
+    "uploadFailedAfterSave": "Ma'lumotlar saqlandi, lekin rasm yuklanmadi: {message}",
+    "errors": {
+      "type": "Faqat JPG, PNG yoki WebP rasm yuklash mumkin",
+      "size": "Rasm hajmi 5 MB dan oshmasligi kerak"
+    }
+  },
   "students": {
     "title": "O'quvchilar",
     "description": "Maktab o'quvchilari ro'yxati",
@@ -737,6 +756,10 @@
         "label": "O'rin o'zgarishi",
         "hint": "Oldingi davrga nisbatan o'rin o'zgarishi (yuqoriga/pastga)"
       },
+      "showPhotos": {
+        "label": "O'quvchi rasmlari",
+        "hint": "Standart: o'chiq. Yoqilsa, faol o'quvchilarning rasmlari ochiq reyting va TV rejimida hamma uchun ko'rinadi. O'qituvchi rasmlari hech qachon ochiq ko'rsatilmaydi."
+      },
       "title": {
         "label": "Sarlavha",
         "hint": "Belgilanmasa maktab nomi ishlatiladi (80 belgigacha)"
@@ -880,6 +903,7 @@
     "weightsSummary": "Xulq {conduct}% / Fan {subjects}%"
   },
   "settingsPublic": {
+    "photosWarning": "Diqqat: bolalar rasmlari internetda hamma uchun ochiq bo'ladi. Yoqishdan oldin ota-onalarning (qonuniy vakillarning) yozma roziligini oling. Rozilik bo'lmagan o'quvchining rasmini tizimdan o'chiring.",
     "errors": {
       "range": "{min} dan {max} gacha butun son kiriting"
     },

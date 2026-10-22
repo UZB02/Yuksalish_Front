@@ -9,7 +9,13 @@ const { state, settle } = useConfirm()
 </script>
 
 <template>
-  <BaseModal :open="state.open" :title="state.options.title" size="sm" @close="settle(false)">
+  <BaseModal
+    :open="state.open"
+    :title="state.options.title"
+    size="sm"
+    layer="top"
+    @close="settle(false)"
+  >
     <p v-if="state.options.message" class="whitespace-pre-line text-sm text-fg-muted">
       {{ state.options.message }}
     </p>

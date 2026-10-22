@@ -11,6 +11,7 @@ import PermissionEditor from '@/components/domain/PermissionEditor.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import PhotoUploader from '@/components/ui/PhotoUploader.vue'
 import BaseSwitch from '@/components/ui/BaseSwitch.vue'
 import { usePermissionsMeta } from '@/composables/usePermissionsMeta'
 import { useToast } from '@/composables/useToast'
@@ -75,6 +76,24 @@ watch(
   { immediate: true },
 )
 
+// Rasm: tahrirlashda darhol serverga; ro'yxat fon sahifada yangilanadi
+const currentPhoto = ref<string | null>(null)
+watch(
+  () => [props.open, props.teacher] as const,
+  () => (currentPhoto.value = props.teacher?.photo ?? null),
+  { immediate: true },
+)
+async function uploadPhoto(file: File) {
+  const updated = await teachersApi.setPhoto(props.teacher!.id, file)
+  currentPhoto.value = updated.photo ?? null
+  emit('saved')
+}
+async function removePhoto() {
+  await teachersApi.removePhoto(props.teacher!.id)
+  currentPhoto.value = null
+  emit('saved')
+}
+
 const FIELDS = ['fullName', 'username', 'password', 'phone'] as const
 
 const onSubmit = handleSubmit(async (values) => {
@@ -117,6 +136,13 @@ const onSubmit = handleSubmit(async (values) => {
     @close="emit('close')"
   >
     <form id="teacher-form" class="space-y-4" novalidate @submit.prevent="onSubmit">
+      <PhotoUploader
+        v-if="isEdit && teacher"
+        :name="teacher.fullName"
+        :photo="currentPhoto"
+        :upload="uploadPhoto"
+        :remove="removePhoto"
+      />
       <BaseInput
         v-model="fullName"
         v-bind="fullNameAttrs"

@@ -1,5 +1,5 @@
 import { downloadFile } from './download'
-import { getData, getPage, http, sendData } from './http'
+import { deleteData, getData, getPage, http, putPhoto, sendData } from './http'
 import type { Paginated, Student, StudentListParams, StudentPayload } from './types'
 
 export const studentsApi = {
@@ -12,6 +12,8 @@ export const studentsApi = {
   remove: async (id: string): Promise<void> => {
     await http.delete(`/students/${id}`)
   },
+  setPhoto: (id: string, file: File) => putPhoto<Student>(`/students/${id}/photo`, file),
+  removePhoto: (id: string) => deleteData<Student>(`/students/${id}/photo`),
   transfer: (id: string, classId: string) =>
     sendData<Student>('post', `/students/${id}/transfer`, { classId }),
   exportXlsx: (classId?: string) =>

@@ -9,7 +9,9 @@ import { useAuthStore } from '@/stores/auth'
 import type { Student, StudentScoreSummary } from '@/api/types'
 import StudentProfileView from './StudentProfileView.vue'
 
-vi.mock('@/api/students.api', () => ({ studentsApi: { get: vi.fn() } }))
+vi.mock('@/api/students.api', () => ({
+  studentsApi: { get: vi.fn(), setPhoto: vi.fn(), removePhoto: vi.fn() },
+}))
 vi.mock('@/api/scores.api', () => ({ scoresApi: { studentSummary: vi.fn() } }))
 vi.mock('@/api/academic-years.api', () => ({
   academicYearsApi: { list: vi.fn().mockResolvedValue({ items: [] }) },
@@ -45,7 +47,7 @@ const summary = {
   recent: [],
 } as unknown as StudentScoreSummary
 
-async function mountAs(permissions: string[]) {
+async function mountAs(permissions: string[], st: Student = student) {
   setActivePinia(createPinia())
   useAuthStore().setSession('tok', {
     id: 'u',
@@ -58,7 +60,7 @@ async function mountAs(permissions: string[]) {
     lastLoginAt: null,
     createdAt: '',
   } as never)
-  vi.mocked(studentsApi.get).mockResolvedValue(student)
+  vi.mocked(studentsApi.get).mockResolvedValue(st)
   vi.mocked(scoresApi.studentSummary).mockResolvedValue(summary)
   const w = mount(StudentProfileView, {
     global: {
@@ -90,5 +92,20 @@ describe('StudentProfileView header', () => {
 
     const withExport = await mountAs(['students.view', 'reports.export'])
     expect(withExport.get('[data-testid="profile-export"]').findAll('button')).toHaveLength(2)
+  })
+
+  it('rasm bor: avatar <img>; rasm boshqaruvi faqat students.manage bilan', async () => {
+    const w0 = await mountAs(['students.view'])
+    expect(w0.find('[data-testid="photo-edit"]').exists()).toBe(false)
+    expect(w0.find('[data-testid="profile-header"] img').exists()).toBe(false)
+
+    const w1 = await mountAs(['students.view', 'students.manage'], {
+      ...student,
+      photo: '/api/v1/photos/p1?exp=1&sig=s',
+    })
+    expect(w1.get('[data-testid="profile-header"] img').attributes('src')).toContain('/photos/p1')
+    expect(w1.get('[data-testid="photo-edit"]').attributes('aria-label')).toBe(
+      "Rasmni o'zgartirish",
+    )
   })
 })

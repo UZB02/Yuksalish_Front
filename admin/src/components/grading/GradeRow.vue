@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { AlertCircle, CheckCircle2, Lock, MessageSquare, Pencil } from 'lucide-vue-next'
 import type { GradeRowStatus, GradeSheetRow } from '@/composables/useGradeSheet'
 import { GRADE_COMMENT_MAX, type GradeDraft, type GradeDraftErrors } from '@/utils/grades'
+import AvatarImage from '@/components/ui/AvatarImage.vue'
 import GradeButtons from './GradeButtons.vue'
 
 const props = defineProps<{
@@ -38,9 +39,12 @@ const errText = (key?: string) =>
 <template>
   <li class="card p-3 sm:p-4" :class="border" :data-status="status">
     <div class="flex flex-wrap items-start justify-between gap-2">
-      <div class="min-w-0">
-        <p class="truncate font-medium text-fg">{{ row.fullName }}</p>
-        <p v-if="row.studentCode" class="text-xs text-fg-muted">{{ row.studentCode }}</p>
+      <div class="flex min-w-0 items-center gap-2.5">
+        <AvatarImage :name="row.fullName" :src="row.photo" size="sm" alt="" />
+        <div class="min-w-0">
+          <p class="truncate font-medium text-fg">{{ row.fullName }}</p>
+          <p v-if="row.studentCode" class="text-xs text-fg-muted">{{ row.studentCode }}</p>
+        </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 text-xs">
         <span

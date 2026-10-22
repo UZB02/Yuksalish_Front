@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import {
   ArrowLeft,
   CalendarCheck,
+  Camera,
   FileSpreadsheet,
   FileText,
   History,
@@ -18,11 +19,13 @@ import { scoresApi } from '@/api/scores.api'
 import type { Student, StudentScoreSummary } from '@/api/types'
 import BehaviorBars from '@/components/scoring/BehaviorBars.vue'
 import TrendChart from '@/components/scoring/TrendChart.vue'
+import AvatarImage from '@/components/ui/AvatarImage.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import PhotoModal from '@/components/ui/PhotoModal.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import StudentAttendanceSection from '@/components/attendance/StudentAttendanceSection.vue'
 import StudentGradesSection from '@/components/grading/StudentGradesSection.vue'
@@ -137,15 +140,15 @@ const stats = computed(() => [
   { key: 'count', icon: ListChecks, value: summary.value?.scoresCount ?? 0 },
 ])
 
-// Avatar uchun bosh harflar (ismning birinchi ikki so'zi)
-const initials = computed(() =>
-  (student.value?.fullName ?? '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
-    .join(''),
-)
+// Rasm yuklash/almashtirish/o'chirish: students.manage (superadmin, ruxsatli maktab admini)
+const canManagePhoto = computed(() => auth.hasPermission(PERMISSIONS.STUDENTS_MANAGE))
+const photoOpen = ref(false)
+async function uploadPhoto(file: File) {
+  student.value = await studentsApi.setPhoto(studentId.value, file)
+}
+async function removePhoto() {
+  student.value = await studentsApi.removePhoto(studentId.value)
+}
 
 // Sarlavha ostidagi meta qator (sinf havolasidan keyin): kod, tug'ilgan sana, jins
 const metaItems = computed(() => {
@@ -178,12 +181,20 @@ const metaItems = computed(() => {
     <template v-else-if="student">
       <span class="hidden h-10 w-px shrink-0 bg-border lg:block" aria-hidden="true" />
       <div class="flex min-w-0 flex-1 items-center gap-3">
-        <span
-          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-50 text-sm font-semibold text-primary-700"
-          aria-hidden="true"
-        >
-          {{ initials }}
-        </span>
+        <div class="relative shrink-0">
+          <AvatarImage :name="student.fullName" :src="student.photo" size="lg" />
+          <button
+            v-if="canManagePhoto"
+            type="button"
+            class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-fg-muted shadow-sm hover:text-primary-700"
+            :aria-label="t('photo.change')"
+            :title="t('photo.change')"
+            data-testid="photo-edit"
+            @click="photoOpen = true"
+          >
+            <Camera class="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h1 class="min-w-0 break-words text-xl font-semibold text-fg sm:text-2xl">
@@ -398,4 +409,14 @@ const metaItems = computed(() => {
       </div>
     </div>
   </template>
+
+  <PhotoModal
+    v-if="student"
+    :open="photoOpen"
+    :name="student.fullName"
+    :photo="student.photo"
+    :upload="uploadPhoto"
+    :remove="removePhoto"
+    @close="photoOpen = false"
+  />
 </template>

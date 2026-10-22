@@ -55,6 +55,7 @@ const SWITCHES = [
   'showScores',
   'showMedals',
   'showTrend',
+  'showPhotos',
 ] as const
 type SwitchKey = (typeof SWITCHES)[number]
 const isSwitch = (k: PublicKey): k is SwitchKey => (SWITCHES as readonly string[]).includes(k)
@@ -85,13 +86,22 @@ const textOrNull = (raw: string) => (raw === '' ? null : raw)
       :global-text="globalText(k)"
       @toggle="emit('toggle-flag', k, $event)"
     >
-      <BaseSwitch
-        v-if="isSwitch(k)"
-        :model-value="modelValue[k]"
-        :disabled="!enabled(k)"
-        :label="modelValue[k] ? t('settings.yes') : t('settings.no')"
-        @update:model-value="set(k, $event)"
-      />
+      <div v-if="isSwitch(k)">
+        <BaseSwitch
+          :model-value="modelValue[k]"
+          :disabled="!enabled(k)"
+          :label="modelValue[k] ? t('settings.yes') : t('settings.no')"
+          @update:model-value="set(k, $event)"
+        />
+        <p
+          v-if="k === 'showPhotos' && modelValue.showPhotos"
+          class="mt-2 rounded-lg border border-warning/40 bg-warning-soft p-2.5 text-xs text-fg"
+          role="note"
+          data-testid="photos-warning"
+        >
+          {{ t('settingsPublic.photosWarning') }}
+        </p>
+      </div>
 
       <div v-else-if="k === 'showScope'" class="space-y-2">
         <label

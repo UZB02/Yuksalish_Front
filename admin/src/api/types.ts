@@ -56,6 +56,8 @@ export interface User {
   schoolId: string | null
   permissions: string[]
   phone?: string | null
+  /** Imzolangan rasm havolasi (yoki null) */
+  photo?: string | null
   isActive: boolean
   lastLoginAt: string | null
   createdAt: string
@@ -264,6 +266,8 @@ export interface Student {
   class: { id: string; name: string }
   parentPhone: string | null
   photoUrl: string | null
+  /** Yuklangan rasm: imzolangan havola yoki null */
+  photo?: string | null
   status: StudentStatus
   createdAt: string
 }
@@ -428,6 +432,7 @@ export interface GradeSheetStudent {
   studentId: string
   fullName: string
   studentCode: string | null
+  photo?: string | null
   grade: SubjectGrade | null
   alreadyGraded: boolean
 }
@@ -545,6 +550,7 @@ export interface ScoringSheetStudent {
   studentId: string
   fullName: string
   studentCode: string | null
+  photo?: string | null
   myScore: Score | null
   dayScore: number | null
   scoresCount: number
@@ -677,6 +683,7 @@ export interface PublicSettings {
   showScores: boolean
   showMedals: boolean
   showTrend: boolean
+  showPhotos: boolean
   title: string | null
   subtitle: string | null
   primaryColor: string | null
@@ -842,6 +849,7 @@ export interface AttendanceSheetStudent {
   studentId: string
   fullName: string
   studentCode: string | null
+  photo?: string | null
   record: AttendanceRecord | null
 }
 

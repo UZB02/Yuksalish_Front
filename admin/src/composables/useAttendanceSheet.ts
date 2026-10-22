@@ -26,6 +26,7 @@ export type AttendanceRowState = 'empty' | 'saved' | 'dirty' | 'error' | 'locked
 export interface AttendanceRow extends BulkRow<AttendanceDraft> {
   studentId: string
   fullName: string
+  photo?: string | null
   studentCode: string | null
   /** Serverdagi yozuv (kim belgilagan, editable) */
   record: AttendanceRecord | null
@@ -61,6 +62,7 @@ function toRow(s: AttendanceSheetStudent): AttendanceRow {
     studentId: s.studentId,
     fullName: s.fullName,
     studentCode: s.studentCode,
+    photo: s.photo ?? null,
     record: r,
     editable: r ? r.editable : true,
     baseline: { ...d },

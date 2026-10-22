@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
-import { useScrollLock } from '@vueuse/core'
+import { nextTick, ref, useId, watch } from 'vue'
 import { X } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import { useBodyLock } from '@/composables/useBodyLock'
 
 const props = withDefaults(
   defineProps<{
@@ -12,8 +12,10 @@ const props = withDefaults(
     size?: 'sm' | 'md' | 'lg' | 'xl'
     /** Orqa fonni bosganda yopilmasin (forma to'ldirilayotganda) */
     persistent?: boolean
+    /** 'top' - boshqa modallar ustida (tasdiqlash oynasi modal ichidan ochilganda ham ko'rinsin) */
+    layer?: 'default' | 'top'
   }>(),
-  { size: 'md', persistent: false },
+  { size: 'md', persistent: false, layer: 'default' },
 )
 const emit = defineEmits<{ close: [] }>()
 
@@ -21,7 +23,7 @@ const { t } = useI18n()
 const titleId = useId()
 const panel = ref<HTMLElement | null>(null)
 let previouslyFocused: HTMLElement | null = null
-const locked = useScrollLock(typeof document !== 'undefined' ? document.body : null)
+const bodyLock = useBodyLock()
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -29,7 +31,7 @@ const FOCUSABLE =
 watch(
   () => props.open,
   async (isOpen) => {
-    locked.value = isOpen
+    bodyLock.set(isOpen)
     if (isOpen) {
       previouslyFocused = document.activeElement as HTMLElement | null
       await nextTick()
@@ -42,10 +44,6 @@ watch(
   },
   { immediate: true },
 )
-
-onBeforeUnmount(() => {
-  locked.value = false
-})
 
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
@@ -84,7 +82,8 @@ const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl
     >
       <div
         v-if="open"
-        class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4"
+        class="fixed inset-0 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4"
+        :class="layer === 'top' ? 'z-[60]' : 'z-50'"
         @mousedown.self="onBackdrop"
         @keydown="onKeydown"
       >

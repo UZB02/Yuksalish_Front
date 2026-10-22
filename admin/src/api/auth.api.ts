@@ -1,4 +1,4 @@
-import { bareHttp, getData, http, sendData } from './http'
+import { bareHttp, deleteData, getData, http, putPhoto, sendData } from './http'
 import { toApiError } from './errors'
 import type { ApiSuccess, AuthResult, ChangePasswordPayload, LoginPayload, User } from './types'
 
@@ -15,6 +15,8 @@ export const authApi = {
     await http.post('/auth/logout')
   },
   me: () => getData<User>('/auth/me'),
+  setOwnPhoto: (file: File) => putPhoto<User>('/auth/me/photo', file),
+  removeOwnPhoto: () => deleteData<User>('/auth/me/photo'),
   changePassword: (payload: ChangePasswordPayload) =>
     sendData<{ accessToken: string }>('patch', '/auth/password', payload),
 }

@@ -11,6 +11,7 @@ import {
   type DraftErrors,
   type RowDraft,
 } from '@/utils/scoring'
+import AvatarImage from '@/components/ui/AvatarImage.vue'
 import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BehaviorChips from './BehaviorChips.vue'
 import ScoreSlider from './ScoreSlider.vue'
@@ -88,9 +89,12 @@ const border = computed(
       />
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="min-w-0">
-            <p class="truncate font-medium text-fg">{{ row.fullName }}</p>
-            <p v-if="row.studentCode" class="text-xs text-fg-muted">{{ row.studentCode }}</p>
+          <div class="flex min-w-0 items-center gap-2.5">
+            <AvatarImage :name="row.fullName" :src="row.photo" size="sm" alt="" />
+            <div class="min-w-0">
+              <p class="truncate font-medium text-fg">{{ row.fullName }}</p>
+              <p v-if="row.studentCode" class="text-xs text-fg-muted">{{ row.studentCode }}</p>
+            </div>
           </div>
           <div class="flex items-center gap-2 text-xs">
             <span

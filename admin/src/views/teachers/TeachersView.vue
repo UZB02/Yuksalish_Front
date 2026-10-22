@@ -16,6 +16,7 @@ import { teachersApi } from '@/api/teachers.api'
 import type { Teacher } from '@/api/types'
 import PermissionsModal from '@/components/domain/PermissionsModal.vue'
 import ResetPasswordModal from '@/components/domain/ResetPasswordModal.vue'
+import AvatarImage from '@/components/ui/AvatarImage.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -182,8 +183,13 @@ async function toggleActive(tc: Teacher) {
           :caption="t('teachers.title')"
         >
           <template #cell-fullName="{ row }">
-            <p class="font-medium text-fg">{{ row.fullName }}</p>
-            <p class="text-xs text-fg-muted">{{ row.username }}</p>
+            <div class="flex items-center gap-3">
+              <AvatarImage :name="row.fullName" :src="row.photo" size="md" alt="" />
+              <div class="min-w-0">
+                <p class="font-medium text-fg">{{ row.fullName }}</p>
+                <p class="text-xs text-fg-muted">{{ row.username }}</p>
+              </div>
+            </div>
           </template>
           <template #cell-phone="{ row }">{{ row.phone || '-' }}</template>
           <template #cell-classes="{ row }">

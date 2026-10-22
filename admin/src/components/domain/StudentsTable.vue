@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowRightLeft, Pencil, Trash2 } from 'lucide-vue-next'
 import type { Student, StudentStatus } from '@/api/types'
+import AvatarImage from '@/components/ui/AvatarImage.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable, { type TableColumn } from '@/components/ui/BaseTable.vue'
@@ -41,13 +42,18 @@ const statusTone: Record<StudentStatus, 'success' | 'warning' | 'neutral'> = {
 <template>
   <BaseTable :columns="columns" :rows="rows" :loading="loading" :caption="t('students.title')">
     <template #cell-fullName="{ row }">
-      <RouterLink
-        :to="{ name: 'student-profile', params: { id: row.id } }"
-        class="font-medium text-fg hover:text-primary-700 hover:underline"
-      >
-        {{ row.fullName }}
-      </RouterLink>
-      <p v-if="row.parentPhone" class="text-xs text-fg-muted">{{ row.parentPhone }}</p>
+      <div class="flex items-center gap-3">
+        <AvatarImage :name="row.fullName" :src="row.photo" size="sm" alt="" />
+        <div class="min-w-0">
+          <RouterLink
+            :to="{ name: 'student-profile', params: { id: row.id } }"
+            class="font-medium text-fg hover:text-primary-700 hover:underline"
+          >
+            {{ row.fullName }}
+          </RouterLink>
+          <p v-if="row.parentPhone" class="text-xs text-fg-muted">{{ row.parentPhone }}</p>
+        </div>
+      </div>
     </template>
     <template #cell-class="{ row }">
       <RouterLink

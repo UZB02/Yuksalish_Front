@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, Lock, MessageSquare, Pencil } from 'lucide-v
 import type { AttendanceSettings, AttendanceStatus } from '@/api/types'
 import type { AttendanceRow, AttendanceRowState } from '@/composables/useAttendanceSheet'
 import { NOTE_MAX, type AttendanceDraft, type AttendanceErrors } from '@/utils/attendance'
+import AvatarImage from '@/components/ui/AvatarImage.vue'
 import StatusChips from './StatusChips.vue'
 
 const props = defineProps<{
@@ -52,9 +53,12 @@ const border = computed(
 <template>
   <li class="card p-3 sm:p-4" :class="border" :data-state="state" data-testid="attendance-row">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="min-w-0">
-        <p class="truncate font-medium text-fg">{{ row.fullName }}</p>
-        <p v-if="row.studentCode" class="text-xs text-fg-muted">{{ row.studentCode }}</p>
+      <div class="flex min-w-0 items-center gap-2.5">
+        <AvatarImage :name="row.fullName" :src="row.photo" size="sm" alt="" />
+        <div class="min-w-0">
+          <p class="truncate font-medium text-fg">{{ row.fullName }}</p>
+          <p v-if="row.studentCode" class="text-xs text-fg-muted">{{ row.studentCode }}</p>
+        </div>
       </div>
       <div class="flex items-center gap-2 text-xs">
         <span v-if="state === 'locked'" class="inline-flex items-center gap-1 text-fg-muted">

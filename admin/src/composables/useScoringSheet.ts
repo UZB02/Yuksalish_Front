@@ -17,6 +17,7 @@ export type RowStatus = 'empty' | 'saved' | 'dirty' | 'error' | 'locked'
 export interface SheetRow extends BulkRow<RowDraft> {
   studentId: string
   fullName: string
+  photo?: string | null
   studentCode: string | null
   /** Serverdagi mening bahom (id, editable) */
   scoreId: string | null
@@ -38,6 +39,7 @@ function toRow(s: ScoringSheetStudent): SheetRow {
     studentId: s.studentId,
     fullName: s.fullName,
     studentCode: s.studentCode,
+    photo: s.photo ?? null,
     scoreId: s.myScore?.id ?? null,
     editable: s.myScore ? s.myScore.editable : true,
     dayScore: s.dayScore,

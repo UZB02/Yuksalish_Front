@@ -15,6 +15,7 @@ export type GradeRowStatus = 'empty' | 'saved' | 'dirty' | 'error' | 'locked'
 export interface GradeSheetRow extends BulkRow<GradeDraft> {
   studentId: string
   fullName: string
+  photo?: string | null
   studentCode: string | null
   /** Serverdagi shu fan/kun bahosi (kim qo'ygan bo'lsa ham) */
   gradeId: string | null
@@ -32,6 +33,7 @@ export function toGradeRow(s: GradeSheetStudent): GradeSheetRow {
     studentId: s.studentId,
     fullName: s.fullName,
     studentCode: s.studentCode,
+    photo: s.photo ?? null,
     gradeId: s.grade?.id ?? null,
     gradedBy: s.grade?.teacher.fullName ?? null,
     editable: s.grade ? s.grade.editable : true,

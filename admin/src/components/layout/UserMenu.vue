@@ -7,7 +7,7 @@ import { ChevronDown, LogOut, UserRound } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { ROLE_LABEL_KEYS } from '@/constants/roles'
-import { initials } from '@/utils/format'
+import AvatarImage from '@/components/ui/AvatarImage.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -36,12 +36,7 @@ async function logout() {
       :aria-expanded="open"
       @click="open = !open"
     >
-      <span
-        class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-xs font-semibold text-primary-700"
-        aria-hidden="true"
-      >
-        {{ initials(auth.user.fullName) }}
-      </span>
+      <AvatarImage :name="auth.user.fullName" :src="auth.user.photo" size="md" alt="" />
       <span class="hidden text-left sm:block">
         <span class="block max-w-[10rem] truncate text-sm font-medium leading-tight text-fg">
           {{ auth.user.fullName }}
