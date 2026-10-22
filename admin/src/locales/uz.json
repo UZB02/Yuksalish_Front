@@ -1356,7 +1356,7 @@
     },
     "groups": {
       "auth": "Kirish",
-      "scores": "Baholar",
+      "scores": "Xulq baholari",
       "attendance": "Davomat",
       "attendance_status": "Davomat holatlari",
       "settings": "Sozlamalar",
@@ -1370,7 +1370,9 @@
       "teacher": "O'qituvchilar",
       "user": "Foydalanuvchilar",
       "school_admin": "Maktab adminlari",
-      "reports": "Hisobotlar"
+      "reports": "Hisobotlar",
+      "grades": "Fan baholari",
+      "subject": "Fanlar"
     },
     "entities": {
       "academic_year": "O'quv yili",
@@ -1380,11 +1382,13 @@
       "class": "Sinf",
       "rating": "Reyting",
       "school": "Maktab",
-      "score": "Baho",
+      "score": "Xulq bahosi",
       "settings": "Sozlama",
       "student": "O'quvchi",
       "user": "Foydalanuvchi",
-      "report": "Hisobot"
+      "report": "Hisobot",
+      "subject": "Fan",
+      "subject_grade": "Fan bahosi"
     },
     "actions": {
       "auth": {
@@ -1394,10 +1398,10 @@
         "refresh_reuse": "Token qayta ishlatildi (shubhali)"
       },
       "scores": {
-        "create": "Baho qo'ydi",
-        "update": "Bahoni o'zgartirdi",
-        "delete": "Bahoni o'chirdi",
-        "bulk": "Ommaviy baholadi"
+        "create": "Xulq bahosi qo'ydi",
+        "update": "Xulq bahosini o'zgartirdi",
+        "delete": "Xulq bahosini o'chirdi",
+        "bulk": "Xulq baholarini ommaviy qo'ydi"
       },
       "attendance": {
         "bulk": "Davomat oldi",
@@ -1417,7 +1421,9 @@
         "create": "O'quvchi qo'shdi",
         "update": "O'quvchini o'zgartirdi",
         "delete": "O'quvchini o'chirdi",
-        "transfer": "O'quvchini ko'chirdi"
+        "transfer": "O'quvchini ko'chirdi",
+        "photo_upload": "O'quvchi rasmini yukladi",
+        "photo_delete": "O'quvchi rasmini o'chirdi"
       },
       "students": {
         "import": "O'quvchilarni import qildi"
@@ -1427,7 +1433,8 @@
         "update": "Sinfni o'zgartirdi",
         "teachers": "Sinf o'qituvchilarini o'zgartirdi",
         "archive": "Sinfni arxivladi",
-        "unarchive": "Sinfni arxivdan chiqardi"
+        "unarchive": "Sinfni arxivdan chiqardi",
+        "subjects": "Sinf fanlari va o'qituvchilarini o'zgartirdi"
       },
       "school": {
         "create": "Maktab qo'shdi",
@@ -1453,7 +1460,9 @@
         "create": "O'qituvchi qo'shdi",
         "update": "O'qituvchini o'zgartirdi",
         "permissions": "O'qituvchi ruxsatlarini o'zgartirdi",
-        "password_reset": "O'qituvchi parolini tikladi"
+        "password_reset": "O'qituvchi parolini tikladi",
+        "photo_upload": "O'qituvchi rasmini yukladi",
+        "photo_delete": "O'qituvchi rasmini o'chirdi"
       },
       "reports": {
         "export": "Hisobotni eksport qildi"
@@ -1462,8 +1471,43 @@
         "create": "Maktab admini qo'shdi",
         "update": "Maktab adminini o'zgartirdi",
         "permissions": "Maktab admini ruxsatlarini o'zgartirdi",
-        "password_reset": "Maktab admini parolini tikladi"
+        "password_reset": "Maktab admini parolini tikladi",
+        "photo_upload": "Maktab admini rasmini yukladi",
+        "photo_delete": "Maktab admini rasmini o'chirdi"
+      },
+      "grades": {
+        "create": "Fan bahosi qo'ydi",
+        "update": "Fan bahosini o'zgartirdi",
+        "delete": "Fan bahosini o'chirdi",
+        "bulk": "Fan baholarini ommaviy qo'ydi"
+      },
+      "subject": {
+        "create": "Fan qo'shdi",
+        "update": "Fanni o'zgartirdi",
+        "delete": "Fanni o'chirdi",
+        "activate": "Fanni faollashtirdi",
+        "deactivate": "Fanni nofaol qildi"
       }
+    },
+    "verbs": {
+      "create": "qo'shdi",
+      "update": "o'zgartirdi",
+      "delete": "o'chirdi",
+      "bulk": "ommaviy amal",
+      "activate": "faollashtirdi",
+      "deactivate": "nofaol qildi",
+      "archive": "arxivladi",
+      "unarchive": "arxivdan chiqardi",
+      "import": "import qildi",
+      "export": "eksport qildi",
+      "transfer": "ko'chirdi",
+      "permissions": "ruxsatlarni o'zgartirdi",
+      "password_reset": "parolni tikladi",
+      "password_change": "parolni o'zgartirdi",
+      "photo_upload": "rasm yukladi",
+      "photo_delete": "rasmni o'chirdi",
+      "login": "tizimga kirdi",
+      "recalculate": "qayta hisobladi"
     }
   },
   "subjects": {

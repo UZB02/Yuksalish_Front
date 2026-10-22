@@ -111,6 +111,18 @@ describe('harakat (action)', () => {
     expect(actionTone('settings.update')).toBe('primary')
     expect(actionTone('attendance.bulk')).toBe('info')
   })
+  it("tarjima yo'q bo'lsa guruh va fe'ldan yig'iladi", () => {
+    const t2 = (k: string) =>
+      ({ 'audit.groups.subject': 'Fanlar', 'audit.verbs.delete': "o'chirdi" })[k] ?? k
+    const te2 = (k: string) => k === 'audit.groups.subject' || k === 'audit.verbs.delete'
+    expect(actionLabel('subject.delete', t2, te2)).toBe("Fanlar · o'chirdi")
+    expect(actionLabel('subject.mystery', t2, te2)).toBe('Fanlar · mystery')
+    expect(actionLabel('nogroup', t2, te2)).toBe('nogroup')
+  })
+  it('rasm yuklash yashil, o`chirish qizil', () => {
+    expect(actionTone('teacher.photo_upload')).toBe('success')
+    expect(actionTone('student.photo_delete')).toBe('danger')
+  })
   it("guruhlash prefiks bo'yicha", () => {
     expect(actionGroup('scores.create')).toBe('scores')
     expect(groupActions(['scores.update', 'auth.login', 'scores.create'])).toEqual([

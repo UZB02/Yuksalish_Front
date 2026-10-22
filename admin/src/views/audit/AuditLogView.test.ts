@@ -84,7 +84,7 @@ describe('AuditLogView', () => {
     const { w } = await mountView()
     expect(w.text()).toContain('Karimova Nodira')
     expect(w.text()).toContain("O'qituvchi")
-    expect(w.text()).toContain("Bahoni o'zgartirdi")
+    expect(w.text()).toContain("Xulq bahosini o'zgartirdi")
     expect(w.text()).toContain('10.0.0.1')
   })
 

@@ -118,20 +118,29 @@ export function actionTone(action: string): ActionTone {
   const verb = rest.join('.')
   if (group === 'auth') return verb === 'locked' || verb === 'refresh_reuse' ? 'warning' : 'neutral'
   if (group === 'settings') return 'primary'
-  if (/(^|[._])(create|created|import|add)/.test(verb)) return 'success'
+  if (/(^|[._])(create|created|import|add|upload)/.test(verb)) return 'success'
   if (/(^|[._])(delete|remove|deactivate)/.test(verb)) return 'danger'
   if (/login|logout/.test(verb)) return 'neutral'
   return 'info'
 }
 
-/** i18n kaliti `audit.actions.<action>`; yo'q bo'lsa xom action qaytariladi. */
+/**
+ * i18n kaliti `audit.actions.<action>`. Yo'q bo'lsa (yangi qo'shilgan harakat) guruh va fe'ldan
+ * yig'iladi: "Fanlar · o'chirdi". Ikkalasi ham noma'lum bo'lsa xom action qaytariladi.
+ */
 export function actionLabel(
   action: string,
   t: (key: string) => string,
   te: (key: string) => boolean,
 ): string {
   const key = `audit.actions.${action}`
-  return te(key) ? t(key) : action
+  if (te(key)) return t(key)
+  const [group = '', ...rest] = action.split('.')
+  const verb = rest.join('.')
+  const groupKey = `audit.groups.${group}`
+  const verbKey = `audit.verbs.${verb}`
+  if (!verb || (!te(groupKey) && !te(verbKey))) return action
+  return `${te(groupKey) ? t(groupKey) : group} · ${te(verbKey) ? t(verbKey) : verb}`
 }
 
 export function groupLabel(
