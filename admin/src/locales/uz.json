@@ -66,7 +66,16 @@
     "reports": "Hisobotlar",
     "audit": "Audit log",
     "subjects": "Fanlar",
-    "grading": "Fan baholari"
+    "grading": "Fan baholari",
+    "groups": {
+      "myWork": "Mening ishim",
+      "academic": "O'quv jarayoni",
+      "grading": "Baholash",
+      "attendance": "Davomat",
+      "results": "Natijalar",
+      "reference": "Ma'lumotnomalar",
+      "system": "Tizim"
+    }
   },
   "theme": {
     "light": "Yorug' mavzu",
@@ -331,6 +340,9 @@
     "basicInfoHint": "Sinf nomi parallel va harfdan avtomatik yig'iladi, kerak bo'lsa o'zgartiring.",
     "formSubtitle": "Sinf ma'lumotlari, sinf rahbari va fan o'qituvchilari",
     "homeroomHint": "O'qituvchilardan xulq bahosini faqat sinf rahbari qo'yadi.",
+    "extraTeachers": "Qo'shimcha o'qituvchilar (fansiz)",
+    "extraTeachersHint": "Fan biriktirmasdan sinfga qo'shiladi: o'quvchilarni ko'radi va davomat oladi.",
+    "extraTeachersNone": "Barcha o'qituvchilar yuqorida tanlangan.",
     "summary": "Xulosa",
     "summarySubjects": "Biriktirilgan fanlar",
     "newClassName": "Yangi sinf",

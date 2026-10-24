@@ -41,4 +41,14 @@ describe('BaseModal qatlami va scroll bloki', () => {
     outer.unmount()
     inner.unmount()
   })
+
+  it('uzun kontentda oyna cho`zilmaydi: tana kichrayib aylanadi, sarlavha va footer joyida', () => {
+    const w = mountModal({ open: true })
+    const bodyEl = document.body.querySelector<HTMLElement>('[data-testid="modal-body"]')!
+    for (const c of ['min-h-0', 'flex-1', 'overflow-y-auto']) expect(bodyEl.classList).toContain(c)
+    const dialog = document.body.querySelector<HTMLElement>('[role="dialog"]')!
+    expect(dialog.classList).toContain('max-h-[92vh]')
+    expect(dialog.querySelector('header')!.classList).toContain('shrink-0')
+    w.unmount()
+  })
 })

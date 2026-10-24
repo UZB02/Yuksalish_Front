@@ -93,10 +93,12 @@ const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl
           aria-modal="true"
           :aria-labelledby="titleId"
           tabindex="-1"
-          class="flex max-h-[92vh] w-full flex-col rounded-t-2xl border border-border bg-surface shadow-xl sm:rounded-2xl"
+          class="flex max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-full flex-col rounded-t-2xl border border-border bg-surface shadow-xl sm:rounded-2xl"
           :class="widths[size]"
         >
-          <header class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+          <header
+            class="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-4"
+          >
             <div>
               <h2 :id="titleId" class="text-base font-semibold text-fg">{{ title }}</h2>
               <p v-if="description" class="mt-0.5 text-sm text-fg-muted">{{ description }}</p>
@@ -110,12 +112,16 @@ const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl
               <X class="h-5 w-5" />
             </button>
           </header>
-          <div class="overflow-y-auto px-5 py-4">
+          <!-- min-h-0: flex ustunida tana kontentdan kichrayib aylanishi uchun (aks holda oyna cho'ziladi) -->
+          <div
+            class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4"
+            data-testid="modal-body"
+          >
             <slot />
           </div>
           <footer
             v-if="$slots.footer"
-            class="flex flex-col-reverse gap-2 border-t border-border px-5 py-3 sm:flex-row sm:justify-end"
+            class="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-3 sm:flex-row sm:justify-end"
           >
             <slot name="footer" />
           </footer>
