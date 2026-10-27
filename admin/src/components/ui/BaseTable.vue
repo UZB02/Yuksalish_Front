@@ -21,8 +21,10 @@ withDefaults(
     caption?: string
     sortKey?: string
     sortDir?: 'asc' | 'desc'
+    /** table-fixed: ustun kengliklari klasslar bilan beriladi, matn kesiladi (gorizontal skroll yo'q) */
+    fixed?: boolean
   }>(),
-  { loading: false, skeletonRows: 5 },
+  { loading: false, skeletonRows: 5, fixed: false },
 )
 const emit = defineEmits<{ sort: [key: string] }>()
 
@@ -31,7 +33,7 @@ const cellValue = (row: T, key: string) => (row as Record<string, unknown>)[key]
 
 <template>
   <div class="overflow-x-auto">
-    <table class="w-full min-w-full text-left text-sm">
+    <table class="w-full min-w-full text-left text-sm" :class="fixed ? 'table-fixed' : ''">
       <caption v-if="caption" class="sr-only">
         {{
           caption
@@ -79,7 +81,9 @@ const cellValue = (row: T, key: string) => (row as Record<string, unknown>)[key]
         <template v-if="loading && rows.length === 0">
           <tr v-for="n in skeletonRows" :key="`sk-${n}`">
             <td v-for="c in columns" :key="c.key" class="px-4 py-3.5" :class="c.class">
-              <Skeleton class="h-4 w-full max-w-[10rem]" />
+              <slot :name="`skeleton-${c.key}`">
+                <Skeleton class="h-4 w-full max-w-[10rem]" />
+              </slot>
             </td>
           </tr>
         </template>

@@ -243,12 +243,19 @@ export function auditParams(state: AuditQueryState) {
 
 // ---- Nisbiy vaqt ----
 export interface RelativeTime {
-  unit: 'now' | 'minutes' | 'hours' | 'days'
+  unit: 'now' | 'minutes' | 'hours' | 'days' | 'months' | 'years'
   n: number
 }
 
-/** "5 daqiqa oldin" kabi nisbiy vaqt; 7 kundan eski bo'lsa `null` (faqat aniq sana ko'rsatiladi). */
-export function relativeTime(iso: string, now: number = Date.now()): RelativeTime | null {
+/**
+ * "5 daqiqa oldin" kabi nisbiy vaqt. `maxDays` (standart 7) dan eski bo'lsa `null` (faqat aniq sana).
+ * `maxDays = Infinity` bo'lsa 30 kundan keyin oy va yil birliklari ham qaytariladi.
+ */
+export function relativeTime(
+  iso: string,
+  now: number = Date.now(),
+  maxDays: number = 7,
+): RelativeTime | null {
   const diff = Math.max(0, now - new Date(iso).getTime())
   const min = Math.floor(diff / 60_000)
   if (min < 1) return { unit: 'now', n: 0 }
@@ -256,5 +263,8 @@ export function relativeTime(iso: string, now: number = Date.now()): RelativeTim
   const hours = Math.floor(min / 60)
   if (hours < 24) return { unit: 'hours', n: hours }
   const days = Math.floor(hours / 24)
-  return days < 7 ? { unit: 'days', n: days } : null
+  if (days >= maxDays) return null
+  if (days < 30) return { unit: 'days', n: days }
+  if (days < 365) return { unit: 'months', n: Math.min(11, Math.floor(days / 30)) }
+  return { unit: 'years', n: Math.floor(days / 365) }
 }

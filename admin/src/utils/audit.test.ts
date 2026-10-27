@@ -178,4 +178,12 @@ describe('relativeTime', () => {
   it('7 kundan eski - null', () => {
     expect(relativeTime(ago(8 * 86_400_000), now)).toBeNull()
   })
+  it('maxDays = Infinity: kun, oy va yil birliklari', () => {
+    const day = 86_400_000
+    expect(relativeTime(ago(8 * day), now, Infinity)).toEqual({ unit: 'days', n: 8 })
+    expect(relativeTime(ago(29 * day), now, Infinity)).toEqual({ unit: 'days', n: 29 })
+    expect(relativeTime(ago(65 * day), now, Infinity)).toEqual({ unit: 'months', n: 2 })
+    expect(relativeTime(ago(364 * day), now, Infinity)).toEqual({ unit: 'months', n: 11 })
+    expect(relativeTime(ago(800 * day), now, Infinity)).toEqual({ unit: 'years', n: 2 })
+  })
 })

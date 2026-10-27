@@ -271,6 +271,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'teachers/:id',
+          name: 'teacher-detail',
+          component: () => import('@/views/teachers/TeacherDetailView.vue'),
+          meta: {
+            roles: ['superadmin', 'school_admin'],
+            permission: PERMISSIONS.TEACHERS_MANAGE,
+            titleKey: 'nav.teachers',
+          },
+        },
+        {
           path: 'profile',
           name: 'profile',
           component: () => import('@/views/profile/ProfileView.vue'),
