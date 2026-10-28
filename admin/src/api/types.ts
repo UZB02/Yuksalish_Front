@@ -321,6 +321,44 @@ export interface ImportResult {
   failed: number
 }
 
+// ---- O'qituvchilarni Excel'dan import ----
+export type TeacherImportStatus = 'create' | 'skip_existing' | 'error'
+
+export interface TeacherImportRow {
+  rowNo: number
+  fullName: string
+  phone: string | null
+  login: string | null
+  loginGenerated: boolean
+  passwordGenerated: boolean
+  status: TeacherImportStatus
+  messages: string[]
+  /** Faqat status=create bo'lganda (hech qayerda saqlanmaydi) */
+  password: string | null
+}
+
+export interface TeacherImportPreview {
+  summary: { total: number; create: number; skipExisting: number; error: number }
+  rows: TeacherImportRow[]
+}
+
+export type TeacherImportResultStatus = 'created' | 'skipped' | 'failed'
+
+export interface TeacherImportResultRow {
+  rowNo: number
+  fullName: string
+  phone: string | null
+  login: string | null
+  password: string | null
+  status: TeacherImportResultStatus
+  message: string | null
+}
+
+export interface TeacherImportResult {
+  summary: { total: number; created: number; skipped: number; failed: number }
+  results: TeacherImportResultRow[]
+}
+
 // ---- Dashboard ----
 export interface DashboardSummary {
   students: number

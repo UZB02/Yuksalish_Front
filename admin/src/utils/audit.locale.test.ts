@@ -69,6 +69,7 @@ const ACTIONS = [
   'teacher.photo_delete',
   'teacher.photo_upload',
   'teacher.update',
+  'teachers.import',
 ]
 const ENTITIES = [
   'academic_year',

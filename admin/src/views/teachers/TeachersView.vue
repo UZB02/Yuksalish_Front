@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { GraduationCap, Pencil, Plus, School as SchoolIcon, Search } from 'lucide-vue-next'
+import { FileUp, GraduationCap, Pencil, Plus, School as SchoolIcon, Search } from 'lucide-vue-next'
 import { teachersApi } from '@/api/teachers.api'
 import type { Teacher } from '@/api/types'
 import LastLogin from '@/components/domain/LastLogin.vue'
@@ -21,12 +21,18 @@ import { useDebounce } from '@/composables/useDebounce'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { usePagination } from '@/composables/usePagination'
 import { useTeacherActions } from '@/composables/useTeacherActions'
+import { PERMISSIONS } from '@/constants/permissions'
+import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 import TeacherActionModals from './TeacherActionModals.vue'
+import TeachersImportModal from './TeachersImportModal.vue'
 
 const { t } = useI18n()
 const schoolCtx = useSchoolContextStore()
+const auth = useAuthStore()
+const canManage = computed(() => auth.hasPermission(PERMISSIONS.TEACHERS_MANAGE))
+const importOpen = ref(false)
 
 const search = ref('')
 const status = ref<'all' | 'active' | 'inactive'>('all')
@@ -73,6 +79,15 @@ watch([debouncedSearch, status, () => schoolCtx.schoolId], loadIfReady)
 <template>
   <PageHeader :title="t('teachers.title')" :description="t('teachers.description')">
     <template #actions>
+      <BaseButton
+        v-if="canManage"
+        variant="secondary"
+        :disabled="needsSchool"
+        data-testid="teachers-import"
+        @click="importOpen = true"
+      >
+        <FileUp class="h-4 w-4" /> {{ t('teachers.importExcel') }}
+      </BaseButton>
       <BaseButton :disabled="needsSchool" @click="actions.openCreate()">
         <Plus class="h-4 w-4" /> {{ t('teachers.add') }}
       </BaseButton>
@@ -284,4 +299,10 @@ watch([debouncedSearch, status, () => schoolCtx.schoolId], loadIfReady)
   </div>
 
   <TeacherActionModals :actions="actions" />
+  <TeachersImportModal
+    v-if="canManage"
+    :open="importOpen"
+    @close="importOpen = false"
+    @imported="list.load()"
+  />
 </template>

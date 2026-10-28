@@ -224,6 +224,7 @@
     "title": "O'qituvchilar",
     "description": "Maktab o'qituvchilari va ularning ruxsatlari",
     "add": "O'qituvchi qo'shish",
+    "importExcel": "Excel'dan import",
     "edit": "O'qituvchini tahrirlash",
     "searchPlaceholder": "Ism yoki login bo'yicha qidirish",
     "usernameTaken": "Bu login band. Boshqasini tanlang.",
@@ -546,6 +547,78 @@
       "updated": "Yangilandi",
       "skipped": "O'tkazib yuborildi",
       "failed": "Xato"
+    }
+  },
+  "teachersImport": {
+    "title": {
+      "upload": "O'qituvchilarni Excel'dan yuklash",
+      "preview": "Oldindan ko'rish",
+      "result": "Yuklash natijasi"
+    },
+    "stepOf": "{n}-qadam, jami 3 ta",
+    "step1": "1. Shablonni yuklab oling",
+    "step2": "2. To'ldirilgan faylni tanlang",
+    "templateHint": "Ustunlar: T/r (e'tiborga olinmaydi), F.I.Sh. (majburiy), Telefon, Login, Parol (ixtiyoriy).",
+    "downloadTemplate": "Shablonni yuklab olish",
+    "chooseFile": "Excel faylni tanlash",
+    "changeFile": "Boshqa faylni tanlash",
+    "dropHere": "Faylni shu yerga tashlang yoki bosib tanlang",
+    "limits": "Faqat .xlsx, 5 MB gacha, {rows} qatorgacha",
+    "uploading": "Fayl yuklanmoqda",
+    "uploadingPercent": "Yuklanmoqda: {p}%",
+    "checking": "Fayl tekshirilmoqda...",
+    "rulesTitle": "Login va parol qoidasi",
+    "rules": {
+      "login": "Login bo'sh bo'lsa, ism (F.I.Sh.dagi 2-so'z) lotin harflarida olinadi: O'g'ilhon -> ogilhon.",
+      "duplicate": "Ismi bir xil bo'lganlarga familiya bosh harfi qo'shiladi: sardorbek.j, sardorbek.r.",
+      "password": "Parol bo'sh bo'lsa: login (nuqtasiz) + 12345, masalan umida12345.",
+      "phone": "Telefon +998 XX XXX XX XX ko'rinishiga keltiriladi; noto'g'ri raqam o'qituvchini to'xtatmaydi (telefonsiz yaratiladi).",
+      "existing": "Bazada allaqachon bor o'qituvchilar (bir xil maktab va F.I.Sh.) o'tkazib yuboriladi."
+    },
+    "summary": {
+      "total": "Jami qatorlar",
+      "create": "Yangi",
+      "skipExisting": "Mavjud",
+      "error": "Xato"
+    },
+    "nothingCreated": "Hozircha hech narsa yaratilmadi. Tekshirib, \"Yaratish\" tugmasini bosing.",
+    "filter": "Qatorlarni filtrlash",
+    "filterAll": "Hammasi",
+    "filterError": "Xatolar",
+    "filterSkip": "Mavjudlar",
+    "previewTable": "Import qatorlari",
+    "noRows": "Bu filtr bo'yicha qatorlar yo'q",
+    "noValid": "Yaratish uchun yangi qator yo'q.",
+    "colRow": "Qator",
+    "colPhone": "Telefon",
+    "colLogin": "Login",
+    "colPassword": "Parol",
+    "colNote": "Izoh",
+    "auto": "avto",
+    "status": {
+      "create": "Yangi",
+      "skip_existing": "Mavjud — o'tkaziladi",
+      "error": "Xato",
+      "created": "Yaratildi",
+      "skipped": "Mavjud — o'tkazildi",
+      "failed": "Xato"
+    },
+    "check": "Tekshirish",
+    "back": "Orqaga",
+    "confirm": "Yaratish ({n})",
+    "done": "Yuklash yakunlandi",
+    "result": {
+      "created": "Yaratildi",
+      "skipped": "O'tkazildi",
+      "failed": "Xato"
+    },
+    "downloadCredentials": "Login-parollarni yuklab olish (Excel)",
+    "credentialsWarning": "Bu fayl parollarni o'z ichiga oladi — xavfsiz saqlang va tarqatgandan keyin o'chiring.",
+    "passwordsOnce": "Parollar faqat shu oynada ko'rsatiladi va hech qayerda saqlanmaydi. Oynani yopishdan oldin faylni yuklab oling.",
+    "errors": {
+      "notXlsx": "Faqat .xlsx formatidagi fayl qabul qilinadi",
+      "empty": "Fayl bo'sh",
+      "tooLarge": "Fayl hajmi 5 MB dan oshmasligi kerak"
     }
   },
   "scoring": {
@@ -1406,6 +1479,7 @@
       "settings": "Sozlamalar",
       "student": "O'quvchilar",
       "students": "O'quvchilar (ommaviy)",
+      "teachers": "O'qituvchilar (ommaviy)",
       "class": "Sinflar",
       "school": "Maktablar",
       "academic_year": "O'quv yillari",
@@ -1471,6 +1545,9 @@
       },
       "students": {
         "import": "O'quvchilarni import qildi"
+      },
+      "teachers": {
+        "import": "O'qituvchilarni Excel'dan import qildi"
       },
       "class": {
         "create": "Sinf qo'shdi",
