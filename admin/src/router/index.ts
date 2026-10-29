@@ -249,6 +249,7 @@ const router = createRouter({
             roles: ['superadmin', 'school_admin'],
             permission: PERMISSIONS.ATTENDANCE_SETTINGS,
             titleKey: 'nav.settings',
+            narrow: true,
           },
         },
         {
@@ -284,7 +285,7 @@ const router = createRouter({
           path: 'profile',
           name: 'profile',
           component: () => import('@/views/profile/ProfileView.vue'),
-          meta: { titleKey: 'nav.profile' },
+          meta: { titleKey: 'nav.profile', narrow: true },
         },
         {
           path: 'forbidden',

@@ -15,6 +15,11 @@ declare module 'vue-router' {
     /** Ruxsatlardan kamida bittasi yetarli */
     anyPermission?: string[]
     titleKey?: string
+    /**
+     * Forma sahifalari uchun o'qishga qulay kenglik (max-w-7xl). Belgilanmasa sahifa
+     * ekran kengligini egallaydi (jadval/ro'yxatlar sidebar yig'ilganda kengayadi).
+     */
+    narrow?: boolean
   }
 }
 
