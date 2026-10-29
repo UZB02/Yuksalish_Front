@@ -289,6 +289,9 @@ describe('JournalView: filtrlar va URL', () => {
   it('o`zboshimchalik davr: 93 kundan uzun bo`lsa xato va so`rov yo`q', async () => {
     const w = await mountView(FULL)
     vi.mocked(journalApi.subject).mockClear()
+    // Sana maydonlari faqat "Boshqa davr" tanlanganda ko'rinadi
+    expect(w.find('[data-testid="filter-to"]').exists()).toBe(false)
+    await w.find('[data-pick="custom"]').trigger('click')
     await w
       .find('[data-testid="filter-to"] input, input[data-testid="filter-to"]')
       .setValue('2027-03-01')
@@ -296,6 +299,18 @@ describe('JournalView: filtrlar va URL', () => {
     expect(w.find('[data-testid="range-error"]').exists()).toBe(true)
     expect(journalApi.subject).not.toHaveBeenCalled()
     expect(w.find('[data-testid="export-pdf"]').attributes('disabled')).toBeDefined()
+  })
+})
+
+describe('JournalView: ixcham sarlavha', () => {
+  it('sinf/fan sarlavha qatorida; sanalar yashirin, o`rniga qisqa davr yozuvi', async () => {
+    const w = await mountView(FULL)
+    expect(w.find('[data-testid="journal-info"]').text()).toContain('5-A')
+    expect(w.find('[data-testid="filter-from"]').exists()).toBe(false)
+    expect(w.find('[data-testid="range-text"]').text()).toMatch(/\d{2}\.\d{2}\.\d{4} — /)
+    await w.find('[data-pick="custom"]').trigger('click')
+    expect(w.find('[data-testid="filter-from"]').exists()).toBe(true)
+    expect(w.find('[data-testid="range-text"]').exists()).toBe(false)
   })
 })
 

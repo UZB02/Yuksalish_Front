@@ -33,7 +33,7 @@ const stickyName = 'sticky left-0 z-20 bg-surface'
 
 <template>
   <div
-    class="max-h-[70vh] overflow-auto rounded-xl border border-border bg-surface shadow-card"
+    class="max-h-[calc(100vh-13rem)] min-h-[16rem] overflow-auto rounded-xl border border-border bg-surface shadow-card"
     data-testid="journal-grid"
   >
     <table class="border-separate border-spacing-0 text-sm">

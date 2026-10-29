@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FileSpreadsheet, FileText } from 'lucide-vue-next'
 import type { JournalOptions } from '@/api/journal.api'
@@ -7,7 +7,7 @@ import type { ExportFormat } from '@/api/types'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
-import { monthRange } from './journal.utils'
+import { fmtDate, monthRange } from './journal.utils'
 
 const props = defineProps<{
   options: JournalOptions
@@ -59,35 +59,118 @@ const picks = computed<Pick[]>(() => {
 const activeKey = computed(
   () => picks.value.find((p) => p.from === props.from && p.to === props.to)?.key ?? 'custom',
 )
+/** Dan/Gacha maydonlari faqat "Boshqa davr" tanlanganda ko'rinadi (joy tejash) */
+const showCustom = ref(false)
+watch(
+  activeKey,
+  (k) => {
+    if (k === 'custom') showCustom.value = true
+  },
+  { immediate: true },
+)
+function pickPreset(p: Pick) {
+  showCustom.value = false
+  emit('range', p.from, p.to)
+}
+const rangeText = computed(() =>
+  props.from && props.to ? `${fmtDate(props.from)} — ${fmtDate(props.to)}` : '',
+)
 </script>
 
 <template>
+  <!-- Ixcham asboblar qatori: sinf, fan, davr va eksport bitta qatorda (kenglik yetmasa o'raladi) -->
   <div
-    class="mb-4 space-y-4 rounded-xl border border-border bg-surface p-4 shadow-card"
+    class="mb-3 rounded-xl border border-border bg-surface p-2.5 shadow-card"
     data-testid="journal-filters"
   >
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
-      <div data-testid="filter-class">
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="w-full sm:w-44" data-testid="filter-class">
         <BaseSelect
           :model-value="classId"
           :options="classOptions"
-          :label="t('journal.filters.class')"
+          :aria-label="t('journal.filters.class')"
           :placeholder="t('journal.filters.classPlaceholder')"
           searchable
           @update:model-value="emit('update:classId', $event)"
         />
       </div>
-      <div data-testid="filter-subject">
+      <div class="w-full sm:w-60" data-testid="filter-subject">
         <BaseSelect
           :model-value="subjectId"
           :options="subjectOptions"
-          :label="t('journal.filters.subject')"
+          :aria-label="t('journal.filters.subject')"
           :placeholder="t('journal.filters.subjectPlaceholder')"
           :disabled="!classId"
           @update:model-value="emit('update:subjectId', $event)"
         />
       </div>
-      <div v-if="canExport" class="flex items-end gap-2">
+
+      <div
+        role="radiogroup"
+        :aria-label="t('journal.filters.period')"
+        class="flex flex-wrap items-center gap-1 rounded-lg bg-surface-muted p-1"
+      >
+        <button
+          v-for="p in picks"
+          :key="p.key"
+          type="button"
+          role="radio"
+          :aria-checked="activeKey === p.key && !showCustom"
+          :data-pick="p.key"
+          class="rounded-md px-2.5 py-1 text-sm font-medium transition-colors"
+          :class="
+            activeKey === p.key && !showCustom
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'text-fg-muted hover:bg-surface hover:text-fg'
+          "
+          @click="pickPreset(p)"
+        >
+          {{ p.label }}
+        </button>
+        <button
+          type="button"
+          role="radio"
+          :aria-checked="showCustom"
+          data-pick="custom"
+          class="rounded-md px-2.5 py-1 text-sm font-medium transition-colors"
+          :class="
+            showCustom
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'text-fg-muted hover:bg-surface hover:text-fg'
+          "
+          @click="showCustom = true"
+        >
+          {{ t('journal.picks.custom') }}
+        </button>
+      </div>
+
+      <template v-if="showCustom">
+        <BaseInput
+          :model-value="from"
+          type="date"
+          class="w-[9.5rem]"
+          :aria-label="t('journal.filters.from')"
+          data-testid="filter-from"
+          @update:model-value="emit('range', $event, to)"
+        />
+        <span class="text-fg-muted" aria-hidden="true">—</span>
+        <BaseInput
+          :model-value="to"
+          type="date"
+          class="w-[9.5rem]"
+          :aria-label="t('journal.filters.to')"
+          data-testid="filter-to"
+          @update:model-value="emit('range', from, $event)"
+        />
+      </template>
+      <span
+        v-else-if="rangeText"
+        class="whitespace-nowrap px-1 text-sm text-fg-muted"
+        data-testid="range-text"
+        >{{ rangeText }}</span
+      >
+
+      <div v-if="canExport" class="ml-auto flex gap-2">
         <BaseButton
           variant="secondary"
           data-testid="export-xlsx"
@@ -108,58 +191,8 @@ const activeKey = computed(
         </BaseButton>
       </div>
     </div>
-
-    <div class="space-y-3">
-      <div role="radiogroup" :aria-label="t('journal.filters.period')" class="flex flex-wrap gap-2">
-        <button
-          v-for="p in picks"
-          :key="p.key"
-          type="button"
-          role="radio"
-          :aria-checked="activeKey === p.key"
-          :data-pick="p.key"
-          class="rounded-full border px-3 py-1.5 text-sm transition-colors"
-          :class="
-            activeKey === p.key
-              ? 'border-primary-600 bg-primary-600 text-white'
-              : 'border-border bg-surface text-fg hover:bg-surface-muted'
-          "
-          @click="emit('range', p.from, p.to)"
-        >
-          {{ p.label }}
-        </button>
-        <span
-          class="rounded-full border px-3 py-1.5 text-sm"
-          :class="
-            activeKey === 'custom'
-              ? 'border-primary-600 bg-primary-600 text-white'
-              : 'border-border bg-surface text-fg-muted'
-          "
-          data-pick="custom"
-          :aria-current="activeKey === 'custom' ? 'true' : undefined"
-        >
-          {{ t('journal.picks.custom') }}
-        </span>
-      </div>
-      <div class="grid max-w-md gap-3 sm:grid-cols-2">
-        <BaseInput
-          :model-value="from"
-          type="date"
-          :label="t('journal.filters.from')"
-          data-testid="filter-from"
-          @update:model-value="emit('range', $event, to)"
-        />
-        <BaseInput
-          :model-value="to"
-          type="date"
-          :label="t('journal.filters.to')"
-          data-testid="filter-to"
-          @update:model-value="emit('range', from, $event)"
-        />
-      </div>
-      <p v-if="error" class="text-sm text-danger" role="alert" data-testid="range-error">
-        {{ t(`journal.errors.${error}`) }}
-      </p>
-    </div>
+    <p v-if="error" class="mt-2 text-sm text-danger" role="alert" data-testid="range-error">
+      {{ t(`journal.errors.${error}`) }}
+    </p>
   </div>
 </template>

@@ -18,7 +18,6 @@ import JournalLegend from '@/components/journal/JournalLegend.vue'
 import { isDate, monthRange, rangeError } from '@/components/journal/journal.utils'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import PageHeader from '@/components/ui/PageHeader.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { useToast } from '@/composables/useToast'
@@ -187,7 +186,20 @@ watch(
 </script>
 
 <template>
-  <PageHeader :title="t('journal.title')" :description="t('journal.description')" />
+  <!-- Ixcham sarlavha: nom va tanlangan sinf/fan/o'qituvchi bitta qatorda -->
+  <header class="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    <h1 class="text-lg font-semibold text-fg sm:text-xl">{{ t('journal.title') }}</h1>
+    <p
+      v-if="data && !loading && !error"
+      class="min-w-0 truncate text-sm text-fg-muted"
+      data-testid="journal-info"
+    >
+      <b class="text-fg">{{ data.class.name }}</b> · {{ data.subject.name }}
+      <template v-if="data.teacher">
+        · {{ t('journal.teacher') }}: {{ data.teacher.fullName }}</template
+      >
+    </p>
+  </header>
 
   <NeedsSchool v-if="needsSchool" />
   <template v-else>
@@ -241,15 +253,6 @@ watch(
         </EmptyState>
       </div>
       <template v-else-if="data">
-        <div
-          class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-fg-muted"
-          data-testid="journal-info"
-        >
-          <span
-            ><b class="text-fg">{{ data.class.name }}</b> · {{ data.subject.name }}</span
-          >
-          <span v-if="data.teacher">{{ t('journal.teacher') }}: {{ data.teacher.fullName }}</span>
-        </div>
         <div v-if="!data.students.length" class="card" data-testid="empty-students">
           <EmptyState :icon="NotebookText" :title="t('journal.empty.noStudents')" />
         </div>
