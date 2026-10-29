@@ -866,6 +866,9 @@ export interface AttendanceRecord {
   class: { id: string; name: string }
   date: string
   lessonNo: number
+  /** Dars rejimida darsning fani (kunlik rejim va eski yozuvlarda null) */
+  subjectId?: string | null
+  subject?: { id: string; name: string } | null
   statusId: string
   status: {
     id: string
@@ -900,11 +903,22 @@ export interface AttendanceSheetSummary {
   absentUnexcused: number
 }
 
+export interface AttendanceSubjectOption {
+  id: string
+  name: string
+  assigned: boolean
+}
+
 export interface AttendanceSheet {
   class: { id: string; name: string }
   date: string
   mode: AttendanceMode
   lessonNo: number | null
+  /** Darsning saqlangan fani (bo'lsa) */
+  subjectId?: string | null
+  subject?: { id: string; name: string } | null
+  /** Dars rejimida tanlanadigan fanlar (rolga qarab) */
+  subjects?: AttendanceSubjectOption[]
   lessonsPerDay: number
   isWorkingDay: boolean
   settings: AttendanceSettings
@@ -924,11 +938,14 @@ export interface AttendanceBulkPayload {
   classId: string
   date: string
   lessonNo?: number
+  /** Dars rejimida majburiy */
+  subjectId?: string
   items: AttendanceBulkItem[]
 }
 
 export interface AttendanceUpdatePayload {
   statusId?: string
+  subjectId?: string
   minutesLate?: number | null
   note?: string | null
 }
@@ -941,6 +958,7 @@ export interface AttendanceListParams extends PageParams {
   from?: string
   to?: string
   lessonNo?: number
+  subjectId?: string
   sort?: string
 }
 
@@ -963,11 +981,23 @@ export interface AttendanceSummary {
   students: AttendanceSummaryStudent[]
 }
 
+/** Kunning yakuniy holati: 'partial' = bir qism dars yo'q, bir qismi bor */
+export type AttendanceDayStatus = AttendanceCategory | 'partial'
+
 export interface AttendanceDay {
   date: string
+  /** Eng og'ir kategoriya (orqaga moslik) */
   category: AttendanceCategory
+  /** Kunning yakuniy holati; berilmasa `category` ishlatiladi */
+  status?: AttendanceDayStatus
   lessons: number
-  records: { lessonNo: number; statusId: string; category: AttendanceCategory }[]
+  records: {
+    lessonNo: number
+    subjectId?: string | null
+    subject?: { id: string; name: string } | null
+    statusId: string
+    category: AttendanceCategory
+  }[]
 }
 
 export interface StudentAttendanceSummary {
@@ -1003,6 +1033,8 @@ export interface AttendanceProgress {
 export interface AttendanceToday {
   present: number
   late: number
+  /** Bir qism dars yo'q, bir qismi bor (eski serverda bo'lmasligi mumkin) */
+  partial?: number
   absent: number
   total: number
   unmarkedClasses: number
@@ -1100,7 +1132,7 @@ export interface StudentReport {
   attendance: Omit<ReportAttendanceCounts, 'rate'> & {
     rate: number | null
     penalty: number
-    days: { date: string; category: AttendanceCategory }[]
+    days: { date: string; category: AttendanceCategory; status?: AttendanceDayStatus }[]
   }
   entries: {
     date: string

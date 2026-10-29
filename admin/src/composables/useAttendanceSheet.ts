@@ -8,6 +8,7 @@ import type {
   AttendanceSettings,
   AttendanceSheetStudent,
   AttendanceStatus,
+  AttendanceSubjectOption,
 } from '@/api/types'
 import {
   draftsEqual,
@@ -97,6 +98,10 @@ export function useAttendanceSheet(getClassId: () => string) {
   const saving = ref(false)
   /** Dars rejimi: har bir dars uchun belgilangan o'quvchilar soni */
   const lessonMarked = ref<Record<number, number>>({})
+  /** Dars rejimi: tanlangan fan, tanlanadigan fanlar va serverda saqlangan fan */
+  const subjectId = ref<string | null>(null)
+  const subjects = ref<AttendanceSubjectOption[]>([])
+  const savedSubjectId = ref<string | null>(null)
   let requestId = 0
 
   const statusById = computed(() => new Map(statuses.value.map((s) => [s.id, s])))
@@ -151,6 +156,7 @@ export function useAttendanceSheet(getClassId: () => string) {
       isWorkingDay.value = sheet.isWorkingDay
       settings.value = sheet.settings
       statuses.value = sheet.statuses
+      applySubjects(sheet.mode, sheet.subjects ?? [], sheet.subjectId ?? null)
       core.replaceRows(sheet.students.map(toRow), !!opts.keepDirty)
       if (sheet.mode === 'lesson') void loadLessonProgress(current)
     } catch (e) {
@@ -158,6 +164,33 @@ export function useAttendanceSheet(getClassId: () => string) {
     } finally {
       if (current === requestId) loading.value = false
     }
+  }
+
+  /**
+   * Fan tanlovi: serverda saqlangan fan oldindan tanlanadi; aks holda foydalanuvchi tanlovi
+   * (ro'yxatda bo'lsa) saqlanadi; bitta variant bo'lsa avtomatik tanlanadi.
+   */
+  function applySubjects(
+    m: AttendanceMode,
+    options: AttendanceSubjectOption[],
+    saved: string | null,
+  ) {
+    if (m !== 'lesson') {
+      subjects.value = []
+      subjectId.value = null
+      savedSubjectId.value = null
+      return
+    }
+    subjects.value = options
+    savedSubjectId.value = saved
+    if (saved) subjectId.value = saved
+    else if (!options.some((o) => o.id === subjectId.value)) {
+      subjectId.value = options.length === 1 ? options[0].id : null
+    }
+  }
+
+  function setSubject(id: string | null) {
+    subjectId.value = id
   }
 
   /** Dars chiplaridagi to'ldirilganlik belgisi: har bir dars uchun belgilangan o'quvchilar soni. */
@@ -244,9 +277,15 @@ export function useAttendanceSheet(getClassId: () => string) {
   }
 
   const dateOk = computed(() => isWorkingDay.value)
+  /** Dars rejimida fan tanlanmaguncha saqlab bo'lmaydi */
+  const subjectMissing = computed(() => mode.value === 'lesson' && !subjectId.value)
   const canSave = computed(
     () =>
-      dateOk.value && changedCount.value > 0 && invalidDirty.value.length === 0 && !saving.value,
+      dateOk.value &&
+      !subjectMissing.value &&
+      changedCount.value > 0 &&
+      invalidDirty.value.length === 0 &&
+      !saving.value,
   )
   const hasUnsaved = computed(() => changedCount.value > 0)
 
@@ -272,6 +311,7 @@ export function useAttendanceSheet(getClassId: () => string) {
         classId: getClassId(),
         date: date.value,
         ...(mode.value === 'lesson' && lessonNo.value ? { lessonNo: lessonNo.value } : {}),
+        ...(mode.value === 'lesson' && subjectId.value ? { subjectId: subjectId.value } : {}),
         items,
       })
       core.applyBulkResult(new Set(items.map((i) => i.studentId)), result.failed)
@@ -287,6 +327,7 @@ export function useAttendanceSheet(getClassId: () => string) {
    * aks holda bugun ish kuni bo'lmasa backdateDays ichidagi eng yaqin oldingi ish kuniga o'tadi.
    */
   async function init(queryDate?: string | null) {
+    subjectId.value = null
     const explicit = isIsoDate(queryDate)
     if (explicit) date.value = queryDate
     await load()
@@ -306,6 +347,8 @@ export function useAttendanceSheet(getClassId: () => string) {
   async function goTo(next: { date?: string; lessonNo?: number | null }) {
     if (next.date !== undefined) date.value = next.date
     if (next.lessonNo !== undefined) lessonNo.value = next.lessonNo
+    // Boshqa sana/dars: fan serverdan qayta aniqlanadi (saqlangan bo'lsa) yoki qayta tanlanadi
+    subjectId.value = null
     await load()
   }
 
@@ -324,6 +367,11 @@ export function useAttendanceSheet(getClassId: () => string) {
     saving,
     selected,
     lessonMarked,
+    subjectId,
+    subjects,
+    savedSubjectId,
+    subjectMissing,
+    setSubject,
     load,
     isDirty,
     errorsOf,

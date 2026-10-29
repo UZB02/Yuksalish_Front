@@ -673,6 +673,7 @@
     "unsaved": {
       "title": "Saqlanmagan o'zgarishlar",
       "dateText": "Sanani almashtirsangiz, saqlanmagan o'zgarishlar yo'qoladi. Davom etasizmi?",
+      "subjectText": "Fanni almashtirsangiz, saqlanmagan o'zgarishlar yo'qoladi. Davom etasizmi?",
       "leaveText": "Saqlanmagan o'zgarishlar bor. Sahifadan chiqsangiz, ular yo'qoladi.",
       "discard": "Bekor qilib o'tish",
       "leave": "Chiqish"
@@ -1177,6 +1178,11 @@
     "minutesUnit": "daq.",
     "lesson": "Dars",
     "lessonN": "{n}-dars",
+    "lessonWithSubject": "{n}-dars · {subject}",
+    "subject": "Fan",
+    "subjectPlaceholder": "Fanni tanlang",
+    "noSubjects": "Bu sinfda sizga biriktirilgan fan yo'q",
+    "subjectRequired": "Saqlash uchun darsning fanini tanlang",
     "lessonProgress": "{done}/{total} o'quvchi belgilangan",
     "notWorkingDay": "Bu kun ish kuni emas. Dam olish kuni uchun davomat olinmaydi.",
     "saveBlocked": "Ish kuni bo'lmagan kun uchun saqlab bo'lmaydi",
@@ -1187,6 +1193,7 @@
       "label": "Davomat statistikasi",
       "present": "Keldi",
       "late": "Kechikdi",
+      "partial": "Qisman",
       "absent": "Yo'q",
       "unmarked": "Olinmagan"
     },
@@ -1219,6 +1226,7 @@
     "categories": {
       "present": "Keldi",
       "late": "Kechikdi",
+      "partial": "Qisman",
       "absent_excused": "Sababli yo'q",
       "absent_unexcused": "Sababsiz yo'q"
     },

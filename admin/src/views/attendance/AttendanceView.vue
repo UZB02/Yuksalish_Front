@@ -17,6 +17,7 @@ import AttendanceStats from '@/components/attendance/AttendanceStats.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import StickySaveBar from '@/components/ui/StickySaveBar.vue'
 import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useAttendanceSheet } from '@/composables/useAttendanceSheet'
@@ -73,6 +74,17 @@ async function changeLesson(n: number) {
   if (n === sheet.lessonNo.value) return
   if (!(await confirmDiscard(t('attendance.unsaved.lessonText')))) return
   await sheet.goTo({ lessonNo: n })
+}
+
+const subjectOptions = computed(() =>
+  sheet.subjects.value.map((s) => ({ value: s.id, label: s.name })),
+)
+
+async function changeSubject(id: string) {
+  if (id === sheet.subjectId.value) return
+  if (!(await confirmDiscard(t('attendance.unsaved.subjectText')))) return
+  if (sheet.hasUnsaved.value) sheet.discard()
+  sheet.setSubject(id)
 }
 
 const onDateInput = (e: Event) => {
@@ -203,6 +215,23 @@ watch(classId, () => void sheet.init(initialDate()))
       </button>
     </div>
 
+    <div v-if="sheet.mode.value === 'lesson'" class="max-w-sm" data-testid="subject-field">
+      <BaseSelect
+        :model-value="sheet.subjectId.value"
+        :options="subjectOptions"
+        :label="t('attendance.subject')"
+        :placeholder="t('attendance.subjectPlaceholder')"
+        :disabled="sheet.loading.value || subjectOptions.length === 0"
+        required
+        :error="
+          !sheet.loading.value && subjectOptions.length === 0
+            ? t('attendance.noSubjects')
+            : undefined
+        "
+        @update:model-value="changeSubject"
+      />
+    </div>
+
     <div
       v-if="!sheet.isWorkingDay.value && !sheet.loading.value"
       class="flex items-start gap-2 rounded-xl bg-warning-soft p-3 text-sm text-warning"
@@ -297,11 +326,13 @@ watch(classId, () => void sheet.init(initialDate()))
       :message="
         !sheet.isWorkingDay.value
           ? t('attendance.saveBlocked')
-          : sheet.invalidDirty.value.length
-            ? t('scoring.invalidRows', { n: sheet.invalidDirty.value.length })
-            : sheet.hasUnsaved.value
-              ? t('scoring.unsavedHint')
-              : ''
+          : sheet.subjectMissing.value && sheet.hasUnsaved.value
+            ? t('attendance.subjectRequired')
+            : sheet.invalidDirty.value.length
+              ? t('scoring.invalidRows', { n: sheet.invalidDirty.value.length })
+              : sheet.hasUnsaved.value
+                ? t('scoring.unsavedHint')
+                : ''
       "
       :danger="sheet.invalidDirty.value.length > 0"
       :show-discard="sheet.hasUnsaved.value"

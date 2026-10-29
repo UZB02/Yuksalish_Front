@@ -171,7 +171,7 @@ watch(() => schoolCtx.schoolId, load)
         {{ t('dashboard.attendanceUnmarked', { n: summary.attendanceToday.unmarkedClasses }) }}
       </RouterLink>
     </div>
-    <dl class="grid grid-cols-3 gap-3 text-center">
+    <dl class="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
       <div>
         <dt class="text-xs text-fg-muted">{{ t('attendance.stats.present') }}</dt>
         <dd class="text-2xl font-semibold tabular-nums text-success">
@@ -182,6 +182,12 @@ watch(() => schoolCtx.schoolId, load)
         <dt class="text-xs text-fg-muted">{{ t('attendance.stats.late') }}</dt>
         <dd class="text-2xl font-semibold tabular-nums text-warning">
           {{ summary.attendanceToday.late }}
+        </dd>
+      </div>
+      <div data-testid="attendance-partial">
+        <dt class="text-xs text-fg-muted">{{ t('attendance.stats.partial') }}</dt>
+        <dd class="text-2xl font-semibold tabular-nums text-orange-600">
+          {{ summary.attendanceToday.partial ?? 0 }}
         </dd>
       </div>
       <div>

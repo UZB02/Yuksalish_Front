@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import uz from '@/locales/uz.json'
 import type { AttendanceDay, AttendanceSettings, AttendanceStatus } from '@/api/types'
-import { CATEGORY_COLORS } from '@/utils/attendance'
+import { CATEGORY_COLORS, DAY_STATUS_COLORS } from '@/utils/attendance'
 import {
   DEFAULT_ATTENDANCE_SETTINGS,
   type AttendanceRow as Row,
@@ -42,6 +42,36 @@ describe('AttendanceCalendar', () => {
       const rgb = `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`
       expect(cell(w, date).attributes('style')).toContain(rgb)
     }
+  })
+
+  it('qisman kun alohida rangda, legendada "Qisman", tooltipda fanli darslar', () => {
+    const partial: AttendanceDay = {
+      date: '2026-10-16',
+      category: 'absent_unexcused',
+      status: 'partial',
+      lessons: 2,
+      records: [
+        {
+          lessonNo: 1,
+          subjectId: 'inf',
+          subject: { id: 'inf', name: 'Informatika' },
+          statusId: 's1',
+          category: 'absent_unexcused',
+        },
+        { lessonNo: 2, subjectId: null, subject: null, statusId: 's2', category: 'present' },
+      ],
+    }
+    const w = mountCal({ days: [...days, partial] })
+    const c = cell(w, '2026-10-16')
+    expect(c.attributes('data-category')).toBe('partial')
+    expect(c.attributes('style')).toContain('rgb(234, 88, 12)') // DAY_STATUS_COLORS.partial
+    expect(DAY_STATUS_COLORS.partial).toBe('#ea580c')
+    expect(c.attributes('title')).toContain('Qisman')
+    expect(c.attributes('title')).toContain("1-dars · Informatika: Yo'q")
+    expect(c.attributes('title')).toContain('2-dars: Keldi')
+    expect(w.text()).toContain('Qisman') // legenda
+    // eski server (status yo'q): category ishlatiladi
+    expect(cell(w, '2026-10-15').attributes('data-category')).toBe('absent_unexcused')
   })
 
   it("ish kuni bo'lmagan kunlar kulrang (rest), yozuvsiz ish kuni - bo'sh katak", () => {

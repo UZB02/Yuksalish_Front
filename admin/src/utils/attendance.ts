@@ -1,4 +1,9 @@
-import type { AttendanceCategory, AttendanceSettings, AttendanceStatus } from '@/api/types'
+import type {
+  AttendanceCategory,
+  AttendanceDayStatus,
+  AttendanceSettings,
+  AttendanceStatus,
+} from '@/api/types'
 import { shiftDate } from './scoring'
 
 export const NOTE_MAX = 300
@@ -15,6 +20,15 @@ export const CATEGORIES: AttendanceCategory[] = [
 export const CATEGORY_COLORS: Record<AttendanceCategory, string> = {
   present: '#16a34a',
   late: '#d97706',
+  absent_excused: '#0284c7',
+  absent_unexcused: '#dc2626',
+}
+
+/** Kun holatlari ranglari (kalendar): 'partial' kechikish va yo'qlik orasida. */
+export const DAY_STATUS_COLORS: Record<AttendanceDayStatus, string> = {
+  present: '#16a34a',
+  late: '#d97706',
+  partial: '#ea580c',
   absent_excused: '#0284c7',
   absent_unexcused: '#dc2626',
 }

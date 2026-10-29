@@ -134,7 +134,15 @@ async function remove(r: AttendanceRecord) {
             {{ row.minutesLate }} {{ t('attendance.minutesUnit') }}
           </span>
         </template>
-        <template #cell-lesson="{ row }">{{ row.lessonNo || '-' }}</template>
+        <template #cell-lesson="{ row }">
+          <template v-if="row.lessonNo">
+            {{ row.lessonNo }}
+            <span v-if="row.subject?.name" class="text-fg-muted" data-testid="record-subject">
+              · {{ row.subject.name }}
+            </span>
+          </template>
+          <template v-else>-</template>
+        </template>
         <template #cell-markedBy="{ row }">{{ row.markedBy.fullName }}</template>
         <template #cell-note="{ row }">
           <span class="line-clamp-2 max-w-xs text-fg-muted" :title="row.note ?? ''">

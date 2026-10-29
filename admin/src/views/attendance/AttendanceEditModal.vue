@@ -101,7 +101,7 @@ async function save() {
     :title="t('attendance.edit')"
     :description="
       record
-        ? `${record.student.fullName} - ${formatDate(record.date)}${record.lessonNo ? `, ${t('attendance.lessonN', { n: record.lessonNo })}` : ''}`
+        ? `${record.student.fullName} - ${formatDate(record.date)}${record.lessonNo ? `, ${record.subject?.name ? t('attendance.lessonWithSubject', { n: record.lessonNo, subject: record.subject.name }) : t('attendance.lessonN', { n: record.lessonNo })}` : ''}`
         : undefined
     "
     persistent

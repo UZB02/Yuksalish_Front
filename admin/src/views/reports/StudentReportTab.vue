@@ -33,6 +33,7 @@ const calendarDays = computed<AttendanceDay[]>(() =>
   (report.data.value?.attendance.days ?? []).map((d) => ({
     date: d.date,
     category: d.category,
+    status: d.status,
     lessons: 1,
     records: [],
   })),

@@ -174,7 +174,15 @@ const tone = computed(() => rateTone(summary.value?.rate ?? null))
                   <p class="text-fg">
                     {{ formatDate(r.date) }}
                     <span v-if="r.lessonNo" class="text-fg-muted">
-                      , {{ t('attendance.lessonN', { n: r.lessonNo }) }}
+                      ,
+                      {{
+                        r.subject?.name
+                          ? t('attendance.lessonWithSubject', {
+                              n: r.lessonNo,
+                              subject: r.subject.name,
+                            })
+                          : t('attendance.lessonN', { n: r.lessonNo })
+                      }}
                     </span>
                     <span v-if="r.minutesLate" class="text-fg-muted">
                       , {{ r.minutesLate }} {{ t('attendance.minutesUnit') }}

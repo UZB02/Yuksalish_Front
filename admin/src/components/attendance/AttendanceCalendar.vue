@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import type { AttendanceDay } from '@/api/types'
-import { CATEGORY_COLORS, isWorkingDay, monthGrid, shiftMonth, textOn } from '@/utils/attendance'
+import type { AttendanceDay, AttendanceDayStatus } from '@/api/types'
+import { DAY_STATUS_COLORS, isWorkingDay, monthGrid, shiftMonth, textOn } from '@/utils/attendance'
 import { formatDate } from '@/utils/format'
 
 const props = defineProps<{
@@ -32,19 +32,42 @@ function kindOf(date: string): Kind {
   return byDate.value.has(date) ? 'record' : 'empty'
 }
 
+/** Kunning yakuniy holati: `status` (qisman bilan), eski serverda — eng og'ir kategoriya. */
+const statusOf = (d: AttendanceDay): AttendanceDayStatus => d.status ?? d.category
+
+/** Dars tooltipida: yo'qlik turlari bitta "Yo'q" deb ko'rsatiladi */
+const lessonStatusLabel = (c: AttendanceDay['records'][number]['category']) =>
+  c === 'absent_excused' || c === 'absent_unexcused'
+    ? t('attendance.stats.absent')
+    : t(`attendance.categories.${c}`)
+
+function lessonLines(d: AttendanceDay): string {
+  return d.records
+    .filter((r) => r.lessonNo > 0)
+    .map((r) => {
+      const label = r.subject?.name
+        ? t('attendance.lessonWithSubject', { n: r.lessonNo, subject: r.subject.name })
+        : t('attendance.lessonN', { n: r.lessonNo })
+      return `${label}: ${lessonStatusLabel(r.category)}`
+    })
+    .join('; ')
+}
+
 function tooltip(date: string): string {
   const d = byDate.value.get(date)
   const k = kindOf(date)
   const base = formatDate(date)
   if (k === 'rest') return `${base}: ${t('calendar.rest')}`
   if (!d) return `${base}: ${t('calendar.noRecord')}`
-  return `${base}: ${t(`attendance.categories.${d.category}`)}${d.lessons ? `, ${t('calendar.lessons', { n: d.lessons })}` : ''}`
+  const head = `${base}: ${t(`attendance.categories.${statusOf(d)}`)}${d.lessons ? `, ${t('calendar.lessons', { n: d.lessons })}` : ''}`
+  const lines = lessonLines(d)
+  return lines ? `${head} (${lines})` : head
 }
 
 function cellStyle(date: string) {
   const d = byDate.value.get(date)
   if (kindOf(date) === 'record' && d) {
-    const c = CATEGORY_COLORS[d.category]
+    const c = DAY_STATUS_COLORS[statusOf(d)]
     return { backgroundColor: c, color: textOn(c) }
   }
   return {}
@@ -94,7 +117,7 @@ function cellStyle(date: string) {
             :title="tooltip(cell.date)"
             :data-date="cell.date"
             :data-kind="kindOf(cell.date)"
-            :data-category="byDate.get(cell.date)?.category"
+            :data-category="byDate.get(cell.date) ? statusOf(byDate.get(cell.date)!) : undefined"
             role="img"
             :aria-label="tooltip(cell.date)"
           >
@@ -106,7 +129,7 @@ function cellStyle(date: string) {
 
     <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-muted">
       <li
-        v-for="(color, cat) in CATEGORY_COLORS"
+        v-for="(color, cat) in DAY_STATUS_COLORS"
         :key="cat"
         class="inline-flex items-center gap-1.5"
       >

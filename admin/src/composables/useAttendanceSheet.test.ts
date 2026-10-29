@@ -257,6 +257,7 @@ describe('useAttendanceSheet', () => {
         mode: 'lesson',
         lessonsPerDay: 3,
         lessonNo: params?.lessonNo ?? null,
+        subjects: [{ id: 'math', name: 'Matematika', assigned: true }],
       }),
     )
     const sh = useAttendanceSheet(() => 'c1')
@@ -269,7 +270,82 @@ describe('useAttendanceSheet', () => {
     sh.pick('1', 'present')
     vi.mocked(attendanceApi.bulk).mockResolvedValue({ created: 1, updated: 0, failed: [] })
     await sh.save()
-    expect(vi.mocked(attendanceApi.bulk).mock.calls[0]![0]).toMatchObject({ lessonNo: 3 })
+    expect(vi.mocked(attendanceApi.bulk).mock.calls[0]![0]).toMatchObject({
+      lessonNo: 3,
+      subjectId: 'math',
+    })
+  })
+
+  describe('dars rejimi: fan', () => {
+    const subjects = [
+      { id: 'math', name: 'Matematika', assigned: true },
+      { id: 'phys', name: 'Fizika', assigned: true },
+    ]
+    const lessonSheet = (over: Partial<AttendanceSheet> = {}) =>
+      sheetOf([student('1')], { mode: 'lesson', lessonsPerDay: 3, lessonNo: 1, subjects, ...over })
+
+    it('bitta variant avtomatik tanlanadi; bir nechta bo`lsa tanlanmaydi', async () => {
+      vi.mocked(attendanceApi.sheet).mockResolvedValue(lessonSheet({ subjects: [subjects[0]!] }))
+      const one = useAttendanceSheet(() => 'c1')
+      await one.load()
+      expect(one.subjectId.value).toBe('math')
+
+      vi.mocked(attendanceApi.sheet).mockResolvedValue(lessonSheet())
+      const many = useAttendanceSheet(() => 'c1')
+      await many.load()
+      expect(many.subjectId.value).toBeNull()
+      expect(many.subjects.value).toHaveLength(2)
+    })
+
+    it('saqlangan fan oldindan tanlanadi', async () => {
+      vi.mocked(attendanceApi.sheet).mockResolvedValue(
+        lessonSheet({ subjectId: 'phys', subject: { id: 'phys', name: 'Fizika' } }),
+      )
+      const sh = useAttendanceSheet(() => 'c1')
+      await sh.load()
+      expect(sh.subjectId.value).toBe('phys')
+      expect(sh.savedSubjectId.value).toBe('phys')
+    })
+
+    it('fan tanlanmaguncha saqlab bo`lmaydi; tanlangach subjectId yuboriladi', async () => {
+      vi.mocked(attendanceApi.sheet).mockResolvedValue(lessonSheet())
+      const sh = useAttendanceSheet(() => 'c1')
+      await sh.load()
+      sh.pick('1', 'present')
+      expect(sh.subjectMissing.value).toBe(true)
+      expect(sh.canSave.value).toBe(false)
+      expect(await sh.save()).toBeNull()
+      expect(attendanceApi.bulk).not.toHaveBeenCalled()
+
+      sh.setSubject('phys')
+      expect(sh.canSave.value).toBe(true)
+      vi.mocked(attendanceApi.bulk).mockResolvedValue({ created: 1, updated: 0, failed: [] })
+      await sh.save()
+      expect(vi.mocked(attendanceApi.bulk).mock.calls[0]![0]).toMatchObject({
+        lessonNo: 1,
+        subjectId: 'phys',
+      })
+    })
+
+    it('foydalanuvchi tanlovi qayta yuklashda saqlanadi, dars almashganda tozalanadi', async () => {
+      vi.mocked(attendanceApi.sheet).mockResolvedValue(lessonSheet())
+      const sh = useAttendanceSheet(() => 'c1')
+      await sh.load()
+      sh.setSubject('math')
+      await sh.load({ keepDirty: true })
+      expect(sh.subjectId.value).toBe('math')
+      await sh.goTo({ lessonNo: 2 })
+      expect(sh.subjectId.value).toBeNull()
+    })
+
+    it('kunlik rejimda subjectId yuborilmaydi', async () => {
+      const sh = await setup([student('1')])
+      sh.pick('1', 'present')
+      vi.mocked(attendanceApi.bulk).mockResolvedValue({ created: 1, updated: 0, failed: [] })
+      await sh.save()
+      expect(vi.mocked(attendanceApi.bulk).mock.calls[0]![0]).not.toHaveProperty('subjectId')
+      expect(sh.subjectMissing.value).toBe(false)
+    })
   })
 
   it("dars chiplari to'ldirilganligi: har dars uchun belgilanganlar soni", async () => {
