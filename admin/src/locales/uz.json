@@ -67,6 +67,7 @@
     "audit": "Audit log",
     "subjects": "Fanlar",
     "grading": "Fan baholari",
+    "journal": "Sinf jurnali",
     "groups": {
       "myWork": "Mening ishim",
       "academic": "O'quv jarayoni",
@@ -1714,5 +1715,107 @@
     "allSubjects": "Barcha fanlar",
     "emptyTitle": "Fan baholari topilmadi",
     "emptyText": "Tanlangan davrda fan baholari yo'q."
+  },
+  "journal": {
+    "title": "Sinf jurnali",
+    "description": "Fan bo'yicha sinf jurnali: o'quvchilar, sanalar, baholar va davomat",
+    "excel": "Excel",
+    "pdf": "PDF",
+    "teacher": "O'qituvchi",
+    "downloaded": "Fayl yuklandi: {name}",
+    "filters": {
+      "class": "Sinf",
+      "classPlaceholder": "Sinfni tanlang",
+      "subject": "Fan",
+      "subjectPlaceholder": "Fanni tanlang",
+      "period": "Davr",
+      "from": "Dan",
+      "to": "Gacha"
+    },
+    "picks": {
+      "thisMonth": "Bu oy",
+      "lastMonth": "O'tgan oy",
+      "custom": "Boshqa davr"
+    },
+    "errors": {
+      "order": "Boshlanish sanasi tugash sanasidan keyin bo'lmasligi kerak",
+      "tooLong": "Davr 93 kundan oshmasligi kerak"
+    },
+    "error": {
+      "title": "Jurnalni yuklab bo'lmadi"
+    },
+    "empty": {
+      "selectTitle": "Sinf va fanni tanlang",
+      "selectText": "Jurnalni ko'rish uchun yuqorida sinf va fanni tanlang.",
+      "rangeTitle": "Davrni to'g'ri tanlang",
+      "noClasses": "Jurnal uchun sinf yo'q",
+      "noClassesText": "Faol o'quv yilida sizga biriktirilgan sinf topilmadi.",
+      "noStudents": "Bu sinfda o'quvchilar yo'q",
+      "noDays": "Tanlangan davrda ish kunlari yo'q"
+    },
+    "grid": {
+      "student": "№ / O'quvchi",
+      "transferred": "(boshqa sinfga o'tgan)",
+      "classAvg": "Sinf o'rtachasi",
+      "gradeCount": "Baholar soni"
+    },
+    "summary": {
+      "avg": "O'rtacha",
+      "count": "Baholar",
+      "N": "N",
+      "B": "B",
+      "lowAvg": "O'rtacha baho 3 dan past"
+    },
+    "tooltip": {
+      "grade": "Baho: {n}"
+    },
+    "absence": {
+      "N": "Sababsiz yo'q (N)",
+      "B": "Sababli yo'q (B)",
+      "partial": "Qisman"
+    },
+    "legend": {
+      "grade5": "A'lo (5)",
+      "grade4": "Yaxshi (4)",
+      "grade3": "Qoniqarli (3)",
+      "grade2": "Qoniqarsiz (2)"
+    },
+    "mobile": {
+      "note": "To'liq jadval planshet yoki kompyuterda qulayroq. Bu yerda kun bo'yicha ro'yxat ko'rsatilmoqda.",
+      "prev": "Oldingi kun",
+      "next": "Keyingi kun"
+    },
+    "months": {
+      "1": "Yanvar",
+      "2": "Fevral",
+      "3": "Mart",
+      "4": "Aprel",
+      "5": "May",
+      "6": "Iyun",
+      "7": "Iyul",
+      "8": "Avgust",
+      "9": "Sentabr",
+      "10": "Oktabr",
+      "11": "Noyabr",
+      "12": "Dekabr"
+    },
+    "weekdayShort": {
+      "1": "Du",
+      "2": "Se",
+      "3": "Cho",
+      "4": "Pa",
+      "5": "Ju",
+      "6": "Sha",
+      "7": "Ya"
+    },
+    "weekdayLong": {
+      "1": "Dushanba",
+      "2": "Seshanba",
+      "3": "Chorshanba",
+      "4": "Payshanba",
+      "5": "Juma",
+      "6": "Shanba",
+      "7": "Yakshanba"
+    }
   }
 }

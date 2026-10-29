@@ -135,6 +135,19 @@ const router = createRouter({
           },
         },
         {
+          path: 'journal',
+          name: 'journal',
+          component: () => import('@/views/journal/JournalView.vue'),
+          meta: {
+            anyPermission: [
+              PERMISSIONS.GRADES_CREATE,
+              PERMISSIONS.GRADES_EDIT,
+              PERMISSIONS.REPORTS_VIEW,
+            ],
+            titleKey: 'nav.journal',
+          },
+        },
+        {
           path: 'my-scores',
           name: 'my-scores',
           component: () => import('@/views/scores/MyScoresView.vue'),

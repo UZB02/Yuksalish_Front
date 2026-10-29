@@ -133,6 +133,7 @@ describe('2-bosqich marshrutlari', () => {
       'attendance-statuses',
       'audit-logs',
       'settings',
+      'journal',
     ])
     expect(names(ctx('teacher', ['students.view']))).toEqual(['my-classes', 'students'])
     expect(names(ctx('teacher', ['scores.create']))).toEqual(['my-classes', 'my-scores'])
@@ -141,6 +142,7 @@ describe('2-bosqich marshrutlari', () => {
       'scores-history',
       'ratings',
       'reports',
+      'journal',
     ])
     expect(names(ctx('school_admin', ['classes.manage']))).toEqual(['academic-years', 'classes'])
   })

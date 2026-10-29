@@ -24,6 +24,7 @@ const PATHS: Record<string, string> = {
   classes: '/classes',
   scoring: '/scoring',
   grading: '/grading',
+  journal: '/journal',
   'scores-history': '/scores',
   attendance: '/attendance',
   'attendance-history': '/attendance/history',
@@ -198,7 +199,7 @@ describe('AppSidebar guruhlash', () => {
     expect(structure(w)).toEqual([
       T.dashboard,
       `${label('academic')}: ${T.classes}, ${T.students}, ${T.teachers}, ${T.academicYears}`,
-      `${label('grading')}: ${T.scoring}, ${T.grading}, ${T.scoresHistory}`,
+      `${label('grading')}: ${T.scoring}, ${T.grading}, ${T.journal}, ${T.scoresHistory}`,
       `${label('attendance')}: ${T.attendance}, ${T.attendanceHistory}`,
       `${label('results')}: ${T.ratings}, ${T.reports}`,
       `${label('reference')}: ${T.subjects}, ${T.behaviorTypes}, ${T.attendanceStatuses}`,
@@ -211,7 +212,7 @@ describe('AppSidebar guruhlash', () => {
     expect(structure(w)).toEqual([
       T.dashboard,
       `${label('academic')}: ${T.classes}, ${T.students}, ${T.teachers}, ${T.academicYears}`,
-      `${label('grading')}: ${T.scoring}, ${T.grading}, ${T.scoresHistory}`,
+      `${label('grading')}: ${T.scoring}, ${T.grading}, ${T.journal}, ${T.scoresHistory}`,
       `${label('attendance')}: ${T.attendance}, ${T.attendanceHistory}`,
       `${label('results')}: ${T.ratings}, ${T.reports}`,
       T.subjects,
@@ -225,7 +226,7 @@ describe('AppSidebar guruhlash', () => {
       T.dashboard,
       `${label('myWork')}: ${T.myClasses}, ${T.myScores}`,
       T.students,
-      T.grading,
+      `${label('grading')}: ${T.grading}, ${T.journal}`,
       `${label('attendance')}: ${T.attendance}, ${T.attendanceHistory}`,
       `${label('results')}: ${T.ratings}, ${T.reports}`,
     ])
@@ -235,10 +236,10 @@ describe('AppSidebar guruhlash', () => {
     const { w } = await setup({ role: 'school_admin', permissions: ['reports.view'] })
     // scores-history, ratings, reports: Baholash (1 band) tekis, Natijalar (2 band) guruh
     expect(structure(w)).toEqual([
-      T.scoresHistory,
+      `${label('grading')}: ${T.journal}, ${T.scoresHistory}`,
       `${label('results')}: ${T.ratings}, ${T.reports}`,
     ])
-    expect(headerTexts(w)).not.toContain(label('grading'))
+    expect(headerTexts(w)).not.toContain(label('academic'))
   })
 
   it("bandi yo'q guruhlar yashiriladi", async () => {
@@ -366,6 +367,7 @@ describe('AppSidebar ixcham (rail) rejim', () => {
       T.academicYears,
       T.scoring,
       T.grading,
+      T.journal,
       T.scoresHistory,
       T.attendance,
       T.attendanceHistory,
@@ -393,6 +395,7 @@ describe('AppSidebar ixcham (rail) rejim', () => {
       T.myScores,
       T.students,
       T.grading,
+      T.journal,
       T.attendance,
       T.attendanceHistory,
       T.ratings,

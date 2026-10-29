@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   FileBarChart,
   ScrollText,
+  NotebookText,
 } from 'lucide-vue-next'
 import type { Role } from '@/api/types'
 import { PERMISSIONS } from './permissions'
@@ -215,6 +216,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['superadmin', 'school_admin'],
     permission: PERMISSIONS.ATTENDANCE_SETTINGS,
   },
+  {
+    name: 'journal',
+    group: 'grading',
+    labelKey: 'nav.journal',
+    icon: NotebookText,
+    anyPermission: [PERMISSIONS.GRADES_CREATE, PERMISSIONS.GRADES_EDIT, PERMISSIONS.REPORTS_VIEW],
+  },
 ]
 
 /**
@@ -231,6 +239,7 @@ export const NAV_DISPLAY_ORDER: string[] = [
   'academic-years',
   'scoring',
   'grading',
+  'journal',
   'scores-history',
   'attendance',
   'attendance-history',
