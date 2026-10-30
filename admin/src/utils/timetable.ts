@@ -5,6 +5,13 @@ import type {
   TimetableWarning,
 } from '@/api/timetable.api'
 
+/** Bir kundagi darslarning eng ko'pi (backend MAX_LESSON_NO bilan bir xil) */
+export const TIMETABLE_MAX_LESSONS = 12
+
+/** Ko'rsatiladigan qatorlar soni: max(sozlamadagi darslar soni, ishlatilgan eng katta dars raqami, 1), 12 gacha */
+export const rowCountFor = (lessonsPerDay: number, usedMax: number) =>
+  Math.min(TIMETABLE_MAX_LESSONS, Math.max(lessonsPerDay || 0, usedMax || 0, 1))
+
 /** Katak kaliti: "hafta kuni:dars raqami" */
 export const cellKey = (weekday: number, lessonNo: number) => `${weekday}:${lessonNo}`
 
@@ -45,6 +52,16 @@ export function cellsToPayload(cells: CellMap): EntryPayload[] {
       }
     })
     .sort((a, b) => a.weekday - b.weekday || a.lessonNo - b.lessonNo)
+}
+
+/** Kataklardagi eng katta dars raqami (`weekday` berilsa, faqat shu kun); yo'q bo'lsa 0 */
+export function maxLessonNo(cells: CellMap, weekday?: number): number {
+  let m = 0
+  for (const k of Object.keys(cells)) {
+    const [w, n] = k.split(':').map(Number) as [number, number]
+    if (weekday === undefined || w === weekday) m = Math.max(m, n)
+  }
+  return m
 }
 
 /** Dirty hisobi uchun: nomlarsiz, tartiblangan ko'rinish */

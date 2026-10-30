@@ -1,16 +1,23 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { Plus, X } from 'lucide-vue-next'
+import { Plus, Trash2, X } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { TimetableWarning } from '@/api/timetable.api'
 import DropdownMenu, { type DropdownItem } from '@/components/ui/DropdownMenu.vue'
-import { cellKey, type CellMap } from '@/utils/timetable'
+import {
+  cellKey,
+  maxLessonNo,
+  rowCountFor,
+  TIMETABLE_MAX_LESSONS,
+  type CellMap,
+} from '@/utils/timetable'
 import TimetableCellContent from './TimetableCellContent.vue'
 
 /** Mobil ko'rinish: hafta kunlari tablari + tanlangan kunning darslari ro'yxati */
 const props = defineProps<{
   weekdays: number[]
-  lessons: number
+  /** Sozlamadagi darslar soni: har kunning minimal qatorlari */
+  lessonsPerDay: number
   cells: CellMap
   warningsMap: Record<string, TimetableWarning[]>
   outOfRangeKeys: string[]
@@ -37,7 +44,23 @@ watch(
   },
   { immediate: true },
 )
-const rows = computed(() => Array.from({ length: props.lessons }, (_, i) => i + 1))
+/** Kunlar bo'yicha qo'lda o'zgartirilgan qatorlar soni (ko'rinish holati) */
+const rowsByDay = ref<Record<number, number>>({})
+const usedMax = computed(() => maxLessonNo(props.cells, active.value))
+const rowCount = computed(() =>
+  rowCountFor(rowsByDay.value[active.value] ?? props.lessonsPerDay, usedMax.value),
+)
+const rows = computed(() => Array.from({ length: rowCount.value }, (_, i) => i + 1))
+const canAdd = computed(() => props.editable && rowCount.value < TIMETABLE_MAX_LESSONS)
+const canRemove = computed(
+  () => props.editable && rowCount.value > 1 && usedMax.value < rowCount.value,
+)
+const addSlot = () => {
+  if (canAdd.value) rowsByDay.value = { ...rowsByDay.value, [active.value]: rowCount.value + 1 }
+}
+const removeSlot = () => {
+  if (canRemove.value) rowsByDay.value = { ...rowsByDay.value, [active.value]: rowCount.value - 1 }
+}
 const outSet = computed(() => new Set(props.outOfRangeKeys))
 const dayItems = computed<DropdownItem[]>(() => [
   { key: 'copy', label: t('timetable.copyDay') },
@@ -116,5 +139,26 @@ const countOf = (w: number) => Object.keys(props.cells).filter((k) => k.startsWi
         </button>
       </li>
     </ul>
+    <div v-if="editable" class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="!canAdd"
+        data-testid="m-add-lesson"
+        @click="addSlot"
+      >
+        <Plus class="h-4 w-4" aria-hidden="true" /> {{ t('timetable.addLesson') }}
+      </button>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-fg-muted hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="!canRemove"
+        :title="canRemove ? undefined : t('timetable.removeLessonDisabled')"
+        data-testid="m-remove-lesson"
+        @click="removeSlot"
+      >
+        <Trash2 class="h-4 w-4" aria-hidden="true" /> {{ t('timetable.removeLesson') }}
+      </button>
+    </div>
   </div>
 </template>

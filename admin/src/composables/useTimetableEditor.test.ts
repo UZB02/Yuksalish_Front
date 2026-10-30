@@ -232,9 +232,55 @@ describe('useTimetableEditor', () => {
       () => true,
     )
     await ed.load()
-    expect(ed.outOfRangeKeys.value.sort()).toEqual(['1:5', '6:2'])
+    // faqat dam olish kuni outOfRange; 5-dars lessonsPerDay (3) dan katta bo'lsa ham normal
+    expect(ed.outOfRangeKeys.value).toEqual(['6:2'])
     expect(ed.gridWeekdays.value).toEqual([1, 2, 3, 6])
     expect(ed.gridLessons.value).toBe(5)
+  })
+
+  it("qatorlar: boshlang'ich max(lessonsPerDay, ishlatilgan, 1); qo'shish 12 gacha; faqat bo'sh oxirgi qator olinadi", async () => {
+    const ed = await setup() // lessonsPerDay=3, faqat 1:1 band
+    expect(ed.gridLessons.value).toBe(3)
+    expect(ed.canAddLesson.value).toBe(true)
+    expect(ed.canRemoveLesson.value).toBe(true)
+    ed.addLesson()
+    expect(ed.gridLessons.value).toBe(4)
+    for (let i = 0; i < 20; i++) ed.addLesson()
+    expect(ed.gridLessons.value).toBe(12)
+    expect(ed.canAddLesson.value).toBe(false)
+    // qatorlar soni ko'rinish holati: dirty emas
+    expect(ed.dirty.value).toBe(false)
+    // oxirgi qator band bo'lsa olib tashlanmaydi
+    ed.setCell(2, 12, { subjectId: 'math', teacherId: 't1', room: null })
+    expect(ed.canRemoveLesson.value).toBe(false)
+    ed.removeLastLesson()
+    expect(ed.gridLessons.value).toBe(12)
+    ed.setCell(2, 12, null)
+    ed.removeLastLesson()
+    expect(ed.gridLessons.value).toBe(11)
+    // lessonsPerDay dan pastga ham tushadi, lekin ishlatilgan darsdan pastga emas
+    for (let i = 0; i < 20; i++) ed.removeLastLesson()
+    expect(ed.gridLessons.value).toBe(1) // 1:1 band
+    expect(ed.canRemoveLesson.value).toBe(false)
+  })
+
+  it('qatorlar soni saqlanadigan yozuvlarga ta`sir qilmaydi; saqlangach qayta hisoblanadi', async () => {
+    const ed = await setup()
+    ed.addLesson()
+    ed.addLesson()
+    expect(ed.gridLessons.value).toBe(5)
+    api.saveDraft.mockResolvedValue({
+      version: version('d1', { status: 'draft', phase: 'draft' }),
+      warnings: [],
+    })
+    api.versions.mockResolvedValue(INFO([summary('d1', { status: 'draft', phase: 'draft' })]))
+    await ed.save()
+    expect(api.saveDraft).toHaveBeenCalledWith('d1', {
+      entries: [{ weekday: 1, lessonNo: 1, subjectId: 'math', teacherId: 't1', room: null }],
+      validFrom: '2026-09-01',
+      note: null,
+    })
+    expect(ed.gridLessons.value).toBe(3)
   })
 
   it('tuzatish rejimi: faol versiya correct orqali, force/izoh bilan', async () => {

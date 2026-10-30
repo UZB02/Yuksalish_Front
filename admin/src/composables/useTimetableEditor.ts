@@ -15,6 +15,9 @@ import {
   clearDay,
   copyDay,
   entriesToCells,
+  maxLessonNo,
+  rowCountFor,
+  TIMETABLE_MAX_LESSONS,
   severityOf,
   warningsByCell,
   type CellMap,
@@ -45,6 +48,8 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
   /** Serverdan kelgan (saqlangan holat) ogohlantirishlari: bekor qilinganda tiklanadi */
   const baseWarnings = ref<TimetableWarning[]>([])
   const correcting = ref(false)
+  /** Qatorlar soni qo'lda o'zgartirilgan bo'lsa (ko'rinish holati, saqlanmaydi) */
+  const rowsOverride = ref<number | null>(null)
 
   const settings = computed(() => info.value?.settings ?? { workingWeekdays: [], lessonsPerDay: 0 })
   const today = computed(() => info.value?.today ?? '')
@@ -82,12 +87,12 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     return Math.max(n, validFrom.value !== baseValidFrom.value ? 1 : 0)
   })
 
-  /** Sozlamalardan tashqaridagi kataklar (kun yoki dars raqami) */
+  /** Dam olish kuniga qo'yilgan kataklar (dars raqami 1..12 serverda tekshiriladi) */
   const outOfRangeKeys = computed(() => {
     const s = settings.value
     return Object.keys(cells.value).filter((k) => {
       const [w, n] = k.split(':').map(Number) as [number, number]
-      return !s.workingWeekdays.includes(w) || n > s.lessonsPerDay
+      return !s.workingWeekdays.includes(w) || n > TIMETABLE_MAX_LESSONS
     })
   })
   const gridWeekdays = computed(() => {
@@ -96,10 +101,21 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
       .filter((w) => !settings.value.workingWeekdays.includes(w))
     return [...new Set([...settings.value.workingWeekdays, ...extra])].sort((a, b) => a - b)
   })
-  const gridLessons = computed(() => {
-    const maxCell = Math.max(0, ...Object.keys(cells.value).map((k) => Number(k.split(':')[1])))
-    return Math.max(settings.value.lessonsPerDay, maxCell)
-  })
+  /** Qatorlar: max(sozlamadagi darslar soni, ishlatilgan eng katta dars, 1); qo'lda qo'shish/olib tashlash bilan */
+  const gridLessons = computed(() =>
+    rowCountFor(rowsOverride.value ?? settings.value.lessonsPerDay, maxLessonNo(cells.value)),
+  )
+  const canAddLesson = computed(() => editable.value && gridLessons.value < TIMETABLE_MAX_LESSONS)
+  /** Oxirgi qator hamma kunlarda bo'sh bo'lsa (va kamida 1 qator qolsa) olib tashlanadi */
+  const canRemoveLesson = computed(
+    () => editable.value && gridLessons.value > 1 && maxLessonNo(cells.value) < gridLessons.value,
+  )
+  function addLesson() {
+    if (canAddLesson.value) rowsOverride.value = gridLessons.value + 1
+  }
+  function removeLastLesson() {
+    if (canRemoveLesson.value) rowsOverride.value = gridLessons.value - 1
+  }
   const warningsMap = computed(() => warningsByCell(warnings.value))
   const blockingCount = computed(
     () => warnings.value.filter((w) => w.code === 'teacher_double_booked').length,
@@ -117,6 +133,7 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     warnings.value = w
     baseWarnings.value = w
     correcting.value = false
+    rowsOverride.value = null
   }
 
   async function loadVersion(id: string) {
@@ -211,6 +228,7 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     validFrom.value = baseValidFrom.value
     note.value = version.value.note ?? ''
     warnings.value = baseWarnings.value
+    rowsOverride.value = null
   }
 
   function startCorrect() {
@@ -298,6 +316,10 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     outOfRangeKeys,
     gridWeekdays,
     gridLessons,
+    canAddLesson,
+    canRemoveLesson,
+    addLesson,
+    removeLastLesson,
     cellSeverity,
     load,
     loadVersion,

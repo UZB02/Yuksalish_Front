@@ -27,7 +27,7 @@ import { PERMISSIONS } from '@/constants/permissions'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
-import { addDaysIso } from '@/utils/timetable'
+import { addDaysIso, rowCountFor } from '@/utils/timetable'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -130,9 +130,14 @@ function moveDay(n: number) {
   dayDate.value = addDaysIso(dayDate.value, n)
   void loadDay()
 }
-const dayRows = computed(() =>
-  Array.from({ length: day.value?.settings.lessonsPerDay ?? 0 }, (_, i) => i + 1),
-)
+const dayRows = computed(() => {
+  if (!day.value) return []
+  const used = Math.max(0, ...day.value.classes.flatMap((c) => c.lessons.map((l) => l.lessonNo)))
+  return Array.from(
+    { length: rowCountFor(day.value.settings.lessonsPerDay, used) },
+    (_, i) => i + 1,
+  )
+})
 const lessonAt = (lessons: TimetableDay['classes'][number]['lessons'], n: number) =>
   lessons.filter((l) => l.lessonNo === n)
 

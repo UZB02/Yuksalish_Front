@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Plus, X } from 'lucide-vue-next'
+import { Plus, Trash2, X } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { TimetableWarning } from '@/api/timetable.api'
 import DropdownMenu, { type DropdownItem } from '@/components/ui/DropdownMenu.vue'
@@ -16,13 +16,16 @@ const props = defineProps<{
   outOfRangeKeys: string[]
   /** Sozlamadagi ish kunlari: undan tashqari ustunlar qizil */
   workingWeekdays: number[]
-  lessonsPerDay: number
   editable: boolean
+  canAddLesson?: boolean
+  canRemoveLesson?: boolean
 }>()
 const emit = defineEmits<{
   edit: [weekday: number, lessonNo: number]
   clear: [weekday: number, lessonNo: number]
   dayAction: [weekday: number, action: 'copy' | 'clear']
+  addLesson: []
+  removeLesson: []
 }>()
 const { t } = useI18n()
 
@@ -33,7 +36,6 @@ const dayItems = computed<DropdownItem[]>(() => [
   { key: 'clear', label: t('timetable.clearDay'), danger: true },
 ])
 const badDay = (w: number) => !props.workingWeekdays.includes(w)
-const badRow = (n: number) => n > props.lessonsPerDay
 </script>
 
 <template>
@@ -62,12 +64,25 @@ const badRow = (n: number) => n > props.lessonsPerDay
         </tr>
       </thead>
       <tbody>
-        <tr v-for="n in rows" :key="n" :class="badRow(n) ? 'bg-danger-soft/40' : ''">
+        <tr v-for="n in rows" :key="n">
           <th
-            class="border-t border-border px-2 py-2 text-center text-xs font-semibold"
-            :class="badRow(n) ? 'text-danger' : 'text-fg-muted'"
+            class="border-t border-border px-2 py-2 text-center text-xs font-semibold text-fg-muted"
           >
             {{ n }}
+            <button
+              v-if="editable && n === rows.length && rows.length > 1"
+              type="button"
+              class="mx-auto mt-1 block rounded p-0.5 text-fg-muted hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="!canRemoveLesson"
+              :title="
+                canRemoveLesson ? t('timetable.removeLesson') : t('timetable.removeLessonDisabled')
+              "
+              :aria-label="t('timetable.removeLesson')"
+              data-testid="remove-lesson"
+              @click="emit('removeLesson')"
+            >
+              <Trash2 class="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
           </th>
           <td
             v-for="w in weekdays"
@@ -123,5 +138,17 @@ const badRow = (n: number) => n > props.lessonsPerDay
         </tr>
       </tbody>
     </table>
+    <div v-if="editable" class="border-t border-border p-2">
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-primary-700 hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="!canAddLesson"
+        :title="canAddLesson ? undefined : t('timetable.maxLessonsReached', { n: 12 })"
+        data-testid="add-lesson"
+        @click="emit('addLesson')"
+      >
+        <Plus class="h-4 w-4" aria-hidden="true" /> {{ t('timetable.addLesson') }}
+      </button>
+    </div>
   </div>
 </template>

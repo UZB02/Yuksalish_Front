@@ -1769,7 +1769,7 @@
     "lessonsCount": "{n} ta dars",
     "lessonSuffix": "dars",
     "room": "Xona",
-    "outOfRange": "Sozlamadan tashqari",
+    "outOfRange": "Dam olish kuniga qo'yilgan dars",
     "newChange": "Yangi o'zgarish",
     "moreActions": "Boshqa amallar",
     "create": "Jadval tuzish",
@@ -1801,7 +1801,7 @@
     "legend": {
       "doubleBooked": "O'qituvchi to'qnashuvi",
       "warning": "Fanga biriktirilmagan yoki nofaol",
-      "outOfRange": "Qizil: sozlamalardagi kun/dars oralig'idan tashqarida"
+      "outOfRange": "Qizil: dam olish kuniga qo'yilgan darslar"
     },
     "dayActions": "{day}: amallar",
     "copyDay": "Kunni nusxalash",
@@ -1813,6 +1813,9 @@
     "clearDayText": "Shu kundagi barcha darslar olib tashlanadi (saqlamaguncha qaytarish mumkin).",
     "clearCell": "Katakni tozalash",
     "addLesson": "Dars qo'shish",
+    "removeLesson": "Oxirgi bo'sh darsni olib tashlash",
+    "removeLessonDisabled": "Faqat butunlay bo'sh oxirgi dars olib tashlanadi",
+    "maxLessonsReached": "Bir kunda eng ko'pi bilan {n} ta dars",
     "cellTitle": "{day}, {no}-dars",
     "subject": "Fan",
     "teacher": "O'qituvchi",

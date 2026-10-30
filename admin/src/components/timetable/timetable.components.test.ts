@@ -55,8 +55,9 @@ const gridProps = (over: Record<string, unknown> = {}) => ({
   },
   outOfRangeKeys: ['6:2'],
   workingWeekdays: [1, 2],
-  lessonsPerDay: 3,
   editable: true,
+  canAddLesson: true,
+  canRemoveLesson: true,
   ...over,
 })
 
@@ -76,11 +77,25 @@ describe('TimetableGrid', () => {
     expect(
       w.get('[data-testid="cell-6-2"]').find('[data-testid="cell-out-of-range"]').exists(),
     ).toBe(true)
-    // 4-qator lessonsPerDay (3) dan katta -> qizil
+    // qatorlar soni `lessons` prop bilan; qatorlar qizil emas
     const rows = w.findAll('tbody tr')
     expect(rows).toHaveLength(4)
-    expect(rows[3]!.classes().join(' ')).toContain('bg-danger-soft')
-    expect(rows[0]!.classes().join(' ')).not.toContain('bg-danger-soft')
+    expect(rows[3]!.classes().join(' ')).not.toContain('bg-danger-soft')
+  })
+
+  it("'+ Dars qo'shish' va oxirgi qatorni olib tashlash hodisalari; cheklovlar", async () => {
+    const w = mount(TimetableGrid, { props: gridProps({ canRemoveLesson: false }), global })
+    await w.get('[data-testid="add-lesson"]').trigger('click')
+    expect(w.emitted('addLesson')).toHaveLength(1)
+    expect(w.findAll('[data-testid="remove-lesson"]')).toHaveLength(1)
+    expect(w.get('[data-testid="remove-lesson"]').attributes('disabled')).toBeDefined()
+    const w2 = mount(TimetableGrid, { props: gridProps({ canAddLesson: false }), global })
+    expect(w2.get('[data-testid="add-lesson"]').attributes('disabled')).toBeDefined()
+    await w2.get('[data-testid="remove-lesson"]').trigger('click')
+    expect(w2.emitted('removeLesson')).toHaveLength(1)
+    const ro = mount(TimetableGrid, { props: gridProps({ editable: false }), global })
+    expect(ro.find('[data-testid="add-lesson"]').exists()).toBe(false)
+    expect(ro.find('[data-testid="remove-lesson"]').exists()).toBe(false)
   })
 
   it('tahrirlanadigan rejimda katak bosilganda edit/clear chiqadi, faqat o`qishda tugma yo`q', async () => {
@@ -100,7 +115,7 @@ describe('TimetableGrid', () => {
 describe('TimetableDayList (mobil)', () => {
   it('kun tablari va tanlangan kun darslari; bosilganda edit', async () => {
     const w = mount(TimetableDayList, {
-      props: { ...gridProps(), initialWeekday: 2 },
+      props: { ...gridProps(), lessonsPerDay: 3, initialWeekday: 2 },
       global,
     })
     await w.get('[data-testid="tt-tab-1"]').trigger('click')
@@ -110,6 +125,25 @@ describe('TimetableDayList (mobil)', () => {
     await w.get('[data-testid="tt-tab-2"]').trigger('click')
     expect(w.get('[data-testid="m-cell-2-2"]').text()).toContain('Ingliz tili')
     expect(w.get('[data-testid="m-cell-2-1"]').text()).toContain(uz.timetable.addLesson)
+  })
+
+  it("kun qatorlari max(lessonsPerDay, shu kunda ishlatilgan); qo'shish 12 gacha; bo'sh oxirgisini olish", async () => {
+    const cells = { ...CELLS, '1:8': { subjectId: 'math', teacherId: 't1', room: null } }
+    const w = mount(TimetableDayList, {
+      props: { ...gridProps({ cells }), lessonsPerDay: 3, initialWeekday: 2 },
+      global,
+    })
+    await w.get('[data-testid="tt-tab-2"]').trigger('click')
+    expect(w.findAll('[data-testid^="m-cell-2-"]')).toHaveLength(3)
+    await w.get('[data-testid="tt-tab-1"]').trigger('click')
+    expect(w.findAll('[data-testid^="m-cell-1-"]')).toHaveLength(8)
+    expect(w.get('[data-testid="m-remove-lesson"]').attributes('disabled')).toBeDefined()
+    await w.get('[data-testid="tt-tab-2"]').trigger('click')
+    for (let i = 0; i < 15; i++) await w.get('[data-testid="m-add-lesson"]').trigger('click')
+    expect(w.findAll('[data-testid^="m-cell-2-"]')).toHaveLength(12)
+    expect(w.get('[data-testid="m-add-lesson"]').attributes('disabled')).toBeDefined()
+    await w.get('[data-testid="m-remove-lesson"]').trigger('click')
+    expect(w.findAll('[data-testid^="m-cell-2-"]')).toHaveLength(11)
   })
 })
 
@@ -254,5 +288,17 @@ describe('TeacherWeekGrid', () => {
     expect(cell.text()).toContain('5')
     expect(w.get('[data-testid="week-cell-1-1"]').text()).toBe('')
     expect(w.text()).toContain(uz.timetable.noLessonsDay)
+    expect(w.findAll('tbody tr')).toHaveLength(3) // lessonsPerDay=3, ishlatilgan 2
+  })
+
+  it('qatorlar soni: eng katta ishlatilgan dars raqamigacha (lessonsPerDay dan oshsa ham)', () => {
+    const l = week.days[0]!.lessons[0]!
+    const w8: TeacherWeek = {
+      ...week,
+      days: [{ ...week.days[0]!, lessons: [{ ...l, lessonNo: 8 }] }, week.days[1]!],
+    }
+    const w = mount(TeacherWeekGrid, { props: { week: w8 }, global })
+    expect(w.findAll('tbody tr')).toHaveLength(8)
+    expect(w.get('[data-testid="week-cell-1-8"]').text()).toContain('Matematika')
   })
 })

@@ -3,14 +3,19 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { TeacherWeek, TimetableLesson } from '@/api/timetable.api'
 import { formatDate } from '@/utils/format'
+import { rowCountFor } from '@/utils/timetable'
 
 /** O'qituvchi haftasi: kompyuterda to'r (kun x dars), mobilda kunlar bo'yicha kartalar */
 const props = defineProps<{ week: TeacherWeek }>()
 const { t } = useI18n()
 
-const rows = computed(() =>
-  Array.from({ length: props.week.settings.lessonsPerDay }, (_, i) => i + 1),
-)
+const rows = computed(() => {
+  const used = Math.max(0, ...props.week.days.flatMap((d) => d.lessons.map((l) => l.lessonNo)))
+  return Array.from(
+    { length: rowCountFor(props.week.settings.lessonsPerDay, used) },
+    (_, i) => i + 1,
+  )
+})
 const at = (date: string, n: number): TimetableLesson[] =>
   props.week.days.find((d) => d.date === date)?.lessons.filter((l) => l.lessonNo === n) ?? []
 const hasAny = computed(() => props.week.days.some((d) => d.lessons.length))

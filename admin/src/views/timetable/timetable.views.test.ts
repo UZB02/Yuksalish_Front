@@ -257,6 +257,58 @@ describe('TimetableHomeView', () => {
   })
 })
 
+describe('TimetableHomeView kun jadvali qatorlari', () => {
+  it("lessonsPerDay (2) dan katta dars (8) bo'lsa qatorlar 8 gacha ko'rsatiladi", async () => {
+    api.day.mockResolvedValue({
+      date: '2026-11-02',
+      weekday: 1,
+      today: '2026-10-30',
+      working: true,
+      settings: { workingWeekdays: [1], lessonsPerDay: 2 },
+      classes: [
+        {
+          classId: 'c1',
+          name: '5-A',
+          grade: 5,
+          lessons: [
+            {
+              classId: 'c1',
+              date: '2026-11-02',
+              weekday: 1,
+              lessonNo: 8,
+              subjectId: 'm',
+              teacherId: 't',
+              room: null,
+              source: 'timetable',
+              cancelled: false,
+              versionId: 'v',
+              class: { id: 'c1', name: '5-A', grade: 5 },
+              subject: { id: 'm', name: 'Matematika' },
+              teacher: { id: 't', fullName: 'Aliyev' },
+            },
+          ],
+        },
+      ],
+    })
+    api.options.mockResolvedValue({
+      subjects: [],
+      classAssignments: [],
+      subjectTeachers: {},
+      teachers: [],
+    })
+    const { w } = await mountView(
+      TimetableHomeView,
+      '/timetable?tab=day',
+      '/timetable',
+      'school_admin',
+      ['timetable.view'],
+      'timetable',
+    )
+    expect(w.get('[data-testid="day-cell-c1-8"]').text()).toContain('Matematika')
+    expect(w.find('[data-testid="day-cell-c1-9"]').exists()).toBe(false)
+  })
+})
+
 const classInfo = (versions: ReturnType<typeof sum>[], archived = false): ClassVersions =>
   ({
     class: { id: 'c1', name: '5-A', grade: 5, isArchived: archived },
