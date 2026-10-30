@@ -18,6 +18,9 @@ export const PERMISSIONS = {
   ATTENDANCE_EDIT: 'attendance.edit',
   ATTENDANCE_VIEW: 'attendance.view',
   ATTENDANCE_SETTINGS: 'attendance.settings',
+  TIMETABLE_VIEW: 'timetable.view',
+  TIMETABLE_MANAGE: 'timetable.manage',
+  TIMETABLE_SUBSTITUTE: 'timetable.substitute',
 } as const
 
 /** O'qituvchida doim mavjud ruxsatlar (TZ 4.5.3): ro'yxatda bo'lmasa ham ruxsat beriladi. */
@@ -93,6 +96,24 @@ export const FALLBACK_PERMISSIONS: PermissionMeta[] = [
     key: 'attendance.settings',
     group: 'attendance',
     label: 'attendance.settings',
+    roles: ['school_admin'],
+  },
+  {
+    key: 'timetable.view',
+    group: 'timetable',
+    label: 'timetable.view',
+    roles: ['school_admin', 'teacher'],
+  },
+  {
+    key: 'timetable.manage',
+    group: 'timetable',
+    label: 'timetable.manage',
+    roles: ['school_admin'],
+  },
+  {
+    key: 'timetable.substitute',
+    group: 'timetable',
+    label: 'timetable.substitute',
     roles: ['school_admin'],
   },
 ]

@@ -2,7 +2,15 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, BookOpen, Layers, Pencil, ShieldCheck, Users } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  BookOpen,
+  CalendarClock,
+  Layers,
+  Pencil,
+  ShieldCheck,
+  Users,
+} from 'lucide-vue-next'
 import { teachersApi } from '@/api/teachers.api'
 import type { Teacher } from '@/api/types'
 import LastLogin from '@/components/domain/LastLogin.vue'
@@ -15,6 +23,8 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { useTeacherActions } from '@/composables/useTeacherActions'
+import { PERMISSIONS } from '@/constants/permissions'
+import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 import { buildWorkload } from '@/utils/teacherWorkload'
@@ -23,6 +33,11 @@ import TeacherActionModals from './TeacherActionModals.vue'
 const { t, te } = useI18n()
 const route = useRoute()
 const schoolCtx = useSchoolContextStore()
+const auth = useAuthStore()
+const canViewTimetable = computed(
+  () =>
+    auth.hasPermission(PERMISSIONS.TIMETABLE_VIEW) || auth.hasPermission(PERMISSIONS.TIMETABLE_MANAGE),
+)
 const needsSchool = useNeedsSchool()
 
 const teacher = ref<Teacher | null>(null)
@@ -110,6 +125,15 @@ function permissionLabel(key: string): string {
           </div>
         </div>
         <div class="flex shrink-0 items-center gap-1 lg:justify-end">
+          <RouterLink
+            v-if="canViewTimetable"
+            :to="{ name: 'teacher-timetable', params: { id: teacher.id } }"
+            data-testid="detail-timetable"
+          >
+            <BaseButton variant="secondary" size="sm">
+              <CalendarClock class="h-4 w-4" /> {{ t('timetable.scheduleLink') }}
+            </BaseButton>
+          </RouterLink>
           <BaseButton
             variant="secondary"
             size="sm"

@@ -295,6 +295,37 @@ const router = createRouter({
           },
         },
         {
+          path: 'timetable',
+          name: 'timetable',
+          component: () => import('@/views/timetable/TimetableHomeView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.TIMETABLE_VIEW, PERMISSIONS.TIMETABLE_MANAGE],
+            titleKey: 'nav.timetable',
+          },
+        },
+        {
+          // Sinf jadvali: ko'rish huquqini server tekshiradi (o'qituvchi o'z sinflarini ruxsatsiz ham ko'radi)
+          path: 'timetable/classes/:id',
+          name: 'class-timetable',
+          component: () => import('@/views/timetable/ClassTimetableView.vue'),
+          meta: { titleKey: 'nav.timetable' },
+        },
+        {
+          path: 'timetable/teachers/:id',
+          name: 'teacher-timetable',
+          component: () => import('@/views/timetable/TimetableTeacherView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.TIMETABLE_VIEW, PERMISSIONS.TIMETABLE_MANAGE],
+            titleKey: 'nav.timetable',
+          },
+        },
+        {
+          path: 'my-timetable',
+          name: 'my-timetable',
+          component: () => import('@/views/timetable/MyTimetableView.vue'),
+          meta: { roles: ['teacher'], titleKey: 'nav.myTimetable' },
+        },
+        {
           path: 'profile',
           name: 'profile',
           component: () => import('@/views/profile/ProfileView.vue'),

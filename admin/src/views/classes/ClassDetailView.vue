@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BookOpenCheck,
   CalendarCheck,
+  CalendarClock,
   ClipboardCheck,
   FileBarChart,
   Pencil,
@@ -36,6 +37,13 @@ const assignOpen = ref(false)
 
 const classId = computed(() => String(route.params.id))
 const canManage = computed(() => auth.hasPermission(PERMISSIONS.CLASSES_MANAGE))
+/** O'qituvchi o'z sinfi jadvalini ruxsatsiz ham ko'radi (server tekshiradi); admin uchun timetable.view/manage */
+const canSeeTimetable = computed(
+  () =>
+    auth.role === 'teacher' ||
+    auth.hasPermission(PERMISSIONS.TIMETABLE_VIEW) ||
+    auth.hasPermission(PERMISSIONS.TIMETABLE_MANAGE),
+)
 const backTo = computed(() => ({ name: auth.role === 'teacher' ? 'my-classes' : 'classes' }))
 /** O'qituvchi faqat o'ziga shu sinfda fan biriktirilgan bo'lsa; admin ruxsat bilan barcha sinflarda */
 const canGradeSubjects = computed(() => {
@@ -158,6 +166,15 @@ watch(classId, () => load())
         >
           <BaseButton variant="secondary">
             <CalendarCheck class="h-4 w-4" /> {{ t('attendance.action') }}
+          </BaseButton>
+        </RouterLink>
+        <RouterLink
+          v-if="canSeeTimetable"
+          :to="{ name: 'class-timetable', params: { id: schoolClass.id } }"
+          data-testid="class-timetable-link"
+        >
+          <BaseButton variant="secondary">
+            <CalendarClock class="h-4 w-4" /> {{ t('timetable.scheduleLink') }}
           </BaseButton>
         </RouterLink>
         <RouterLink

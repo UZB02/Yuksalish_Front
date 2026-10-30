@@ -37,6 +37,8 @@ const PATHS: Record<string, string> = {
   'attendance-statuses': '/attendance-statuses',
   'audit-logs': '/audit-logs',
   settings: '/settings',
+  timetable: '/timetable',
+  'my-timetable': '/my-timetable',
 }
 
 const SCHOOL_ADMIN_PERMS = [
@@ -198,7 +200,7 @@ describe('AppSidebar guruhlash', () => {
     const { w } = await setup({ role: 'superadmin' })
     expect(structure(w)).toEqual([
       T.dashboard,
-      `${label('academic')}: ${T.classes}, ${T.students}, ${T.teachers}, ${T.academicYears}`,
+      `${label('academic')}: ${T.classes}, ${T.timetable}, ${T.students}, ${T.teachers}, ${T.academicYears}`,
       `${label('grading')}: ${T.scoring}, ${T.grading}, ${T.journal}, ${T.scoresHistory}`,
       `${label('attendance')}: ${T.attendance}, ${T.attendanceHistory}`,
       `${label('results')}: ${T.ratings}, ${T.reports}`,
@@ -224,7 +226,7 @@ describe('AppSidebar guruhlash', () => {
     const { w } = await setup({ role: 'teacher', permissions: TEACHER_PERMS })
     expect(structure(w)).toEqual([
       T.dashboard,
-      `${label('myWork')}: ${T.myClasses}, ${T.myScores}`,
+      `${label('myWork')}: ${T.myClasses}, ${T.myTimetable}, ${T.myScores}`,
       T.students,
       `${label('grading')}: ${T.grading}, ${T.journal}`,
       `${label('attendance')}: ${T.attendance}, ${T.attendanceHistory}`,
@@ -362,6 +364,7 @@ describe('AppSidebar ixcham (rail) rejim', () => {
     expect(links.map((a) => a.attributes('aria-label'))).toEqual([
       T.dashboard,
       T.classes,
+      T.timetable,
       T.students,
       T.teachers,
       T.academicYears,
@@ -392,6 +395,7 @@ describe('AppSidebar ixcham (rail) rejim', () => {
     expect(w.findAll('nav a').map((a) => a.attributes('aria-label'))).toEqual([
       T.dashboard,
       T.myClasses,
+      T.myTimetable,
       T.myScores,
       T.students,
       T.grading,

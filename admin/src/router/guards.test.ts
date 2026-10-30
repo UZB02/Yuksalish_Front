@@ -134,9 +134,18 @@ describe('2-bosqich marshrutlari', () => {
       'audit-logs',
       'settings',
       'journal',
+      'timetable',
     ])
-    expect(names(ctx('teacher', ['students.view']))).toEqual(['my-classes', 'students'])
-    expect(names(ctx('teacher', ['scores.create']))).toEqual(['my-classes', 'my-scores'])
+    expect(names(ctx('teacher', ['students.view']))).toEqual([
+      'my-classes',
+      'students',
+      'my-timetable',
+    ])
+    expect(names(ctx('teacher', ['scores.create']))).toEqual([
+      'my-classes',
+      'my-scores',
+      'my-timetable',
+    ])
     expect(names(ctx('school_admin', ['scores.create']))).toEqual(['scoring'])
     expect(names(ctx('school_admin', ['reports.view']))).toEqual([
       'scores-history',

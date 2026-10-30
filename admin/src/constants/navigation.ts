@@ -24,6 +24,8 @@ import {
   FileBarChart,
   ScrollText,
   NotebookText,
+  CalendarClock,
+  CalendarDays,
 } from 'lucide-vue-next'
 import type { Role } from '@/api/types'
 import { PERMISSIONS } from './permissions'
@@ -223,6 +225,20 @@ export const NAV_ITEMS: NavItem[] = [
     icon: NotebookText,
     anyPermission: [PERMISSIONS.GRADES_CREATE, PERMISSIONS.GRADES_EDIT, PERMISSIONS.REPORTS_VIEW],
   },
+  {
+    name: 'timetable',
+    group: 'academic',
+    labelKey: 'nav.timetable',
+    icon: CalendarClock,
+    anyPermission: [PERMISSIONS.TIMETABLE_VIEW, PERMISSIONS.TIMETABLE_MANAGE],
+  },
+  {
+    name: 'my-timetable',
+    group: 'myWork',
+    labelKey: 'nav.myTimetable',
+    icon: CalendarDays,
+    roles: ['teacher'],
+  },
 ]
 
 /**
@@ -232,8 +248,10 @@ export const NAV_ITEMS: NavItem[] = [
 export const NAV_DISPLAY_ORDER: string[] = [
   'dashboard',
   'my-classes',
+  'my-timetable',
   'my-scores',
   'classes',
+  'timetable',
   'students',
   'teachers',
   'academic-years',

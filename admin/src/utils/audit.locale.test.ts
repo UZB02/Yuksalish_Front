@@ -70,6 +70,11 @@ const ACTIONS = [
   'teacher.photo_upload',
   'teacher.update',
   'teachers.import',
+  'timetable.version_activate',
+  'timetable.version_correct',
+  'timetable.version_create',
+  'timetable.version_delete',
+  'timetable.version_update',
 ]
 const ENTITIES = [
   'academic_year',
@@ -85,6 +90,7 @@ const ENTITIES = [
   'student',
   'subject',
   'subject_grade',
+  'timetable',
   'user',
 ]
 
