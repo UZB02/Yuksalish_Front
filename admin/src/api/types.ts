@@ -86,9 +86,27 @@ export interface School {
   slug: string
   address: string | null
   phone: string | null
+  /** Yuklangan logo (versiyalangan havola) yoki eski qo'lda kiritilgan URL */
   logoUrl: string | null
+  hasUploadedLogo?: boolean
   isActive: boolean
   createdAt: string
+}
+
+export interface BrandingIcons {
+  favicon: string
+  icon192: string
+  icon512: string
+  maskable512: string
+  apple180: string
+}
+
+export interface Branding {
+  appName: string
+  shortName: string
+  logoUrl: string | null
+  icons: BrandingIcons | null
+  version: string
 }
 
 export interface PermissionMeta {

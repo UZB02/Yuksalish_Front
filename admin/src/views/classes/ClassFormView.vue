@@ -10,6 +10,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useClassForm } from '@/composables/useClassForm'
+import { useDirtySource } from '@/composables/useDirtyRegistry'
 import { useConfirm } from '@/composables/useConfirm'
 import { useAcademicYearLookup, useTeacherLookup } from '@/composables/useLookups'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
@@ -87,6 +88,7 @@ async function onSubmit() {
   await router.push({ name: 'class-detail', params: { id: saved.id } })
 }
 
+useDirtySource(() => !skipLeaveGuard && form.dirty)
 onBeforeRouteLeave(async () => {
   if (skipLeaveGuard || !form.dirty) return true
   return confirm({

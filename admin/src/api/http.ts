@@ -143,6 +143,14 @@ export async function putPhoto<T>(url: string, file: File): Promise<T> {
   return res.data.data
 }
 
+/** Logo yuklash (multipart, maydon nomi `file`) */
+export async function postFile<T>(url: string, file: File): Promise<T> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await http.post<ApiSuccess<T>>(url, form, { timeout: 60000 })
+  return res.data.data
+}
+
 export async function deleteData<T>(url: string): Promise<T> {
   const res = await http.delete<ApiSuccess<T>>(url)
   return res.data.data

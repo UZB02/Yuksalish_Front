@@ -8,12 +8,14 @@ import { NAV_DISPLAY_ORDER, NAV_GROUPS, NAV_ITEMS } from '@/constants/navigation
 import type { NavGroup, NavGroupKey, NavItem } from '@/constants/navigation'
 import { canAccess } from '@/router/guards'
 import { useAuthStore } from '@/stores/auth'
+import { useBrandingStore } from '@/stores/branding'
 import { useUiStore } from '@/stores/ui'
 import SidebarNavLink from './SidebarNavLink.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
 const ui = useUiStore()
+const branding = useBrandingStore()
 const route = useRoute()
 const router = useRouter()
 const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -161,7 +163,15 @@ const hidden = computed(() => !isDesktop.value && !ui.sidebarOpen)
         ]"
       >
         <div class="flex items-center gap-2.5" :class="collapsed && 'lg:hidden'">
+          <img
+            v-if="branding.logoSrc"
+            :src="branding.logoSrc"
+            alt=""
+            class="h-8 w-8 rounded-lg object-contain"
+            data-testid="sidebar-brand-logo"
+          />
           <span
+            v-else
             class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"
           >
             <BarChart3 class="h-4 w-4" aria-hidden="true" />
@@ -169,14 +179,15 @@ const hidden = computed(() => !isDesktop.value && !ui.sidebarOpen)
           <span
             class="text-sm font-semibold leading-tight text-fg"
             data-testid="sidebar-brand-label"
-            >{{ t('app.name') }}</span
+            >{{ branding.appName }}</span
           >
         </div>
         <!-- Yig'ish/yoyish (faqat lg+): yig'ilganda logotipning o'zi yoyish tugmasi bo'ladi -->
         <button
           v-if="collapsed"
           type="button"
-          class="group hidden h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white hover:bg-primary-700 lg:flex"
+          class="group hidden h-8 w-8 items-center justify-center rounded-lg text-white hover:bg-primary-700 lg:flex"
+          :class="branding.logoSrc ? 'bg-surface-muted' : 'bg-primary-600'"
           :aria-label="t('nav.expand')"
           :title="t('nav.expand')"
           :aria-expanded="false"
@@ -184,7 +195,14 @@ const hidden = computed(() => !isDesktop.value && !ui.sidebarOpen)
           data-testid="sidebar-collapse-toggle"
           @click="ui.toggleSidebarCollapsed()"
         >
+          <img
+            v-if="branding.logoSrc"
+            :src="branding.logoSrc"
+            alt=""
+            class="h-7 w-7 rounded object-contain group-hover:hidden group-focus-visible:hidden"
+          />
           <BarChart3
+            v-else
             class="h-4 w-4 group-hover:hidden group-focus-visible:hidden"
             aria-hidden="true"
           />

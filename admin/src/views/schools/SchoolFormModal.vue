@@ -9,6 +9,7 @@ import type { School, SchoolPayload } from '@/api/types'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import LogoUploader from '@/components/ui/LogoUploader.vue'
 import { useToast } from '@/composables/useToast'
 import { applyServerErrors, errorMessage } from '@/utils/errors'
 import { slugify } from '@/utils/slug'
@@ -22,6 +23,9 @@ const toast = useToast()
 const submitting = ref(false)
 const slugTouched = ref(false)
 const isEdit = computed(() => !!props.school)
+// Yuklangan logo (tahrirlashda): URL maydoni o'rniga yuklagich ko'rsatiladi
+const current = ref<School | null>(null)
+const hasUploaded = computed(() => !!current.value?.hasUploadedLogo)
 
 const { errors, defineField, handleSubmit, resetForm, setErrors, setFieldValue } = useForm({
   validationSchema: toTypedSchema(schoolSchema(t)),
@@ -38,13 +42,14 @@ watch(
   (isOpen) => {
     if (!isOpen) return
     const s = props.school
+    current.value = s
     resetForm({
       values: {
         name: s?.name ?? '',
         slug: s?.slug ?? '',
         address: s?.address ?? '',
         phone: s?.phone ?? '',
-        logoUrl: s?.logoUrl ?? '',
+        logoUrl: s && !s.hasUploadedLogo ? (s.logoUrl ?? '') : '',
       },
     })
     // Tahrirlashda mavjud slug nom o'zgarganda o'zgarib ketmasligi kerak.
@@ -60,6 +65,17 @@ watch(name, (value) => {
 
 const FIELDS = ['name', 'slug', 'address', 'phone', 'logoUrl'] as const
 
+async function uploadLogo(file: File) {
+  if (!current.value) return
+  current.value = await schoolsApi.uploadLogo(current.value.id, file)
+  emit('saved', current.value)
+}
+async function removeLogo() {
+  if (!current.value) return
+  current.value = await schoolsApi.deleteLogo(current.value.id)
+  emit('saved', current.value)
+}
+
 const onSubmit = handleSubmit(async (values) => {
   submitting.value = true
   try {
@@ -71,7 +87,8 @@ const onSubmit = handleSubmit(async (values) => {
         slug: values.slug,
         address: values.address || null,
         phone: values.phone || null,
-        logoUrl: values.logoUrl || null,
+        // Yuklangan logo bo'lsa eski URL maydoniga tegmaymiz
+        ...(hasUploaded.value ? {} : { logoUrl: values.logoUrl || null }),
       })
     } else {
       const payload: SchoolPayload = { name: values.name, slug: values.slug }
@@ -133,7 +150,17 @@ const onSubmit = handleSubmit(async (values) => {
         :label="t('schools.phone')"
         :error="errors.phone"
       />
+      <div v-if="isEdit && current" data-testid="school-form-logo">
+        <p class="mb-1.5 text-sm font-medium text-fg">{{ t('schools.logo') }}</p>
+        <LogoUploader
+          :src="current.hasUploadedLogo ? current.logoUrl : null"
+          :name="current.name"
+          :upload="uploadLogo"
+          :remove="removeLogo"
+        />
+      </div>
       <BaseInput
+        v-if="!hasUploaded"
         v-model="logoUrl"
         v-bind="logoUrlAttrs"
         type="url"

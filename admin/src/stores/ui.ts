@@ -24,11 +24,22 @@ function readTheme(): ThemeMode {
   return 'system'
 }
 
+/** Brauzer/PWA panelining rangi (index.html dagi ikki theme-color meta bitta aniq qiymatga o'tadi). */
+export const THEME_COLORS = { light: '#ffffff', dark: '#0f172a' } as const
+
+function syncThemeColorMeta(dark: boolean) {
+  const color = dark ? THEME_COLORS.dark : THEME_COLORS.light
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+    m.setAttribute('content', color)
+  })
+}
+
 export function applyTheme(mode: ThemeMode) {
   const dark =
     mode === 'dark' ||
     (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   document.documentElement.classList.toggle('dark', dark)
+  syncThemeColorMeta(dark)
 }
 
 export const useUiStore = defineStore('ui', () => {

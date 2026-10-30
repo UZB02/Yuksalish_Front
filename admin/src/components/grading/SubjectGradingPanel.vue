@@ -14,6 +14,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useDirtySource } from '@/composables/useDirtyRegistry'
 import { useGradeSheet } from '@/composables/useGradeSheet'
 import { useToast } from '@/composables/useToast'
 import { errorMessage } from '@/utils/errors'
@@ -211,6 +212,7 @@ watch(
   (v) => emit('dirty-change', v),
 )
 
+useDirtySource(() => sheet.hasUnsaved.value)
 const beforeUnload = (e: BeforeUnloadEvent) => {
   if (sheet.hasUnsaved.value) {
     e.preventDefault()

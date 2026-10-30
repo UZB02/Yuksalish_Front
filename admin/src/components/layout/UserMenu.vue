@@ -3,11 +3,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { onClickOutside, onKeyStroke } from '@vueuse/core'
-import { ChevronDown, LogOut, UserRound } from 'lucide-vue-next'
+import { ChevronDown, Download, LogOut, UserRound } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { ROLE_LABEL_KEYS } from '@/constants/roles'
 import AvatarImage from '@/components/ui/AvatarImage.vue'
+import { useInstallPrompt } from '@/composables/useInstallPrompt'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -15,9 +16,15 @@ const schoolCtx = useSchoolContextStore()
 const router = useRouter()
 const open = ref(false)
 const root = ref<HTMLElement | null>(null)
+const installApp = useInstallPrompt()
 
 onClickOutside(root, () => (open.value = false))
 onKeyStroke('Escape', () => (open.value = false))
+
+function install() {
+  open.value = false
+  void installApp.install()
+}
 
 async function logout() {
   open.value = false
@@ -66,6 +73,15 @@ async function logout() {
       >
         <UserRound class="h-4 w-4" aria-hidden="true" /> {{ t('nav.profile') }}
       </RouterLink>
+      <button
+        v-if="installApp.canInstall.value"
+        type="button"
+        role="menuitem"
+        class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-fg hover:bg-surface-muted"
+        @click="install"
+      >
+        <Download class="h-4 w-4" aria-hidden="true" /> {{ t('pwa.install.menu') }}
+      </button>
       <button
         type="button"
         role="menuitem"

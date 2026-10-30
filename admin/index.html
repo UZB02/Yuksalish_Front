@@ -2,9 +2,18 @@
 <html lang="uz">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/api/v1/branding/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Yuksalish EDU" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Intizom reytingi - Admin</title>
     <script>
       ;(function () {
@@ -14,6 +23,10 @@
             t === 'dark' ||
             ((!t || t === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)
           if (dark) document.documentElement.classList.add('dark')
+          // Qo'lda tanlangan mavzu tizim mavzusidan farq qilsa, panel rangi ham mos bo'lsin
+          var c = dark ? '#0f172a' : '#ffffff'
+          var m = document.querySelectorAll('meta[name="theme-color"]')
+          for (var i = 0; i < m.length; i++) m[i].setAttribute('content', c)
         } catch (e) {}
       })()
     </script>

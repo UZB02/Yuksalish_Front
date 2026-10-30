@@ -2,6 +2,7 @@ import type { RouteLocationNormalized, RouteLocationRaw, RouteMeta, Router } fro
 import type { Role } from '@/api/types'
 import { NAV_ITEMS } from '@/constants/navigation'
 import { useAuthStore } from '@/stores/auth'
+import { useBrandingStore } from '@/stores/branding'
 import { i18n } from '@/i18n'
 
 declare module 'vue-router' {
@@ -26,6 +27,8 @@ declare module 'vue-router' {
 /** Guard ishlatadigan minimal auth interfeysi (testlash oson bo'lishi uchun). */
 export interface AccessContext {
   isAuthenticated: boolean
+  /** Ilova ochilganda tarmoq yo'q edi: sessiya holati noma'lum, login'ga emas, offline ekraniga yo'naltiramiz. */
+  networkError?: boolean
   hasRole: (roles?: Role[]) => boolean
   hasPermission: (permission?: string) => boolean
 }
@@ -47,12 +50,31 @@ export function firstAllowedRouteName(ctx: AccessContext): string | null {
   return item?.name ?? null
 }
 
+/** PWA shortcut (`/?go=...`) uchun nomzod marshrutlar: birinchi ruxsat etilgani tanlanadi. */
+export const SHORTCUT_TARGETS: Record<string, string[]> = {
+  scoring: ['scoring', 'my-classes'],
+  grading: ['grading'],
+  attendance: ['attendance'],
+}
+
+function shortcutTarget(go: unknown, ctx: AccessContext): string | null {
+  const key = Array.isArray(go) ? go[0] : go
+  const candidates = typeof key === 'string' ? SHORTCUT_TARGETS[key] : undefined
+  if (!candidates) return null
+  for (const name of candidates) {
+    const item = NAV_ITEMS.find((i) => i.name === name)
+    if (item && canAccess(ctx, item)) return name
+  }
+  return null
+}
+
 /**
  * Marshrutga o'tishga ruxsatni hal qiladi.
  * true - ruxsat; aks holda yo'naltirish manzili.
  */
 export function resolveAccess(
-  to: Pick<RouteLocationNormalized, 'name' | 'fullPath' | 'meta'>,
+  to: Pick<RouteLocationNormalized, 'name' | 'fullPath' | 'meta'> &
+    Partial<Pick<RouteLocationNormalized, 'query'>>,
   ctx: AccessContext,
 ): true | RouteLocationRaw {
   const meta = to.meta
@@ -63,11 +85,16 @@ export function resolveAccess(
   }
 
   if (!ctx.isAuthenticated) {
+    if (ctx.networkError) {
+      return { name: 'offline', query: { redirect: to.fullPath || '/' } }
+    }
     const redirect = to.fullPath && to.fullPath !== '/' ? to.fullPath : undefined
     return { name: 'login', query: redirect ? { redirect } : undefined }
   }
 
   if (to.name === 'home') {
+    const shortcut = shortcutTarget(to.query?.go, ctx)
+    if (shortcut) return { name: shortcut }
     const target = firstAllowedRouteName(ctx)
     return target ? { name: target } : { name: 'forbidden' }
   }
@@ -89,6 +116,6 @@ export function installGuards(router: Router) {
   router.afterEach((to) => {
     const t = i18n.global.t
     const title = to.meta.titleKey ? t(to.meta.titleKey) : ''
-    document.title = title ? `${title} | ${t('app.name')}` : t('app.name')
+    useBrandingStore().setPageTitle(title)
   })
 }

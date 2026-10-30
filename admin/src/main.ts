@@ -6,7 +6,13 @@ import { i18n } from './i18n'
 import { setUnauthorizedHandler } from './api/http'
 import { useUiStore, applyTheme } from './stores/ui'
 import { useSchoolContextStore } from './stores/school-context'
+import { useBrandingStore } from './stores/branding'
+import { captureInstallEvents } from './composables/useInstallPrompt'
+import { initPwa } from './pwa/registerPwa'
 import './styles/tailwind.css'
+
+// beforeinstallprompt mount'dan oldin ham kelishi mumkin: darhol ushlaymiz.
+captureInstallEvents()
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -31,4 +37,8 @@ window
   .matchMedia('(prefers-color-scheme: dark)')
   .addEventListener('change', () => ui.syncSystemTheme())
 
+// Brending (nom, logo, favicon): keshdan darhol, so'ng serverdan
+void useBrandingStore(pinia).init()
+
 app.mount('#app')
+initPwa(router)

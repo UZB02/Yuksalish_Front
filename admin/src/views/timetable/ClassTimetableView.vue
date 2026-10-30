@@ -29,6 +29,7 @@ import Skeleton from '@/components/ui/Skeleton.vue'
 import StickySaveBar from '@/components/ui/StickySaveBar.vue'
 import TimetableExportMenu from '@/components/timetable/TimetableExportMenu.vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useDirtySource } from '@/composables/useDirtyRegistry'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { usePermission } from '@/composables/usePermission'
 import { useTimetableEditor } from '@/composables/useTimetableEditor'
@@ -467,6 +468,7 @@ watch(
     void router.replace({ name: 'timetable' })
   },
 )
+useDirtySource(() => !skipLeaveGuard && ed.dirty.value)
 onBeforeRouteLeave(async () => {
   if (skipLeaveGuard || !ed.dirty.value) return true
   return confirm({

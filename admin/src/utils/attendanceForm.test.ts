@@ -43,6 +43,7 @@ describe('visibleSettingsTabs', () => {
       'public',
       'attendance',
       'timetable',
+      'branding',
     ])
   })
   it("attendance.settings maktab admini faqat Davomat va Dars jadvali tablarini ko'radi", () => {
@@ -53,5 +54,9 @@ describe('visibleSettingsTabs', () => {
   })
   it('ruxsatsiz hech narsa', () => {
     expect(visibleSettingsTabs(false, () => false)).toEqual([])
+  })
+  it('maktab admini oz maktabi logosi tabini koradi; Brending faqat superadminda', () => {
+    expect(visibleSettingsTabs(false, () => false, true)).toEqual(['schoolLogo'])
+    expect(visibleSettingsTabs(false, () => true, true)).not.toContain('branding')
   })
 })

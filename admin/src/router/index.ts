@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { PERMISSIONS } from '@/constants/permissions'
 import { installGuards } from './guards'
+import { installChunkErrorGuard } from './chunkReload'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,6 +19,13 @@ const router = createRouter({
           meta: { public: true, guestOnly: true, titleKey: 'auth.title' },
         },
       ],
+    },
+    {
+      // Ilova tarmoqsiz ochilganda: sessiya holati noma'lum, login'ga tashlamaymiz.
+      path: '/offline',
+      name: 'offline',
+      component: () => import('@/views/errors/OfflineView.vue'),
+      meta: { public: true, titleKey: 'pwa.offline.title' },
     },
     {
       path: '/',
@@ -355,5 +363,6 @@ const router = createRouter({
 })
 
 installGuards(router)
+installChunkErrorGuard(router)
 
 export default router

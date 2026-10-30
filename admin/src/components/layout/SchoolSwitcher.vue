@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { School as SchoolIcon } from 'lucide-vue-next'
+import { resolvePhotoUrl } from '@/utils/photo'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { useToast } from '@/composables/useToast'
 import { errorMessage } from '@/utils/errors'
@@ -10,7 +11,7 @@ import { errorMessage } from '@/utils/errors'
 const { t } = useI18n()
 const toast = useToast()
 const ctx = useSchoolContextStore()
-const { schoolId, schools, loading } = storeToRefs(ctx)
+const { schoolId, schools, loading, selectedSchool } = storeToRefs(ctx)
 
 onMounted(async () => {
   if (ctx.loaded) return
@@ -29,7 +30,15 @@ function onChange(e: Event) {
 <template>
   <div class="relative min-w-0">
     <label for="school-switcher" class="sr-only">{{ t('schoolSwitcher.label') }}</label>
+    <img
+      v-if="selectedSchool?.logoUrl"
+      :src="resolvePhotoUrl(selectedSchool.logoUrl) ?? ''"
+      alt=""
+      class="pointer-events-none absolute left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 object-contain"
+      data-testid="school-switcher-logo"
+    />
     <SchoolIcon
+      v-else
       class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted"
       aria-hidden="true"
     />

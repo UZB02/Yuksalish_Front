@@ -8,6 +8,7 @@ import SubjectGradingPanel from '@/components/grading/SubjectGradingPanel.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { PERMISSIONS } from '@/constants/permissions'
 import { useConfirm } from '@/composables/useConfirm'
+import { useDirtySource } from '@/composables/useDirtyRegistry'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { useAuthStore } from '@/stores/auth'
 
@@ -60,6 +61,7 @@ async function selectTab(next: Tab) {
 }
 
 // Saqlanmagan fan baholari bilan sahifadan chiqishda ogohlantirish.
+useDirtySource(() => dirty.value)
 onBeforeRouteLeave(async () => {
   if (!dirty.value) return true
   return confirm({

@@ -13,6 +13,7 @@ import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useDirtySource } from '@/composables/useDirtyRegistry'
 import { useScoringSheet } from '@/composables/useScoringSheet'
 import { useToast } from '@/composables/useToast'
 import { errorMessage } from '@/utils/errors'
@@ -117,6 +118,7 @@ function onBulk(change: Parameters<typeof sheet.applyToSelected>[0]) {
 }
 
 // Saqlanmagan o'zgarishlar bilan chiqishda ogohlantirish.
+useDirtySource(() => sheet.hasUnsaved.value)
 onBeforeRouteLeave(async () => {
   if (!sheet.hasUnsaved.value) return true
   return confirm({

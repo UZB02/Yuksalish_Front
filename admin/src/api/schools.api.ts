@@ -1,4 +1,4 @@
-import { getData, getPage, sendData } from './http'
+import { deleteData, getData, getPage, postFile, sendData } from './http'
 import type {
   Paginated,
   School,
@@ -13,4 +13,6 @@ export const schoolsApi = {
   create: (payload: SchoolPayload) => sendData<School>('post', '/schools', payload),
   update: (id: string, payload: SchoolUpdatePayload) =>
     sendData<School>('patch', `/schools/${id}`, payload),
+  uploadLogo: (id: string, file: File) => postFile<School>(`/schools/${id}/logo`, file),
+  deleteLogo: (id: string) => deleteData<School>(`/schools/${id}/logo`),
 }

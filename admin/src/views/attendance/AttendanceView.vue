@@ -23,6 +23,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useAttendanceSheet, type LessonChip } from '@/composables/useAttendanceSheet'
+import { useDirtySource } from '@/composables/useDirtyRegistry'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { errorMessage } from '@/utils/errors'
@@ -116,6 +117,7 @@ async function save() {
   }
 }
 
+useDirtySource(() => sheet.hasUnsaved.value)
 onBeforeRouteLeave(async () => {
   if (!sheet.hasUnsaved.value) return true
   return confirm({

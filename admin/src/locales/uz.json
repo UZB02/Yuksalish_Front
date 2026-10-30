@@ -1,4 +1,37 @@
 {
+  "branding": {
+    "appName": "Ilova nomi",
+    "shortName": "Qisqa nom",
+    "shortNameHint": "Telefon bosh ekranida ko'rinadi, 12 belgigacha tavsiya",
+    "logo": "Logo",
+    "iconPreview": "Ilova ikonkasi ko'rinishi",
+    "previewIcon": "Ikonka",
+    "previewMaskable": "Doira (Android)",
+    "saved": "Brending saqlandi",
+    "note": "O'rnatilgan ilovalarda o'zgarish Android'da ~1 kun ichida, iPhone'da faqat qayta o'rnatilganda ko'rinadi.",
+    "errors": {
+      "appName": "Ilova nomi 1 dan 60 belgigacha bo'lishi kerak",
+      "shortName": "Qisqa nom 1 dan 20 belgigacha bo'lishi kerak"
+    }
+  },
+  "logo": {
+    "alt": "Logo",
+    "upload": "Logo yuklash",
+    "replace": "Logoni almashtirish",
+    "remove": "Logoni o'chirish",
+    "removeTitle": "Logoni o'chirish",
+    "removeText": "\"{name}\" logosi o'chiriladi. Davom etasizmi?",
+    "uploaded": "Logo yuklandi",
+    "removed": "Logo o'chirildi",
+    "hint": "PNG, JPG yoki WebP, 2 MB gacha, kamida 128x128 piksel. Faylni shu yerga tashlashingiz ham mumkin.",
+    "errors": {
+      "type": "Faqat PNG, JPG yoki WebP yuklash mumkin",
+      "size": "Logo hajmi 2 MB dan oshmasligi kerak"
+    }
+  },
+  "schoolLogo": {
+    "description": "Maktab logosi ochiq reyting saytida, TV rejimida va PDF/Excel hujjatlar sarlavhasida ko'rinadi."
+  },
   "app": {
     "name": "Intizom reytingi",
     "tagline": "O'quvchilar intizomi reytingi - admin panel"
@@ -86,6 +119,67 @@
     "dark": "Qorong'i mavzu",
     "system": "Tizim mavzusi",
     "toggle": "Mavzuni almashtirish (hozir: {current})"
+  },
+  "pwa": {
+    "offline": {
+      "title": "Internet yo'q",
+      "text": "Aloqa tiklanmaguncha ma'lumotlarni yuklab bo'lmaydi. Sessiyangiz saqlanib turibdi.",
+      "retry": "Qayta urinish",
+      "banner": "Internet aloqasi yo'q — o'zgarishlar saqlanmaydi"
+    },
+    "update": {
+      "title": "Yangi versiya mavjud",
+      "action": "Yangilash",
+      "later": "Keyinroq",
+      "saveFirst": "Avval o'zgarishlarni saqlang, so'ng yangilang."
+    },
+    "banner": {
+      "text": "Yuksalish EDU ni telefoningiz yoki kompyuteringizga ilova sifatida o'rnating."
+    },
+    "install": {
+      "menu": "Ilovani o'rnatish",
+      "title": "Ilovani o'rnatish",
+      "description": "Yuksalish EDU alohida ilova kabi, bosh ekrandan tez ochiladi.",
+      "iosNote": "iPhone va iPad da o'rnatilgan ilova Safari'dan alohida ishlaydi, shuning uchun o'rnatgandan keyin qayta kirish kerak bo'ladi.",
+      "steps": {
+        "ios-safari": {
+          "1": "Safari pastidagi \"Ulashish\" tugmasini bosing.",
+          "2": "Ro'yxatdan \"Bosh ekranga qo'shish\" ni tanlang.",
+          "3": "\"Qo'shish\" tugmasini bosing."
+        },
+        "ios-other": {
+          "1": "Bu sahifani Safari brauzerida oching.",
+          "2": "Safari'da \"Ulashish\" → \"Bosh ekranga qo'shish\" ni bosing."
+        },
+        "android-chromium": {
+          "1": "Brauzerning menyusini (uch nuqta) oching.",
+          "2": "\"Ilovani o'rnatish\" yoki \"Bosh ekranga qo'shish\" ni tanlang.",
+          "3": "Tasdiqlang."
+        },
+        "desktop-chromium": {
+          "1": "Manzil satrining o'ng tomonidagi o'rnatish belgisini bosing (yoki menyu → \"Yuksalish EDU ni o'rnatish\").",
+          "2": "\"O'rnatish\" tugmasini bosing."
+        },
+        "firefox-desktop": {
+          "1": "Firefox kompyuterda ilovani o'rnatishni qo'llab-quvvatlamaydi. Chrome yoki Edge brauzerida oching."
+        },
+        "firefox-android": {
+          "1": "Firefox menyusini (uch nuqta) oching.",
+          "2": "\"O'rnatish\" yoki \"Bosh ekranga qo'shish\" ni tanlang."
+        },
+        "safari-macos": {
+          "1": "Safari menyusida \"Fayl\" → \"Dok'ga qo'shish\" ni tanlang.",
+          "2": "Nomni tasdiqlang."
+        },
+        "in-app": {
+          "1": "Telegram, Instagram yoki Facebook ichidagi brauzerda o'rnatib bo'lmaydi. Yuqoridagi menyudan \"Brauzerda ochish\" ni tanlang.",
+          "2": "Ochilgan brauzerda (Chrome yoki Safari) shu menyudan \"Ilovani o'rnatish\" ni qayta bosing."
+        },
+        "other": {
+          "1": "Brauzer menyusidan \"Ilovani o'rnatish\" yoki \"Bosh ekranga qo'shish\" bandini qidiring."
+        }
+      }
+    }
   },
   "userMenu": {
     "open": "Foydalanuvchi menyusi"
@@ -210,6 +304,7 @@
     "address": "Manzil",
     "phone": "Telefon",
     "logoUrl": "Logotip havolasi",
+    "logo": "Maktab logosi",
     "searchPlaceholder": "Maktab nomi bo'yicha qidirish",
     "emptyTitle": "Maktablar topilmadi",
     "emptyText": "Birinchi maktabni qo'shishdan boshlang.",
@@ -813,7 +908,9 @@
       "rating": "Reyting",
       "public": "Ochiq ko'rinish",
       "attendance": "Davomat",
-      "timetable": "Dars jadvali"
+      "timetable": "Dars jadvali",
+      "branding": "Brending",
+      "schoolLogo": "Maktab logosi"
     },
     "fields": {
       "minScore": {
@@ -1549,6 +1646,7 @@
       "attendance": "Davomat",
       "attendance_status": "Davomat holatlari",
       "settings": "Sozlamalar",
+      "branding": "Brending",
       "student": "O'quvchilar",
       "students": "O'quvchilar (ommaviy)",
       "teachers": "O'qituvchilar (ommaviy)",
@@ -1575,6 +1673,7 @@
       "school": "Maktab",
       "score": "Xulq bahosi",
       "settings": "Sozlama",
+      "branding": "Brending",
       "student": "O'quvchi",
       "user": "Foydalanuvchi",
       "report": "Hisobot",
@@ -1609,6 +1708,11 @@
       "settings": {
         "update": "Sozlamani o'zgartirdi"
       },
+      "branding": {
+        "updated": "Brending nomini o'zgartirdi",
+        "logo_updated": "Ilova logosini yukladi",
+        "logo_deleted": "Ilova logosini o'chirdi"
+      },
       "student": {
         "create": "O'quvchi qo'shdi",
         "update": "O'quvchini o'zgartirdi",
@@ -1633,7 +1737,9 @@
       },
       "school": {
         "create": "Maktab qo'shdi",
-        "update": "Maktabni o'zgartirdi"
+        "update": "Maktabni o'zgartirdi",
+        "logo_updated": "Maktab logosini yukladi",
+        "logo_deleted": "Maktab logosini o'chirdi"
       },
       "academic_year": {
         "create": "O'quv yili qo'shdi",
