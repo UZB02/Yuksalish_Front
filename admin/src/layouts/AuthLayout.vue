@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { DEFAULT_BRAND_MARK } from '@/constants/brand'
 import { useI18n } from 'vue-i18n'
-import { BarChart3 } from 'lucide-vue-next'
 import ThemeToggle from '@/components/layout/ThemeToggle.vue'
 import { useBrandingStore } from '@/stores/branding'
 
@@ -20,12 +20,13 @@ const branding = useBrandingStore()
           class="mb-4 h-16 max-w-[12rem] object-contain"
           data-testid="auth-brand-logo"
         />
-        <span
+        <img
           v-else
-          class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600 text-white"
-        >
-          <BarChart3 class="h-6 w-6" aria-hidden="true" />
-        </span>
+          :src="DEFAULT_BRAND_MARK"
+          alt=""
+          class="mb-4 h-16 w-16 object-contain"
+          data-testid="auth-default-mark"
+        />
         <p class="text-lg font-semibold text-fg">{{ branding.appName }}</p>
         <p class="text-sm text-fg-muted">{{ t('app.tagline') }}</p>
       </div>

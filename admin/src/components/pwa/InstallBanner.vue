@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { DEFAULT_BRAND_MARK } from '@/constants/brand'
 import { useI18n } from 'vue-i18n'
-import { Download, X } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { useInstallPrompt } from '@/composables/useInstallPrompt'
 
@@ -14,7 +15,7 @@ const { bannerVisible, install, dismissBanner } = useInstallPrompt()
     class="mb-4 flex items-center gap-3 rounded-xl border border-border bg-surface p-3 print:hidden"
     data-testid="install-banner"
   >
-    <Download class="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
+    <img :src="DEFAULT_BRAND_MARK" alt="" class="h-8 w-8 shrink-0 object-contain" />
     <p class="flex-1 text-sm text-fg">{{ t('pwa.banner.text') }}</p>
     <BaseButton size="sm" @click="install">{{ t('pwa.install.menu') }}</BaseButton>
     <button

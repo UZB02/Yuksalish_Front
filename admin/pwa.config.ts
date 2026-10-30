@@ -19,7 +19,7 @@ export function buildPwaOptions(env: PwaEnv = {}): Partial<VitePWAOptions> {
     registerType: 'prompt',
     injectRegister: false,
     selfDestroying: env.VITE_PWA_KILL === '1',
-    includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
+    includeAssets: ['favicon-32x32.png', 'favicon.ico', 'apple-touch-icon-180x180.png'],
     // Manifest statik emas: backend dinamik beradi (GET /api/v1/branding/manifest.webmanifest),
     // chunki ilova nomi va ikonkalari Sozlamalar > Brending dan o'zgaradi. index.html da <link rel="manifest">.
     manifest: false,

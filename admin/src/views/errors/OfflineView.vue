@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DEFAULT_BRAND_MARK } from '@/constants/brand'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -39,7 +40,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-full items-center justify-center px-4">
+  <div class="flex min-h-full flex-col items-center justify-center gap-2 px-4">
+    <img :src="DEFAULT_BRAND_MARK" alt="" class="h-14 w-14 object-contain" />
     <EmptyState
       :icon="WifiOff"
       :title="t('pwa.offline.title')"

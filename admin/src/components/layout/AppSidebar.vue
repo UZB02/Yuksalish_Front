@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { DEFAULT_BRAND_MARK } from '@/constants/brand'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { onKeyStroke, useMediaQuery } from '@vueuse/core'
-import { BarChart3, ChevronDown, PanelLeftClose, PanelLeftOpen, X } from 'lucide-vue-next'
+import { ChevronDown, PanelLeftClose, PanelLeftOpen, X } from 'lucide-vue-next'
 import { NAV_DISPLAY_ORDER, NAV_GROUPS, NAV_ITEMS } from '@/constants/navigation'
 import type { NavGroup, NavGroupKey, NavItem } from '@/constants/navigation'
 import { canAccess } from '@/router/guards'
@@ -170,12 +171,13 @@ const hidden = computed(() => !isDesktop.value && !ui.sidebarOpen)
             class="h-8 w-8 rounded-lg object-contain"
             data-testid="sidebar-brand-logo"
           />
-          <span
+          <img
             v-else
-            class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"
-          >
-            <BarChart3 class="h-4 w-4" aria-hidden="true" />
-          </span>
+            :src="DEFAULT_BRAND_MARK"
+            alt=""
+            class="h-8 w-8 object-contain"
+            data-testid="sidebar-default-mark"
+          />
           <span
             class="text-sm font-semibold leading-tight text-fg"
             data-testid="sidebar-brand-label"
@@ -186,8 +188,7 @@ const hidden = computed(() => !isDesktop.value && !ui.sidebarOpen)
         <button
           v-if="collapsed"
           type="button"
-          class="group hidden h-8 w-8 items-center justify-center rounded-lg text-white hover:bg-primary-700 lg:flex"
-          :class="branding.logoSrc ? 'bg-surface-muted' : 'bg-primary-600'"
+          class="group hidden h-8 w-8 items-center justify-center rounded-lg bg-surface-muted text-fg hover:bg-primary-700 hover:text-white lg:flex"
           :aria-label="t('nav.expand')"
           :title="t('nav.expand')"
           :aria-expanded="false"
@@ -201,10 +202,11 @@ const hidden = computed(() => !isDesktop.value && !ui.sidebarOpen)
             alt=""
             class="h-7 w-7 rounded object-contain group-hover:hidden group-focus-visible:hidden"
           />
-          <BarChart3
+          <img
             v-else
-            class="h-4 w-4 group-hover:hidden group-focus-visible:hidden"
-            aria-hidden="true"
+            :src="DEFAULT_BRAND_MARK"
+            alt=""
+            class="h-7 w-7 object-contain group-hover:hidden group-focus-visible:hidden"
           />
           <PanelLeftOpen
             class="hidden h-4 w-4 group-hover:block group-focus-visible:block"

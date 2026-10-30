@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "pwa:icons": "pwa-assets-generator",
+    "pwa:icons": "node scripts/generate-pwa-icons.mjs",
     "check:pwa": "node scripts/check-pwa.mjs",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint .",
