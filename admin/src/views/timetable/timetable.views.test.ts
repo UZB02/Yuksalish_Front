@@ -15,6 +15,8 @@ import { useAuthStore } from '@/stores/auth'
 import ClassTimetableView from './ClassTimetableView.vue'
 import MyTimetableView from './MyTimetableView.vue'
 import TimetableHomeView from './TimetableHomeView.vue'
+import TimetableTeacherView from './TimetableTeacherView.vue'
+import { useToast } from '@/composables/useToast'
 
 vi.mock('@/api/timetable.api', () => ({
   timetableApi: {
@@ -29,6 +31,10 @@ vi.mock('@/api/timetable.api', () => ({
     myWeek: vi.fn(),
     teacherWeek: vi.fn(),
     day: vi.fn(),
+    exportClass: vi.fn(),
+    exportTeacher: vi.fn(),
+    exportMine: vi.fn(),
+    exportSchool: vi.fn(),
   },
 }))
 const api = vi.mocked(timetableApi)
@@ -439,6 +445,77 @@ describe('ClassTimetableView', () => {
     expect(w.find('button[data-testid="cell-1-1"]').exists()).toBe(true)
   })
 
+  it("almashtirilgan versiya: ro'yxatda 'Almashtirilgan', tuzatib bo'lmaydi, nusxalash bor", async () => {
+    const rep = sum('r1', {
+      status: 'replaced',
+      phase: 'replaced',
+      validFrom: '2026-10-31',
+      replacedBy: 'a1',
+    })
+    api.versions.mockResolvedValue(
+      classInfo([sum('a1', { validFrom: '2026-10-30', activatedAt: '2026-10-30T06:50:00Z' }), rep]),
+    )
+    api.options.mockResolvedValue(OPTS)
+    api.version.mockImplementation(async (id: string) => ({
+      version: id === 'r1' ? ver('r1', rep as Partial<TimetableVersion>) : ver('a1'),
+      warnings: [],
+    }))
+    api.createVersion.mockResolvedValue({
+      version: ver('d1', { status: 'draft', phase: 'draft' }),
+      warnings: [],
+    })
+    const { w } = await mountView(
+      ClassTimetableView,
+      '/timetable/classes/c1',
+      '/timetable/classes/:id',
+      'school_admin',
+      ['timetable.manage'],
+      'class-timetable',
+    )
+    const labels = w.findAll('[data-testid="version-select"] option').map((o) => o.text())
+    expect(labels).toContain('Almashtirilgan · 31.10.2026 – (yangi versiya bilan almashtirilgan)')
+    await w.get('[data-testid="version-select"]').setValue('r1')
+    await flushPromises()
+    expect(w.find('[data-testid="replaced-banner"]').exists()).toBe(true)
+    expect(w.find('[data-testid="correct-start"]').exists()).toBe(false)
+    await w.get('[data-testid="replaced-copy"]').trigger('click')
+    await flushPromises()
+    expect(api.createVersion).toHaveBeenCalledWith(
+      'c1',
+      expect.objectContaining({ copyFrom: 'r1' }),
+    )
+  })
+
+  it("tuzatish rejimi: keyingi versiya bo'lsa ogohlantirish va unga o'tish havolasi", async () => {
+    api.versions.mockResolvedValue(
+      classInfo([
+        sum('a1', { validFrom: '2026-10-30', validTo: '2026-10-30', phase: 'current' }),
+        sum('b1', { validFrom: '2026-10-31', phase: 'future', status: 'active' }),
+      ]),
+    )
+    api.options.mockResolvedValue(OPTS)
+    api.version.mockImplementation(async (id: string) => ({
+      version: ver(id, id === 'a1' ? { validFrom: '2026-10-30', validTo: '2026-10-30' } : {}),
+      warnings: [],
+    }))
+    const { w } = await mountView(
+      ClassTimetableView,
+      '/timetable/classes/c1',
+      '/timetable/classes/:id',
+      'school_admin',
+      ['timetable.manage'],
+      'class-timetable',
+    )
+    expect(w.find('[data-testid="correct-later-notice"]').exists()).toBe(false)
+    await w.get('[data-testid="correct-start"]').trigger('click')
+    expect(w.get('[data-testid="correct-later-notice"]').text()).toContain(
+      'Bu tuzatish faqat shu versiyaga tegishli. 31.10.2026 dan boshlab boshqa versiya amal qiladi.',
+    )
+    await w.get('[data-testid="correct-later-open"]').trigger('click')
+    await flushPromises()
+    expect(api.version).toHaveBeenCalledWith('b1')
+  })
+
   it("o'qituvchi (ruxsatsiz) faqat ko'radi; options so'ralmaydi", async () => {
     api.versions.mockResolvedValue(classInfo([sum('a1')]))
     api.version.mockResolvedValue({ version: ver('a1'), warnings: [] })
@@ -508,5 +585,274 @@ describe('MyTimetableView', () => {
     await w.get('[data-testid="week-next"]').trigger('click')
     await flushPromises()
     expect(api.myWeek).toHaveBeenLastCalledWith('2026-11-09')
+  })
+})
+
+// ---------- Excel/PDF yuklab olish ----------
+async function pickExport(w: VueWrapper, key: string) {
+  await w.get('[data-testid="export-trigger"]').trigger('click')
+  await flushPromises()
+  const item = document.body.querySelector<HTMLButtonElement>(`[data-testid="menu-item-${key}"]`)
+  expect(item).not.toBeNull()
+  item!.click()
+  await flushPromises()
+}
+const WEEK = {
+  teacher: { id: 't1', fullName: 'Aliyev Ali' },
+  from: '2026-11-02',
+  to: '2026-11-08',
+  today: '2026-11-03',
+  settings: { workingWeekdays: [1], lessonsPerDay: 2 },
+  weeklyCount: 1,
+  days: [{ date: '2026-11-02', weekday: 1, lessons: [] }],
+}
+const toastsOf = (kind: string) =>
+  useToast()
+    .toasts.filter((x) => x.kind === kind)
+    .map((x) => x.message)
+
+describe('Jadvalni yuklab olish (Excel/PDF)', () => {
+  it('sinf jadvali: tanlangan versiya (versionId) bilan yuklaydi, muvaffaqiyat toast', async () => {
+    api.versions.mockResolvedValue(classInfo([sum('a1')]))
+    api.options.mockResolvedValue(OPTS)
+    api.version.mockResolvedValue({ version: ver('a1'), warnings: [] })
+    api.exportClass.mockResolvedValue('dars-jadvali-5-A-2026-10-30.pdf')
+    const { w } = await mountView(
+      ClassTimetableView,
+      '/timetable/classes/c1',
+      '/timetable/classes/:id',
+      'school_admin',
+      ['timetable.view'],
+      'class-timetable',
+    )
+    expect(w.get('[data-testid="export-trigger"]').text()).toContain(uz.timetable.download)
+    await pickExport(w, 'pdf')
+    expect(api.exportClass).toHaveBeenCalledWith('c1', 'pdf', { versionId: 'a1' })
+    expect(toastsOf('success')).toContain('Fayl yuklandi: dars-jadvali-5-A-2026-10-30.pdf')
+    await pickExport(w, 'xlsx')
+    expect(api.exportClass).toHaveBeenLastCalledWith('c1', 'xlsx', { versionId: 'a1' })
+  })
+
+  it('sinf jadvali: qoralama ham yuklanadi; xatoda toast, tugma yana ishlaydi', async () => {
+    api.versions.mockResolvedValue(classInfo([sum('d1', { status: 'draft', phase: 'draft' })]))
+    api.options.mockResolvedValue(OPTS)
+    api.version.mockResolvedValue({
+      version: ver('d1', { status: 'draft', phase: 'draft' }),
+      warnings: [],
+    })
+    api.exportClass.mockRejectedValueOnce(new Error('boom')).mockResolvedValue('x.xlsx')
+    const { w } = await mountView(
+      ClassTimetableView,
+      '/timetable/classes/c1',
+      '/timetable/classes/:id',
+      'school_admin',
+      ['timetable.manage'],
+      'class-timetable',
+    )
+    await pickExport(w, 'xlsx')
+    expect(api.exportClass).toHaveBeenCalledWith('c1', 'xlsx', { versionId: 'd1' })
+    expect(toastsOf('error').length).toBeGreaterThan(0)
+    await pickExport(w, 'xlsx')
+    expect(api.exportClass).toHaveBeenCalledTimes(2)
+  })
+
+  it("yuklanayotganda tugmada spinner, menyu elementlari o'chiq", async () => {
+    api.versions.mockResolvedValue(classInfo([sum('a1')]))
+    api.options.mockResolvedValue(OPTS)
+    api.version.mockResolvedValue({ version: ver('a1'), warnings: [] })
+    let done: (n: string) => void = () => {}
+    api.exportClass.mockReturnValue(new Promise<string>((r) => (done = r)))
+    const { w } = await mountView(
+      ClassTimetableView,
+      '/timetable/classes/c1',
+      '/timetable/classes/:id',
+      'school_admin',
+      ['timetable.view'],
+      'class-timetable',
+    )
+    await pickExport(w, 'pdf')
+    const trigger = w.get('[data-testid="export-trigger"]')
+    expect(trigger.find('svg.animate-spin, [role="status"]').exists()).toBe(true)
+    await trigger.trigger('click')
+    await flushPromises()
+    const item = document.body.querySelector<HTMLButtonElement>('[data-testid="menu-item-pdf"]')!
+    expect(item.disabled).toBe(true)
+    done('f.pdf')
+    await flushPromises()
+    expect(trigger.find('svg.animate-spin, [role="status"]').exists()).toBe(false)
+  })
+
+  it("o'qituvchi sahifasi: o'qituvchi id va ko'rinib turgan hafta sanasi bilan", async () => {
+    api.teacherWeek.mockResolvedValue(WEEK)
+    api.exportTeacher.mockResolvedValue('t.pdf')
+    const { w } = await mountView(
+      TimetableTeacherView,
+      '/timetable/teachers/t1',
+      '/timetable/teachers/:id',
+      'school_admin',
+      ['timetable.view'],
+      'teacher-timetable',
+    )
+    await pickExport(w, 'pdf')
+    expect(api.exportTeacher).toHaveBeenCalledWith('t1', 'pdf', '2026-11-02')
+  })
+
+  it('Mening jadvalim: /me eksport, 403 da ruxsat xabari', async () => {
+    api.myWeek.mockResolvedValue(WEEK)
+    const { ApiError } = await import('@/api/errors')
+    api.exportMine.mockRejectedValueOnce(new ApiError('FORBIDDEN', 'Forbidden', 403))
+    const { w } = await mountView(
+      MyTimetableView,
+      '/my-timetable',
+      '/my-timetable',
+      'teacher',
+      [],
+      'my-timetable',
+    )
+    await pickExport(w, 'xlsx')
+    expect(api.exportMine).toHaveBeenCalledWith('xlsx', '2026-11-02')
+    expect(toastsOf('error')).toContain(uz.reports.exportForbidden)
+  })
+
+  it("bosh sahifa: butun maktab sinflar/o'qituvchilar; view bo'lmasa tugma yo'q", async () => {
+    api.overview.mockResolvedValue(OVERVIEW)
+    api.exportSchool.mockResolvedValue('m.xlsx')
+    const { w } = await mountView(
+      TimetableHomeView,
+      '/timetable',
+      '/timetable',
+      'school_admin',
+      ['timetable.view'],
+      'timetable',
+    )
+    await pickExport(w, 'classes:xlsx')
+    expect(api.exportSchool).toHaveBeenLastCalledWith('classes', 'xlsx')
+    await pickExport(w, 'teachers:pdf')
+    expect(api.exportSchool).toHaveBeenLastCalledWith('teachers', 'pdf')
+    await w.get('[data-testid="export-trigger"]').trigger('click')
+    await flushPromises()
+    const labels = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map((x) =>
+      x.textContent?.trim(),
+    )
+    expect(labels).toEqual([
+      uz.timetable.exportClassesExcel,
+      uz.timetable.exportClassesPdf,
+      uz.timetable.exportTeachersExcel,
+      uz.timetable.exportTeachersPdf,
+    ])
+  })
+
+  it("bosh sahifa: timetable.view/manage yo'q foydalanuvchida yuklab olish tugmasi yo'q", async () => {
+    api.overview.mockResolvedValue(OVERVIEW)
+    const { w } = await mountView(
+      TimetableHomeView,
+      '/timetable',
+      '/timetable',
+      'school_admin',
+      ['timetable.substitute'],
+      'timetable',
+    )
+    expect(w.find('[data-testid="export-trigger"]').exists()).toBe(false)
+  })
+})
+
+describe("ClassTimetableView: eski tarix va avtomatik o'chirish", () => {
+  const old = sum('old', {
+    status: 'superseded',
+    phase: 'past',
+    validFrom: '2026-01-01',
+    validTo: '2026-06-30',
+  })
+  const recent = sum('rec', {
+    status: 'superseded',
+    phase: 'past',
+    validFrom: '2026-07-01',
+    validTo: '2026-10-15',
+  })
+  const cur = sum('a1', { validFrom: '2026-10-16' })
+  const mount1 = (extra: ReturnType<typeof sum>[] = []) => {
+    api.versions.mockResolvedValue(classInfo([cur, recent, old, ...extra]))
+    api.options.mockResolvedValue(OPTS)
+    api.version.mockImplementation(async (id: string) => ({
+      version: ver(
+        id,
+        ([cur, recent, old, ...extra].find((x) => x.id === id) ?? {}) as Partial<TimetableVersion>,
+      ),
+      warnings: [],
+    }))
+    return mountView(
+      ClassTimetableView,
+      '/timetable/classes/c1',
+      '/timetable/classes/:id',
+      'school_admin',
+      ['timetable.manage'],
+      'class-timetable',
+    )
+  }
+  const optionValues = (w: VueWrapper) =>
+    w
+      .findAll('[data-testid="version-select"] option')
+      .map((o) => (o.element as HTMLOptionElement).value)
+
+  it('30 kundan oshgan tugagan versiya yashiriladi, tugma soni bilan ochadi', async () => {
+    const { w } = await mount1()
+    expect(optionValues(w)).toEqual(['a1', 'rec'])
+    const toggle = w.get('[data-testid="history-toggle"]')
+    expect(toggle.text()).toBe("Tarixni ko'rsatish (1)")
+    await toggle.trigger('click')
+    expect(optionValues(w)).toEqual(['a1', 'rec', 'old'])
+    expect(w.get('[data-testid="history-toggle"]').text()).toBe('Tarixni yashirish')
+    await w.get('[data-testid="history-toggle"]').trigger('click')
+    expect(optionValues(w)).toEqual(['a1', 'rec'])
+  })
+
+  it('yashirin versiya tanlansa tarix avtomatik ochiladi', async () => {
+    const { w } = await mount1()
+    expect(optionValues(w)).not.toContain('old')
+    await w.get('[data-testid="history"] summary').trigger('click')
+    // tarix panelida eski versiya yo'q; to'g'ridan-to'g'ri yuklash (havola) simulyatsiyasi:
+    await (
+      w.vm as unknown as { $: { setupState: { selectVersion: (id: string) => Promise<void> } } }
+    ).$.setupState.selectVersion('old')
+    await flushPromises()
+    expect(optionValues(w)).toContain('old')
+    expect(w.get('[data-testid="history-toggle"]').text()).toBe('Tarixni yashirish')
+  })
+
+  it("o'chirilish sanasi: almashtirilgan versiyada doim, qoralamada 7 kun qolganda", async () => {
+    const rep = sum('r1', {
+      status: 'replaced',
+      phase: 'replaced',
+      validFrom: '2026-10-31',
+      purgeAt: '2026-11-20',
+    })
+    const { w } = await mount1([rep])
+    await w.get('[data-testid="version-select"]').setValue('r1')
+    await flushPromises()
+    expect(w.get('[data-testid="purge-notice"]').text()).toBe(
+      "30 kundan so'ng avtomatik o'chiriladi (20.11.2026)",
+    )
+  })
+
+  it("qoralama: 7 kundan ko'p qolgan bo'lsa eslatma yo'q, yaqin bo'lsa bor", async () => {
+    const far = sum('d1', {
+      status: 'draft',
+      phase: 'draft',
+      validFrom: '2026-11-02',
+      purgeAt: '2026-11-25',
+    })
+    const { w } = await mount1([far])
+    expect(w.find('[data-testid="purge-notice"]').exists()).toBe(false)
+    wrapper?.unmount()
+    const near = sum('d2', {
+      status: 'draft',
+      phase: 'draft',
+      validFrom: '2026-11-02',
+      purgeAt: '2026-11-03',
+    })
+    const m = await mount1([near])
+    expect(m.w.get('[data-testid="purge-notice"]').text()).toBe(
+      "O'zgartirilmasa, 03.11.2026 da o'chiriladi",
+    )
   })
 })

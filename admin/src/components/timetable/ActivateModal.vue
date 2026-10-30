@@ -2,11 +2,17 @@
 import { computed, ref, watch } from 'vue'
 import { CircleX, TriangleAlert } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
-import type { ActivatePayload, TimetableWarning } from '@/api/timetable.api'
+import type {
+  ActivatePayload,
+  ActivationPreview,
+  TimetableWarning,
+  WillReplace,
+} from '@/api/timetable.api'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import { formatDate } from '@/utils/format'
 import { isPastDate } from '@/utils/timetable'
 import { buildIssues, type IssueContext } from '@/utils/timetableIssues'
 
@@ -23,11 +29,13 @@ const props = defineProps<{
   max?: string
   busy?: boolean
   /** Tanlangan sana uchun ogohlantirishlar (bitta versiya). Ommaviy rejimda berilmaydi. */
-  loadWarnings?: (from: string) => Promise<TimetableWarning[]>
+  loadWarnings?: (from: string) => Promise<TimetableWarning[] | ActivationPreview>
   /** Ommaviy rejimda ko'rsatiladigan sinflar soni */
   bulkCount?: number
   /** Ommaviy rejimda: oldindan ma'lum ogohlantirishlar (sinflar bo'yicha yig'ilgan) */
   presetWarnings?: TimetableWarning[]
+  /** Ommaviy rejimda: oldindan ma'lum almashtiriladigan versiyalar */
+  presetWillReplace?: WillReplace[]
   /** Muammo matnlari uchun fan/o'qituvchi nomlari (ixtiyoriy) */
   issueContext?: IssueContext
 }>()
@@ -36,6 +44,7 @@ const { t } = useI18n()
 
 const from = ref('')
 const warnings = ref<TimetableWarning[]>([])
+const willReplace = ref<WillReplace[]>([])
 const loadingWarnings = ref(false)
 const force = ref(false)
 const note = ref('')
@@ -46,15 +55,22 @@ let seq = 0
 async function refresh() {
   if (!props.loadWarnings || !from.value) {
     warnings.value = props.presetWarnings ?? []
+    willReplace.value = props.presetWillReplace ?? []
     return
   }
   const my = ++seq
   loadingWarnings.value = true
   try {
     const w = await props.loadWarnings(from.value)
-    if (my === seq) warnings.value = w
+    if (my === seq) {
+      warnings.value = Array.isArray(w) ? w : w.warnings
+      willReplace.value = Array.isArray(w) ? [] : (w.willReplace ?? [])
+    }
   } catch {
-    if (my === seq) warnings.value = []
+    if (my === seq) {
+      warnings.value = []
+      willReplace.value = []
+    }
   } finally {
     if (my === seq) loadingWarnings.value = false
   }
@@ -138,6 +154,22 @@ const where = (i: { className?: string; cellLabel: string }) =>
       </div>
 
       <div v-if="loadingWarnings" class="text-sm text-fg-muted">{{ t('common.loading') }}</div>
+
+      <section
+        v-if="willReplace.length"
+        class="space-y-1 rounded-lg border border-border bg-surface-muted px-3 py-2"
+        data-testid="will-replace"
+      >
+        <p
+          v-for="r in willReplace"
+          :key="r.id"
+          class="text-sm text-fg"
+          data-testid="will-replace-item"
+        >
+          <span v-if="r.className" class="font-semibold">{{ r.className }} · </span>
+          {{ t('timetable.activate.willReplace', { date: formatDate(r.validFrom) }) }}
+        </p>
+      </section>
 
       <section v-if="errors.length" class="space-y-2" data-testid="block-warnings">
         <h3 class="flex items-center gap-1.5 text-sm font-semibold text-danger">

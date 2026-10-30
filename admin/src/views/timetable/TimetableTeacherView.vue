@@ -6,8 +6,11 @@ import { ArrowLeft } from 'lucide-vue-next'
 import { timetableApi } from '@/api/timetable.api'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import TeacherWeekPanel from '@/components/timetable/TeacherWeekPanel.vue'
+import TimetableExportMenu from '@/components/timetable/TimetableExportMenu.vue'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { useTeacherWeek } from '@/composables/useTeacherWeek'
+import { useTimetableExport } from '@/composables/useTimetableExport'
+import type { ExportFormat } from '@/api/types'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 
@@ -18,6 +21,13 @@ const needsSchool = useNeedsSchool()
 const schoolCtx = useSchoolContextStore()
 const w = useTeacherWeek((d) => timetableApi.teacherWeek(String(route.params.id), d))
 const error = computed(() => (w.error.value ? errorMessage(w.error.value, t) : ''))
+
+// Yuklab olish: ko'rinib turgan hafta sanasi bo'yicha
+const exporter = useTimetableExport()
+const exportWeek = (format: string) =>
+  exporter.run(() =>
+    timetableApi.exportTeacher(String(route.params.id), format as ExportFormat, w.week.value?.from),
+  )
 
 async function reload() {
   w.date.value = undefined
@@ -39,12 +49,13 @@ watch([() => route.params.id, () => schoolCtx.schoolId], () => !needsSchool.valu
       >
         <ArrowLeft class="h-4 w-4" aria-hidden="true" /> {{ t('timetable.backToTimetable') }}
       </RouterLink>
-      <div class="min-w-0">
+      <div class="min-w-0 flex-1">
         <h1 class="truncate text-xl font-semibold text-fg sm:text-2xl" data-testid="teacher-title">
           {{ w.week.value?.teacher.fullName ?? t('timetable.teacherWeek') }}
         </h1>
         <p class="mt-0.5 text-sm text-fg-muted">{{ t('timetable.teacherWeek') }}</p>
       </div>
+      <TimetableExportMenu :busy="exporter.busy.value" @select="exportWeek" />
     </header>
     <TeacherWeekPanel
       :week="w.week.value"

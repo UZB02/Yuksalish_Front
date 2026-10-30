@@ -7,9 +7,9 @@ import { isApiError } from '@/api/errors'
 import {
   timetableApi,
   type ActivatePayload,
+  type ActivationPreview,
   type TimetableDay,
   type TimetableOverview,
-  type TimetableWarning,
 } from '@/api/timetable.api'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import ActivateModal from '@/components/timetable/ActivateModal.vue'
@@ -18,11 +18,15 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import TimetableExportMenu from '@/components/timetable/TimetableExportMenu.vue'
+import type { DropdownItem } from '@/components/ui/DropdownMenu.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { usePermission } from '@/composables/usePermission'
+import { useTimetableExport } from '@/composables/useTimetableExport'
 import { useToast } from '@/composables/useToast'
+import type { ExportFormat } from '@/api/types'
 import { PERMISSIONS } from '@/constants/permissions'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
@@ -38,6 +42,20 @@ const needsSchool = useNeedsSchool()
 const schoolCtx = useSchoolContextStore()
 
 const canManage = computed(() => isSuperadmin() || can(PERMISSIONS.TIMETABLE_MANAGE))
+
+// Butun maktab jadvalini yuklab olish (timetable.view yoki manage)
+const canExport = computed(() => canManage.value || can(PERMISSIONS.TIMETABLE_VIEW))
+const exporter = useTimetableExport()
+const exportItems = computed<DropdownItem[]>(() => [
+  { key: 'classes:xlsx', label: t('timetable.exportClassesExcel') },
+  { key: 'classes:pdf', label: t('timetable.exportClassesPdf') },
+  { key: 'teachers:xlsx', label: t('timetable.exportTeachersExcel'), separator: true },
+  { key: 'teachers:pdf', label: t('timetable.exportTeachersPdf') },
+])
+const exportSchool = (key: string) => {
+  const [kind, format] = key.split(':') as ['classes' | 'teachers', ExportFormat]
+  return exporter.run(() => timetableApi.exportSchool(kind, format))
+}
 
 type Tab = 'classes' | 'day' | 'teachers'
 const TABS: Tab[] = ['classes', 'day', 'teachers']
@@ -88,9 +106,9 @@ const range = (v: { validFrom: string; validTo: string | null }) =>
 
 const bulkOpen = ref(false)
 const bulkBusy = ref(false)
-async function bulkWarnings(from: string): Promise<TimetableWarning[]> {
+async function bulkWarnings(from: string): Promise<ActivationPreview> {
   const r = await timetableApi.bulkPreview({ versionIds: selectedDrafts.value, validFrom: from })
-  return r.warnings
+  return { warnings: r.warnings, willReplace: r.willReplace ?? [] }
 }
 async function bulkActivate(payload: ActivatePayload) {
   bulkBusy.value = true
@@ -175,8 +193,15 @@ watch([tab, () => schoolCtx.schoolId], loadTab)
   <NeedsSchool v-if="needsSchool" />
   <template v-else>
     <PageHeader :title="t('timetable.title')" :description="t('timetable.description')">
-      <template v-if="tab === 'classes' && canManage" #actions>
+      <template #actions>
+        <TimetableExportMenu
+          v-if="canExport"
+          :items="exportItems"
+          :busy="exporter.busy.value"
+          @select="exportSchool"
+        />
         <BaseButton
+          v-if="tab === 'classes' && canManage"
           :disabled="!selectedDrafts.length"
           data-testid="bulk-open"
           @click="bulkOpen = true"

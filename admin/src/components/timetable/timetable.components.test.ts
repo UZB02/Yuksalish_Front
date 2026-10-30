@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import uz from '@/locales/uz.json'
-import type { TeacherWeek, TimetableWarning } from '@/api/timetable.api'
+import type { ActivationPreview, TeacherWeek, TimetableWarning } from '@/api/timetable.api'
 import { buildIssues, issuesByCell } from '@/utils/timetableIssues'
 import ActivateModal from './ActivateModal.vue'
 import TeacherWeekGrid from './TeacherWeekGrid.vue'
@@ -193,7 +193,10 @@ describe('TimetableDayList (mobil)', () => {
 })
 
 describe('ActivateModal', () => {
-  const mountModal = (loadWarnings: (f: string) => Promise<TimetableWarning[]>, extra = {}) =>
+  const mountModal = (
+    loadWarnings: (f: string) => Promise<TimetableWarning[] | ActivationPreview>,
+    extra = {},
+  ) =>
     mount(ActivateModal, {
       props: {
         open: true,
@@ -225,6 +228,33 @@ describe('ActivateModal', () => {
       },
     ])
     w.unmount()
+  })
+
+  it("almashtiriladigan versiyalar ro'yxati ko'rsatiladi (yagona va ommaviy rejim)", async () => {
+    const w = mountModal(async () => ({
+      warnings: [],
+      willReplace: [{ id: 'c', validFrom: '2026-10-31', validTo: null }],
+    }))
+    await flushPromises()
+    expect(q('will-replace')).not.toBeNull()
+    expect(q('will-replace-item')!.textContent).toContain(
+      '31.10.2026 dan boshlanadigan versiya almashtiriladi va amal qilmaydi',
+    )
+    w.unmount()
+    const b = mountModal(undefined as never, {
+      loadWarnings: undefined,
+      bulkCount: 2,
+      presetWillReplace: [
+        { id: 'x', validFrom: '2026-11-12', validTo: null, classId: 'c1', className: '5-A' },
+      ],
+    })
+    await flushPromises()
+    expect(q('will-replace-item')!.textContent).toContain('5-A')
+    b.unmount()
+    const none = mountModal(async () => [])
+    await flushPromises()
+    expect(q('will-replace')).toBeNull()
+    none.unmount()
   })
 
   it("to'qnashuv: force va izoh talab qilinadi", async () => {

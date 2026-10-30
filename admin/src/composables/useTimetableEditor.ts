@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import {
   timetableApi,
   type ActivatePayload,
+  type ActivationPreview,
   type BusyTeacher,
   type ClassVersions,
   type CopyFrom,
@@ -62,7 +63,7 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     if (!v) return 'readonly'
     if (!canManage() || archived.value) return 'readonly'
     if (v.status === 'draft') return 'draft'
-    if (correcting.value && v.phase !== 'past') return 'correct'
+    if (correcting.value && v.phase !== 'past' && v.phase !== 'replaced') return 'correct'
     return 'view'
   })
   const editable = computed(() => mode.value === 'draft' || mode.value === 'correct')
@@ -236,7 +237,12 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
   }
 
   function startCorrect() {
-    if (version.value && version.value.status !== 'draft' && version.value.phase !== 'past') {
+    if (
+      version.value &&
+      version.value.status !== 'draft' &&
+      version.value.phase !== 'past' &&
+      version.value.phase !== 'replaced'
+    ) {
       correcting.value = true
     }
   }
@@ -290,10 +296,11 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
   }
 
   /** Faollashtirish oynasi uchun: tanlangan sana bo'yicha ogohlantirishlar (saqlangan holat bo'yicha) */
-  async function previewWarnings(from: string) {
+  async function previewWarnings(from: string): Promise<ActivationPreview> {
     const v = version.value
-    if (!v) return []
-    return (await timetableApi.version(v.id, from)).warnings
+    if (!v) return { warnings: [], willReplace: [] }
+    const r = await timetableApi.version(v.id, from)
+    return { warnings: r.warnings, willReplace: r.willReplace ?? [] }
   }
 
   /** Katak uchun boshqa sinflarda band o'qituvchilar (tahrirlash oynasi) */

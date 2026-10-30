@@ -177,6 +177,35 @@ export function versionLabel(
   t: Translate,
   fmt: (d: string | null) => string,
 ): string {
+  if (v.phase === 'replaced') {
+    return `${t('timetable.phase.replaced')} · ${fmt(v.validFrom)} – (${t('timetable.replacedNote')})`
+  }
   const range = `${fmt(v.validFrom)} – ${v.validTo ? fmt(v.validTo) : ''}`.trim()
   return `${t(`timetable.phase.${v.phase}`)}: ${range}`
 }
+
+/** Tarixda necha kun ko'rinib turadi (backend TIMETABLE_RETENTION_DAYS bilan bir xil) */
+export const TIMETABLE_HISTORY_DAYS = 30
+
+const addDays = (date: string, n: number): string => {
+  const d = new Date(`${date}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Eski tarix: tugaganiga 30 kundan oshgan versiya (validTo bugundan 30 kun oldingi sanadan avval).
+ * Joriy, kelgusi, qoralama va almashtirilgan (30 kun ichida) versiyalar hech qachon yashirilmaydi.
+ */
+export const isOldHistory = (
+  v: { phase: string; validTo: string | null },
+  today: string,
+): boolean =>
+  v.phase === 'past' && !!v.validTo && v.validTo < addDays(today, -TIMETABLE_HISTORY_DAYS)
+
+/** Bugundan sanagacha qolgan kunlar (YYYY-MM-DD) */
+export const daysUntil = (date: string, today: string): number =>
+  Math.round(
+    (new Date(`${date}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) /
+      86_400_000,
+  )

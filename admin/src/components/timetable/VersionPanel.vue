@@ -10,11 +10,19 @@ defineProps<{
   versions: TimetableVersionSummary[]
   selectedId: string | null
   canManage: boolean
+  /** Eski tarix (xira ko'rsatiladi) */
+  mutedIds?: Set<string>
 }>()
 const emit = defineEmits<{ select: [id: string]; remove: [id: string] }>()
 const { t } = useI18n()
 
-const tone = { draft: 'warning', current: 'success', future: 'info', past: 'neutral' } as const
+const tone = {
+  draft: 'warning',
+  current: 'success',
+  future: 'info',
+  past: 'neutral',
+  replaced: 'neutral',
+} as const
 /** Faqat qoralama va kelajakdagi versiyani o'chirish mumkin */
 const removable = (v: TimetableVersionSummary) => v.phase === 'draft' || v.phase === 'future'
 </script>
@@ -28,7 +36,10 @@ const removable = (v: TimetableVersionSummary) => v.phase === 'draft' || v.phase
       v-for="v in versions"
       :key="v.id"
       class="flex items-center gap-3 px-3 py-2.5"
-      :class="selectedId === v.id ? 'bg-primary-50 dark:bg-primary-500/10' : ''"
+      :class="[
+        selectedId === v.id ? 'bg-primary-50 dark:bg-primary-500/10' : '',
+        v.phase === 'replaced' || mutedIds?.has(v.id) ? 'text-fg-muted opacity-70' : '',
+      ]"
     >
       <button
         type="button"
@@ -38,7 +49,12 @@ const removable = (v: TimetableVersionSummary) => v.phase === 'draft' || v.phase
       >
         <BaseBadge :tone="tone[v.phase]">{{ t(`timetable.phase.${v.phase}`) }}</BaseBadge>
         <span class="text-sm font-medium text-fg">
-          {{ formatDate(v.validFrom) }} – {{ v.validTo ? formatDate(v.validTo) : '…' }}
+          <template v-if="v.phase === 'replaced'">
+            {{ formatDate(v.validFrom) }} – ({{ t('timetable.replacedNote') }})
+          </template>
+          <template v-else>
+            {{ formatDate(v.validFrom) }} – {{ v.validTo ? formatDate(v.validTo) : '…' }}
+          </template>
         </span>
         <span class="text-xs text-fg-muted">
           {{ t('timetable.lessonsCount', { n: v.entryCount }) }}

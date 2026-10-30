@@ -27,16 +27,19 @@ import DropdownMenu, { type DropdownItem } from '@/components/ui/DropdownMenu.vu
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import StickySaveBar from '@/components/ui/StickySaveBar.vue'
+import TimetableExportMenu from '@/components/timetable/TimetableExportMenu.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { usePermission } from '@/composables/usePermission'
 import { useTimetableEditor } from '@/composables/useTimetableEditor'
+import { useTimetableExport } from '@/composables/useTimetableExport'
+import type { ExportFormat } from '@/api/types'
 import { useToast } from '@/composables/useToast'
 import { PERMISSIONS } from '@/constants/permissions'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
-import { cellKey, versionLabel, type CellValue } from '@/utils/timetable'
+import { cellKey, daysUntil, isOldHistory, versionLabel, type CellValue } from '@/utils/timetable'
 import {
   buildIssues,
   countIssues,
@@ -81,9 +84,37 @@ const backTo = computed(() =>
 )
 
 // ---------- Versiya tanlash ----------
-const versionOptions = computed(() =>
-  (ed.info.value?.versions ?? []).map((x) => ({ value: x.id, label: versionLabel(x, t, fmt) })),
+// Eski tarix (tugaganiga 30 kundan oshgan versiyalar) odatda yashiriladi; tanlangan bo'lsa ochiladi
+const showHistory = ref(false)
+const todayStr = computed(() => ed.info.value?.today ?? '')
+const isOld = (x: { phase: string; validTo: string | null }) =>
+  !!todayStr.value && isOldHistory(x, todayStr.value)
+const allVersions = computed(() => ed.info.value?.versions ?? [])
+const oldCount = computed(() => allVersions.value.filter(isOld).length)
+const visibleVersions = computed(() =>
+  showHistory.value ? allVersions.value : allVersions.value.filter((x) => !isOld(x)),
 )
+watch(
+  () => v.value?.id,
+  () => {
+    if (v.value && isOld(v.value)) showHistory.value = true
+  },
+  { immediate: true },
+)
+const versionOptions = computed(() =>
+  visibleVersions.value.map((x) => ({ value: x.id, label: versionLabel(x, t, fmt) })),
+)
+const mutedIds = computed(() => new Set(allVersions.value.filter(isOld).map((x) => x.id)))
+
+/** Avtomatik o'chirilish haqida eslatma: almashtirilgan versiyada doim, qoralamada 7 kun qolganda */
+const purgeNotice = computed(() => {
+  const x = v.value
+  if (!x?.purgeAt) return ''
+  if (x.phase === 'replaced') return t('timetable.purgeReplaced', { date: fmt(x.purgeAt) })
+  if (x.phase === 'draft' && todayStr.value && daysUntil(x.purgeAt, todayStr.value) <= 7)
+    return t('timetable.purgeDraft', { date: fmt(x.purgeAt) })
+  return ''
+})
 
 async function confirmDiscard(): Promise<boolean> {
   if (!ed.dirty.value) return true
@@ -347,6 +378,26 @@ async function removeVersion(id: string) {
   }
 }
 
+/** Tugagan yoki almashtirilgan versiya: tuzatib bo'lmaydi */
+const readonlyPhase = computed(() => v.value?.phase === 'past' || v.value?.phase === 'replaced')
+
+/** Tuzatilayotgan versiyadan keyin boshlanadigan, amal qiladigan (almashtirilmagan) birinchi versiya */
+const laterVersion = computed(() => {
+  const cur = v.value
+  if (!cur) return null
+  return (
+    (ed.info.value?.versions ?? [])
+      .filter(
+        (x) =>
+          x.id !== cur.id &&
+          x.status !== 'draft' &&
+          x.status !== 'replaced' &&
+          x.validFrom > cur.validFrom,
+      )
+      .sort((a, b) => a.validFrom.localeCompare(b.validFrom))[0] ?? null
+  )
+})
+
 const menuItems = computed<DropdownItem[]>(() => {
   const items: DropdownItem[] = []
   if (ed.mode.value === 'draft') {
@@ -359,7 +410,7 @@ const menuItems = computed<DropdownItem[]>(() => {
       { key: 'copyClass', label: t('timetable.copyFromClass') },
     )
   }
-  if (ed.mode.value === 'view' && v.value && v.value.phase !== 'past') {
+  if (ed.mode.value === 'view' && v.value && !readonlyPhase.value) {
     items.push({ key: 'correct', label: t('timetable.correct') })
   }
   if (v.value && (v.value.phase === 'draft' || v.value.phase === 'future')) {
@@ -372,6 +423,16 @@ const menuItems = computed<DropdownItem[]>(() => {
   }
   return items
 })
+// Yuklab olish: hozir tanlangan versiya (qoralama ham), saqlangan holatida
+const exporter = useTimetableExport()
+function exportVersion(format: string) {
+  const id = v.value?.id
+  if (id)
+    void exporter.run(() =>
+      timetableApi.exportClass(classId.value, format as ExportFormat, { versionId: id }),
+    )
+}
+
 async function onMenu(key: string) {
   if (key === 'copyVersion') await openCopy('version')
   else if (key === 'copyClass') await openCopy('class')
@@ -379,7 +440,13 @@ async function onMenu(key: string) {
   else if (key === 'remove' && v.value) await removeVersion(v.value.id)
 }
 
-const phaseTone = { draft: 'warning', current: 'success', future: 'info', past: 'neutral' } as const
+const phaseTone = {
+  draft: 'warning',
+  current: 'success',
+  future: 'info',
+  past: 'neutral',
+  replaced: 'neutral',
+} as const
 const showEditor = computed(() => !ed.loading.value && !loadError.value && !!v.value)
 const noVersions = computed(() => !ed.loading.value && !loadError.value && !v.value)
 
@@ -449,6 +516,19 @@ function beforeUnload(e: BeforeUnloadEvent) {
           @update:model-value="selectVersion"
         />
         <BaseButton
+          v-if="oldCount"
+          variant="ghost"
+          data-testid="history-toggle"
+          :aria-pressed="showHistory"
+          @click="showHistory = !showHistory"
+        >
+          {{
+            showHistory
+              ? t('timetable.hideOldHistory')
+              : t('timetable.showOldHistory', { n: oldCount })
+          }}
+        </BaseButton>
+        <BaseButton
           v-if="canManage && !ed.archived.value && hasActive"
           variant="secondary"
           data-testid="new-change"
@@ -456,6 +536,11 @@ function beforeUnload(e: BeforeUnloadEvent) {
         >
           <CirclePlus class="h-4 w-4" /> {{ t('timetable.newChange') }}
         </BaseButton>
+        <TimetableExportMenu
+          v-if="showEditor && v"
+          :busy="exporter.busy.value"
+          @select="exportVersion"
+        />
         <DropdownMenu
           v-if="menuItems.length"
           :items="menuItems"
@@ -591,9 +676,7 @@ function beforeUnload(e: BeforeUnloadEvent) {
           </BaseButton>
         </div>
         <BaseButton
-          v-else-if="
-            canManage && !ed.archived.value && ed.mode.value === 'view' && v.phase !== 'past'
-          "
+          v-else-if="canManage && !ed.archived.value && ed.mode.value === 'view' && !readonlyPhase"
           class="ml-auto"
           variant="secondary"
           data-testid="correct-start"
@@ -617,6 +700,48 @@ function beforeUnload(e: BeforeUnloadEvent) {
         data-testid="correct-banner"
       >
         {{ t('timetable.correctWarning') }}
+      </div>
+      <div
+        v-if="ed.mode.value === 'correct' && laterVersion"
+        class="mb-4 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-fg-muted"
+        data-testid="correct-later-notice"
+      >
+        {{ t('timetable.correctLaterNotice', { date: fmt(laterVersion.validFrom) }) }}
+        <button
+          type="button"
+          class="font-medium text-primary-600 underline hover:text-primary-700"
+          data-testid="correct-later-open"
+          @click="selectVersion(laterVersion.id)"
+        >
+          {{ t('timetable.openThatVersion') }}
+        </button>
+      </div>
+      <div
+        v-if="v.phase === 'replaced'"
+        class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-fg-muted"
+        data-testid="replaced-banner"
+      >
+        <span class="min-w-0 flex-1">
+          {{ t('timetable.replacedReadonly') }}
+          <span v-if="purgeNotice" class="block text-xs" data-testid="purge-notice">
+            {{ purgeNotice }}
+          </span>
+        </span>
+        <BaseButton
+          v-if="canManage && !ed.archived.value"
+          variant="secondary"
+          data-testid="replaced-copy"
+          @click="createChange(v.id)"
+        >
+          {{ t('timetable.copyAsDraft') }}
+        </BaseButton>
+      </div>
+      <div
+        v-if="v.phase === 'draft' && purgeNotice"
+        class="mb-4 rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-sm text-warning"
+        data-testid="purge-notice"
+      >
+        {{ purgeNotice }}
       </div>
       <div
         v-if="v.phase === 'past' && canManage"
@@ -672,11 +797,12 @@ function beforeUnload(e: BeforeUnloadEvent) {
       <!-- Versiyalar tarixi -->
       <details class="mt-6" data-testid="history">
         <summary class="cursor-pointer text-sm font-semibold text-fg">
-          {{ t('timetable.history') }} ({{ ed.info.value?.versions.length }})
+          {{ t('timetable.history') }} ({{ visibleVersions.length }})
         </summary>
         <div class="mt-2">
           <VersionPanel
-            :versions="ed.info.value?.versions ?? []"
+            :versions="visibleVersions"
+            :muted-ids="mutedIds"
             :selected-id="v.id"
             :can-manage="canManage && !ed.archived.value"
             @select="selectVersion"

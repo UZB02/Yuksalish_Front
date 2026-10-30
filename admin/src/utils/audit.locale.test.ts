@@ -76,6 +76,7 @@ const ACTIONS = [
   'timetable.version_correct',
   'timetable.version_create',
   'timetable.version_delete',
+  'timetable.version_purged',
   'timetable.version_update',
 ]
 const ENTITIES = [

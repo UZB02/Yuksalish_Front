@@ -1,8 +1,9 @@
+import { downloadFile } from './download'
 import { deleteData, getData, sendData } from './http'
-import type { MyTodayLessons } from './types'
+import type { ExportFormat, MyTodayLessons } from './types'
 
-export type TimetableStatus = 'draft' | 'active' | 'superseded'
-export type TimetablePhase = 'draft' | 'past' | 'current' | 'future'
+export type TimetableStatus = 'draft' | 'active' | 'superseded' | 'replaced'
+export type TimetablePhase = 'draft' | 'past' | 'current' | 'future' | 'replaced'
 export type WarningCode =
   | 'teacher_double_booked'
   | 'teacher_not_assigned'
@@ -41,6 +42,11 @@ export interface TimetableVersionSummary {
   note: string | null
   forced: boolean
   activatedAt: string | null
+  /** Almashtirilgan (status=replaced) versiya: qachon va qaysi versiya almashtirgan */
+  replacedAt?: string | null
+  replacedBy?: string | null
+  /** Avtomatik o'chiriladigan sana (YYYY-MM-DD): almashtirilgan versiya yoki eski qoralama */
+  purgeAt?: string | null
   updatedAt: string
 }
 
@@ -79,9 +85,27 @@ export interface BusyTeacher {
   className: string
 }
 
+/** Faollashtirilsa almashtiriladigan (amal qilmay qoladigan) versiya */
+export interface WillReplace {
+  id: string
+  validFrom: string
+  validTo: string | null
+  /** Ommaviy faollashtirishda: qaysi sinfniki */
+  classId?: string
+  className?: string
+}
+
 export interface VersionWithWarnings {
   version: TimetableVersion
   warnings: TimetableWarning[]
+  /** Faqat qoralama uchun (eski serverda bo'lmasligi mumkin) */
+  willReplace?: WillReplace[]
+}
+
+/** Faollashtirish oynasi oldindan ko'rishi: ogohlantirishlar + almashtiriladigan versiyalar */
+export interface ActivationPreview {
+  warnings: TimetableWarning[]
+  willReplace?: WillReplace[]
 }
 
 export interface TimetableSettings {
@@ -271,6 +295,7 @@ export const timetableApi = {
   bulkPreview: (body: { versionIds: string[]; validFrom: string }) =>
     sendData<{
       warnings: (TimetableWarning & { versionId: string; classId: string; className: string })[]
+      willReplace?: WillReplace[]
     }>('post', '/timetable/activate-bulk/preview', body),
   correct: (
     id: string,
@@ -284,6 +309,35 @@ export const timetableApi = {
   teacherWeek: (teacherId: string, date?: string) =>
     getData<TeacherWeek>(`/timetable/teachers/${teacherId}/week`, { date }),
   myWeek: (date?: string) => getData<TeacherWeek>('/timetable/me/week', { date }),
+  /** Excel/PDF eksport (haftalik jadval, almashtirishlarsiz): autentifikatsiyali blob yuklash */
+  exportClass: (
+    classId: string,
+    format: ExportFormat,
+    q: { date?: string; versionId?: string } = {},
+  ): Promise<string> =>
+    downloadFile(`/timetable/classes/${classId}/export`, {
+      params: { format, ...q },
+      fallbackName: `dars-jadvali.${format}`,
+    }),
+  exportTeacher: (teacherId: string, format: ExportFormat, date?: string): Promise<string> =>
+    downloadFile(`/timetable/teachers/${teacherId}/export`, {
+      params: { format, date },
+      fallbackName: `dars-jadvali.${format}`,
+    }),
+  exportMine: (format: ExportFormat, date?: string): Promise<string> =>
+    downloadFile('/timetable/me/export', {
+      params: { format, date },
+      fallbackName: `dars-jadvali.${format}`,
+    }),
+  exportSchool: (
+    kind: 'classes' | 'teachers',
+    format: ExportFormat,
+    date?: string,
+  ): Promise<string> =>
+    downloadFile('/timetable/export', {
+      params: { kind, format, date },
+      fallbackName: `dars-jadvali-maktab.${format}`,
+    }),
   /** Bugungi darslarim (davomat holati bilan) */
   myToday: () => getData<MyTodayLessons>('/timetable/me/today'),
   day: (date?: string) => getData<TimetableDay>('/timetable/day', { date }),

@@ -14,11 +14,17 @@ export interface DropdownItem {
   separator?: boolean
 }
 
-defineProps<{
-  items: DropdownItem[]
-  /** Tugma uchun aria-label (masalan "Boshqa amallar: Ism") */
-  label: string
-}>()
+withDefaults(
+  defineProps<{
+    items: DropdownItem[]
+    /** Tugma uchun aria-label (masalan "Boshqa amallar: Ism") */
+    label: string
+    /** Tugma ko'rinishi (berilmasa kichik ikonka tugma) */
+    triggerClass?: string
+    triggerTestId?: string
+  }>(),
+  { triggerClass: undefined, triggerTestId: 'menu-trigger' },
+)
 const emit = defineEmits<{ select: [key: string] }>()
 
 const trigger = ref<HTMLButtonElement | null>(null)
@@ -83,13 +89,16 @@ function pick(item: DropdownItem) {
     <button
       ref="trigger"
       type="button"
-      class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500"
+      :class="
+        triggerClass ??
+        'inline-flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500'
+      "
       aria-haspopup="menu"
       :aria-expanded="open"
       :aria-controls="open ? menuId : undefined"
       :aria-label="label"
       :title="label"
-      data-testid="menu-trigger"
+      :data-testid="triggerTestId"
       @click="onTriggerClick"
       @keydown="onTriggerKeydown"
     >
