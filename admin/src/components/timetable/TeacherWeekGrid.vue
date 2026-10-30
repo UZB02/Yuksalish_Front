@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import type { TeacherWeek, TimetableLesson } from '@/api/timetable.api'
 import { formatDate } from '@/utils/format'
 import { rowCountFor } from '@/utils/timetable'
+import OverrideTypeBadge from './OverrideTypeBadge.vue'
 
 /** O'qituvchi haftasi: kompyuterda to'r (kun x dars), mobilda kunlar bo'yicha kartalar */
 const props = defineProps<{ week: TeacherWeek }>()
@@ -58,8 +59,19 @@ const hasAny = computed(() => props.week.days.some((d) => d.lessons.length))
               :data-testid="`week-cell-${d.weekday}-${n}`"
             >
               <div v-for="(l, i) in at(d.date, n)" :key="i" class="min-w-0">
-                <div class="truncate text-sm font-semibold text-fg">{{ l.class?.name }}</div>
-                <div class="truncate text-xs text-fg-muted">{{ l.subject.name }}</div>
+                <div
+                  class="truncate text-sm font-semibold text-fg"
+                  :class="l.cancelled ? 'line-through opacity-70' : ''"
+                >
+                  {{ l.class?.name }}
+                </div>
+                <div
+                  class="truncate text-xs text-fg-muted"
+                  :class="l.cancelled ? 'line-through' : ''"
+                >
+                  {{ l.subject.name }}
+                </div>
+                <OverrideTypeBadge v-if="l.overrideType" :type="l.overrideType" />
                 <div v-if="l.room" class="text-xs text-fg-muted">
                   {{ t('timetable.room') }}: {{ l.room }}
                 </div>
@@ -91,9 +103,13 @@ const hasAny = computed(() => props.week.days.some((d) => d.lessons.length))
               l.lessonNo
             }}</span>
             <div class="min-w-0">
-              <div class="truncate text-sm font-medium text-fg">
+              <div
+                class="truncate text-sm font-medium text-fg"
+                :class="l.cancelled ? 'line-through opacity-70' : ''"
+              >
                 {{ l.class?.name }} · {{ l.subject.name }}
               </div>
+              <OverrideTypeBadge v-if="l.overrideType" :type="l.overrideType" />
               <div v-if="l.room" class="text-xs text-fg-muted">
                 {{ t('timetable.room') }}: {{ l.room }}
               </div>

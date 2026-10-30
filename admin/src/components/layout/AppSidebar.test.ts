@@ -39,6 +39,7 @@ const PATHS: Record<string, string> = {
   settings: '/settings',
   timetable: '/timetable',
   'my-timetable': '/my-timetable',
+  substitutions: '/substitutions',
 }
 
 const SCHOOL_ADMIN_PERMS = [
@@ -200,7 +201,7 @@ describe('AppSidebar guruhlash', () => {
     const { w } = await setup({ role: 'superadmin' })
     expect(structure(w)).toEqual([
       T.dashboard,
-      `${label('academic')}: ${T.classes}, ${T.timetable}, ${T.students}, ${T.teachers}, ${T.academicYears}`,
+      `${label('academic')}: ${T.classes}, ${T.timetable}, ${T.substitutions}, ${T.students}, ${T.teachers}, ${T.academicYears}`,
       `${label('grading')}: ${T.scoring}, ${T.grading}, ${T.journal}, ${T.scoresHistory}`,
       `${label('attendance')}: ${T.attendance}, ${T.attendanceHistory}`,
       `${label('results')}: ${T.ratings}, ${T.reports}`,
@@ -365,6 +366,7 @@ describe('AppSidebar ixcham (rail) rejim', () => {
       T.dashboard,
       T.classes,
       T.timetable,
+      T.substitutions,
       T.students,
       T.teachers,
       T.academicYears,

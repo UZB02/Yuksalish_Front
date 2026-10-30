@@ -6,6 +6,7 @@ import { timetableApi } from '@/api/timetable.api'
 import type { MyTodayLessons, TodayAttendanceStatus, TodayLesson } from '@/api/types'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
+import OverrideTypeBadge from './OverrideTypeBadge.vue'
 import { PERMISSIONS } from '@/constants/permissions'
 import { useAuthStore } from '@/stores/auth'
 
@@ -128,6 +129,11 @@ onMounted(async () => {
               <BaseBadge v-if="l.substitute" tone="info" data-testid="substitute-badge">
                 {{ t('todayLessons.substitute') }}
               </BaseBadge>
+              <OverrideTypeBadge
+                v-if="l.overrideType === 'replace' || l.overrideType === 'extra'"
+                :type="l.overrideType"
+                data-testid="override-badge"
+              />
               <BaseBadge v-if="l.cancelled" tone="danger">
                 {{ t('todayLessons.cancelled') }}
               </BaseBadge>

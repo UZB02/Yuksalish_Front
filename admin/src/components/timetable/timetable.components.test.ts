@@ -302,3 +302,44 @@ describe('TeacherWeekGrid', () => {
     expect(w.get('[data-testid="week-cell-1-8"]').text()).toContain('Matematika')
   })
 })
+
+describe('TeacherWeekGrid: almashtirish belgilari', () => {
+  it("o'rinbosar belgisi va bekor qilingan dars chizilgan", () => {
+    const l = {
+      classId: 'c1',
+      date: '2026-11-02',
+      weekday: 1,
+      lessonNo: 1,
+      subjectId: 'math',
+      teacherId: 't1',
+      room: null,
+      source: 'override' as const,
+      overrideType: 'substitute' as const,
+      cancelled: false,
+      versionId: null,
+      class: { id: 'c1', name: '5-A', grade: 5 },
+      subject: { id: 'math', name: 'Matematika' },
+      teacher: { id: 't1', fullName: 'Aliyev' },
+    }
+    const week: TeacherWeek = {
+      teacher: { id: 't1', fullName: 'Aliyev' },
+      from: '2026-11-02',
+      to: '2026-11-08',
+      today: '2026-11-03',
+      settings: { workingWeekdays: [1], lessonsPerDay: 2 },
+      weeklyCount: 2,
+      days: [
+        {
+          date: '2026-11-02',
+          weekday: 1,
+          lessons: [l, { ...l, lessonNo: 2, overrideType: 'cancel', cancelled: true }],
+        },
+      ],
+    }
+    const w = mount(TeacherWeekGrid, { props: { week }, global })
+    expect(w.get('[data-testid="week-cell-1-1"]').text()).toContain("O'rinbosar")
+    const cancelled = w.get('[data-testid="week-cell-1-2"]')
+    expect(cancelled.text()).toContain('Bekor')
+    expect(cancelled.find('.line-through').exists()).toBe(true)
+  })
+})

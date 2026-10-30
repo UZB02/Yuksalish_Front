@@ -1353,7 +1353,7 @@ export interface TodayLesson {
   subject: { id: string; name: string }
   room: string | null
   source: 'timetable' | 'override'
-  overrideType: string | null
+  overrideType: 'substitute' | 'replace' | 'cancel' | 'extra' | null
   substitute: boolean
   cancelled: boolean
   status: TodayAttendanceStatus

@@ -158,3 +158,32 @@ describe('TodayLessons', () => {
     expect(wrapper.find('[data-testid="today-lessons"]').exists()).toBe(false)
   })
 })
+
+describe('TodayLessons: almashtirish belgilari', () => {
+  it("fan almashtirilgan va qo'shimcha darsda belgi chiqadi, oddiy darsda yo'q", async () => {
+    const w = await mountWith(
+      payload({
+        lessons: [
+          lesson({ lessonNo: 1, source: 'override', overrideType: 'replace' }),
+          lesson({ lessonNo: 2, source: 'override', overrideType: 'extra' }),
+          lesson({ lessonNo: 3 }),
+        ],
+      }),
+    )
+    const rows = w.findAll('[data-testid="today-lesson"]')
+    expect(rows[0]!.find('[data-testid="override-badge"]').text()).toBe('Fan almashtirildi')
+    expect(rows[1]!.find('[data-testid="override-badge"]').text()).toBe("Qo'shimcha")
+    expect(rows[2]!.find('[data-testid="override-badge"]').exists()).toBe(false)
+  })
+
+  it("o'rinbosar bo'lib kelgan dars odatdagidek + belgi", async () => {
+    const w = await mountWith(
+      payload({
+        lessons: [lesson({ source: 'override', overrideType: 'substitute', substitute: true })],
+      }),
+    )
+    const row = w.get('[data-testid="today-lesson"]')
+    expect(row.find('[data-testid="substitute-badge"]').text()).toBe("O'rinbosar")
+    expect(row.find('[data-testid="lesson-attendance"]').exists()).toBe(true)
+  })
+})

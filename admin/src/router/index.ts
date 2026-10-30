@@ -320,6 +320,12 @@ const router = createRouter({
           },
         },
         {
+          path: 'substitutions',
+          name: 'substitutions',
+          component: () => import('@/views/timetable/SubstitutionsView.vue'),
+          meta: { permission: PERMISSIONS.TIMETABLE_SUBSTITUTE, titleKey: 'nav.substitutions' },
+        },
+        {
           path: 'my-timetable',
           name: 'my-timetable',
           component: () => import('@/views/timetable/MyTimetableView.vue'),

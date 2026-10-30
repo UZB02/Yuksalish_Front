@@ -49,6 +49,7 @@
     "myClasses": "Mening sinflarim",
     "timetable": "Dars jadvali",
     "myTimetable": "Mening jadvalim",
+    "substitutions": "Almashtirishlar",
     "schools": "Maktablar",
     "schoolAdmins": "Maktab adminlari",
     "academicYears": "O'quv yillari",
@@ -1680,7 +1681,9 @@
         "version_update": "Dars jadvali qoralamasini saqladi",
         "version_activate": "Dars jadvali versiyasini faollashtirdi",
         "version_delete": "Dars jadvali versiyasini o'chirdi",
-        "version_correct": "Faol dars jadvalini tuzatdi"
+        "version_correct": "Faol dars jadvalini tuzatdi",
+        "override_created": "Darsni almashtirdi (o'rinbosar, bekor, ko'chirish yoki qo'shimcha dars)",
+        "override_deleted": "Dars almashtirishini bekor qildi"
       },
       "subject": {
         "create": "Fan qo'shdi",
@@ -1713,7 +1716,9 @@
       "version_update": "qoralamani saqladi",
       "version_activate": "versiyani faollashtirdi",
       "version_delete": "versiyani o'chirdi",
-      "version_correct": "faol versiyani tuzatdi"
+      "version_correct": "faol versiyani tuzatdi",
+      "override_created": "darsni almashtirdi",
+      "override_deleted": "almashtirishni bekor qildi"
     }
   },
   "subjects": {
@@ -2028,6 +2033,100 @@
       "5": "Juma",
       "6": "Shanba",
       "7": "Yakshanba"
+    }
+  },
+  "substitutions": {
+    "title": "Almashtirishlar",
+    "description": "O'qituvchi yo'q kunlarda o'rinbosar qo'yish, darsni bekor qilish, ko'chirish yoki qo'shimcha dars qo'shish",
+    "date": "Sana",
+    "prevDay": "Oldingi kun",
+    "nextDay": "Keyingi kun",
+    "today": "Bugun",
+    "notWorkday": "Bu kun dam olish kuni: odatiy darslar yo'q",
+    "loadFailed": "Ma'lumotlarni yuklab bo'lmadi",
+    "teacherAbsent": "O'qituvchi yo'q",
+    "teacherPlaceholder": "O'qituvchini tanlang",
+    "pickTeacher": "Almashtirish uchun o'qituvchini tanlang",
+    "noLessons": "Bu kuni o'qituvchining darsi yo'q",
+    "lessonNo": "{n}-dars",
+    "unknown": "?",
+    "arrow": "{from} → {to}",
+    "actions": {
+      "substitute": "O'rinbosar",
+      "cancel": "Bekor",
+      "move": "Ko'chir",
+      "replace": "Fanni almashtirish",
+      "undo": "Bekor qilish"
+    },
+    "type": {
+      "substitute": "O'rinbosar",
+      "replace": "Fan almashtirildi",
+      "cancel": "Bekor",
+      "extra": "Qo'shimcha",
+      "moved": "Ko'chirildi"
+    },
+    "changes": {
+      "title": "Shu kungi o'zgarishlar",
+      "empty": "Bu kun uchun o'zgarishlar yo'q",
+      "emptyText": "O'rinbosar qo'yilgan, bekor qilingan yoki qo'shilgan darslar shu yerda ko'rinadi.",
+      "reason": "Sabab: {reason}",
+      "by": "Kiritdi: {name}",
+      "moveFrom": "Boshqa kundan/darsdan ko'chirilgan",
+      "moveTo": "Boshqa kunga/darsga ko'chirilgan"
+    },
+    "extra": {
+      "button": "Qo'shimcha dars"
+    },
+    "modal": {
+      "titleSubstitute": "O'rinbosar qo'yish",
+      "titleReplace": "Fanni almashtirish",
+      "titleCancel": "Darsni bekor qilish",
+      "titleMove": "Darsni ko'chirish",
+      "titleExtra": "Qo'shimcha dars",
+      "class": "Sinf",
+      "classPlaceholder": "Sinfni tanlang",
+      "lessonNo": "Dars raqami",
+      "subject": "Fan",
+      "subjectPlaceholder": "Fanni tanlang",
+      "teacher": "O'qituvchi",
+      "teacherOptional": "O'qituvchi (ixtiyoriy)",
+      "keepTeacher": "Joriy o'qituvchi qoladi",
+      "targetDate": "Yangi sana",
+      "targetLesson": "Yangi dars raqami",
+      "reason": "Sabab (ixtiyoriy)",
+      "reasonPlaceholder": "Masalan: kasal, seminar",
+      "cancelText": "{lesson} bekor qilinadi. O'quvchilar uchun bu dars o'tmaydi.",
+      "submit": "Saqlash",
+      "submitCancel": "Darsni bekor qilish",
+      "submitMove": "Ko'chirish",
+      "submitExtra": "Qo'shish",
+      "keep": "Yopish"
+    },
+    "picker": {
+      "title": "Bo'sh o'qituvchilar",
+      "loading": "O'qituvchilar yuklanmoqda",
+      "empty": "O'qituvchilar topilmadi",
+      "free": "bo'sh",
+      "busy": "band",
+      "teachesSubject": "shu fandan dars beradi",
+      "lessonsThatDay": "{n} ta dars",
+      "failed": "O'qituvchilar ro'yxatini yuklab bo'lmadi",
+      "needLesson": "Avval dars va fanni tanlang"
+    },
+    "toast": {
+      "substitute": "O'rinbosar qo'yildi",
+      "replace": "Fan almashtirildi",
+      "cancel": "Dars bekor qilindi",
+      "move": "Dars ko'chirildi",
+      "extra": "Qo'shimcha dars qo'shildi",
+      "undone": "Almashtirish bekor qilindi"
+    },
+    "undo": {
+      "title": "Almashtirishni bekor qilish",
+      "text": "{lesson} dagi o'zgarish bekor qilinadi va dars odatdagi jadvalga qaytadi.",
+      "textMove": "{lesson} dagi o'zgarish bekor qilinadi. Ko'chirilgan dars ikkala tomondan ham asl holiga qaytadi.",
+      "confirm": "Bekor qilish",
+      "keep": "Qoldirish"
     }
   }
 }

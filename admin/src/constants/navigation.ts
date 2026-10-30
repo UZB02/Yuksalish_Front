@@ -26,6 +26,7 @@ import {
   NotebookText,
   CalendarClock,
   CalendarDays,
+  UserRoundCheck,
 } from 'lucide-vue-next'
 import type { Role } from '@/api/types'
 import { PERMISSIONS } from './permissions'
@@ -239,6 +240,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: CalendarDays,
     roles: ['teacher'],
   },
+  {
+    name: 'substitutions',
+    group: 'academic',
+    labelKey: 'nav.substitutions',
+    icon: UserRoundCheck,
+    permission: PERMISSIONS.TIMETABLE_SUBSTITUTE,
+  },
 ]
 
 /**
@@ -252,6 +260,7 @@ export const NAV_DISPLAY_ORDER: string[] = [
   'my-scores',
   'classes',
   'timetable',
+  'substitutions',
   'students',
   'teachers',
   'academic-years',

@@ -70,6 +70,8 @@ const ACTIONS = [
   'teacher.photo_upload',
   'teacher.update',
   'teachers.import',
+  'timetable.override_created',
+  'timetable.override_deleted',
   'timetable.version_activate',
   'timetable.version_correct',
   'timetable.version_create',

@@ -47,6 +47,22 @@ describe('dars jadvali (P1) marshrutlari va menyusi', () => {
     expect(resolveAccess(route('timetable', home), ctx('teacher'))).toEqual({ name: 'forbidden' })
   })
 
+  it('almashtirishlar: faqat timetable.substitute bilan (view/manage yetmaydi)', () => {
+    const sub = { permission: 'timetable.substitute' }
+    expect(names(ctx('school_admin', ['timetable.substitute']))).toEqual(['substitutions'])
+    expect(names(ctx('school_admin', ['timetable.view', 'timetable.manage']))).not.toContain(
+      'substitutions',
+    )
+    expect(names(ctx('teacher', ['timetable.substitute']))).toContain('substitutions')
+    expect(names(ctx('superadmin'))).toContain('substitutions')
+    expect(
+      resolveAccess(route('substitutions', sub), ctx('school_admin', ['timetable.substitute'])),
+    ).toBe(true)
+    expect(
+      resolveAccess(route('substitutions', sub), ctx('school_admin', ['timetable.view'])),
+    ).toEqual({ name: 'forbidden' })
+  })
+
   it('/my-timetable faqat o`qituvchi uchun', () => {
     expect(resolveAccess(route('my-timetable', mine), ctx('teacher'))).toBe(true)
     expect(

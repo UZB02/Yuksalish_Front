@@ -119,6 +119,11 @@ export interface TimetableLesson {
   room: string | null
   source: 'timetable' | 'override'
   cancelled: boolean
+  /** Almashtirish (override) bo'lsa: turi va id; asl o'qituvchi/fan (bo'lsa) */
+  overrideType?: OverrideType | null
+  overrideId?: string | null
+  originalTeacherId?: string | null
+  originalSubjectId?: string | null
   versionId: string | null
   class: { id: string; name: string; grade: number } | null
   subject: { id: string; name: string }
@@ -150,6 +155,72 @@ export interface ActivatePayload {
   note?: string | null
   syncAssignments?: boolean
   confirmPast?: boolean
+}
+
+export type OverrideType = 'substitute' | 'replace' | 'cancel' | 'extra'
+
+export interface OverrideDto {
+  id: string
+  classId: string
+  class: { id: string; name: string }
+  date: string
+  lessonNo: number
+  type: OverrideType
+  subject: { id: string; name: string } | null
+  teacher: { id: string; fullName: string } | null
+  originalSubject: { id: string; name: string } | null
+  originalTeacher: { id: string; fullName: string } | null
+  room: string | null
+  reason: string | null
+  moveGroupId: string | null
+  createdAt: string
+  createdBy: { id: string; fullName: string } | null
+}
+
+export interface DayLessonDto {
+  classId: string
+  class: { id: string; name: string }
+  lessonNo: number
+  subject: { id: string; name: string }
+  teacher: { id: string; fullName: string }
+  originalTeacher: { id: string; fullName: string } | null
+  source: 'timetable' | 'override'
+  overrideType: OverrideType | null
+  overrideId: string | null
+  cancelled: boolean
+}
+
+export interface TeacherDayLessons {
+  date: string
+  isWorkday: boolean
+  lessons: DayLessonDto[]
+}
+
+export interface FreeTeacher {
+  id: string
+  fullName: string
+  free: boolean
+  teachesSubject: boolean
+  lessonsThatDay: number
+}
+
+export interface CreateOverridePayload {
+  classId: string
+  date: string
+  lessonNo: number
+  type: OverrideType
+  subjectId?: string
+  teacherId?: string
+  room?: string | null
+  reason?: string | null
+}
+
+export interface MoveOverridePayload {
+  classId: string
+  from: { date: string; lessonNo: number }
+  to: { date: string; lessonNo: number }
+  teacherId?: string
+  reason?: string | null
 }
 
 export type CopyFrom = 'active' | string | { classId: string }
@@ -203,4 +274,15 @@ export const timetableApi = {
       classId,
       date,
     }),
+  /** O'qituvchi bo'yicha kun darslari (almashtirish uchun) */
+  teacherDay: (date: string, teacherId: string) =>
+    getData<TeacherDayLessons>('/timetable/teacher-day', { date, teacherId }),
+  overrides: (date: string) => getData<{ items: OverrideDto[] }>('/timetable/overrides', { date }),
+  freeTeachers: (date: string, lessonNo: number, subjectId?: string) =>
+    getData<{ items: FreeTeacher[] }>('/timetable/free-teachers', { date, lessonNo, subjectId }),
+  createOverride: (body: CreateOverridePayload) =>
+    sendData<OverrideDto>('post', '/timetable/overrides', body),
+  moveLesson: (body: MoveOverridePayload) =>
+    sendData<{ items: OverrideDto[] }>('post', '/timetable/overrides/move', body),
+  deleteOverride: (id: string) => deleteData<void>(`/timetable/overrides/${id}`),
 }
