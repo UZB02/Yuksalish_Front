@@ -5,9 +5,11 @@ import { useI18n } from 'vue-i18n'
 import {
   AlertTriangle,
   ArrowLeft,
+  BookOpen,
   CheckCheck,
   ChevronLeft,
   ChevronRight,
+  Lock,
   Search,
   UserCheck,
   Users,
@@ -20,7 +22,7 @@ import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
-import { useAttendanceSheet } from '@/composables/useAttendanceSheet'
+import { useAttendanceSheet, type LessonChip } from '@/composables/useAttendanceSheet'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { errorMessage } from '@/utils/errors'
@@ -76,6 +78,15 @@ async function changeLesson(n: number) {
   await sheet.goTo({ lessonNo: n })
 }
 
+/** "1 · Matematika · Aliyev" / "3 · (bo'sh)"; jadvalsiz sinfda faqat raqam */
+function chipLabel(chip: LessonChip): string {
+  if (chip.lesson) {
+    const surname = chip.lesson.teacher?.fullName.split(' ')[0] ?? ''
+    return [chip.n, chip.lesson.subject?.name, surname].filter(Boolean).join(' · ')
+  }
+  return chip.empty ? t('attendance.emptyLesson', { n: chip.n }) : String(chip.n)
+}
+
 const subjectOptions = computed(() =>
   sheet.subjects.value.map((s) => ({ value: s.id, label: s.name })),
 )
@@ -122,13 +133,18 @@ const beforeUnload = (e: BeforeUnloadEvent) => {
 }
 /** URL dagi `?date=YYYY-MM-DD` (berilsa shu sana ochiladi). */
 const initialDate = () => (typeof route.query.date === 'string' ? route.query.date : null)
+/** URL dagi `?lessonNo=N` ("Bugungi darslarim" dan o'tganda shu dars ochiladi). */
+const initialLessonNo = () => {
+  const n = typeof route.query.lessonNo === 'string' ? Number(route.query.lessonNo) : NaN
+  return Number.isInteger(n) && n >= 1 ? n : null
+}
 
 onMounted(() => {
   window.addEventListener('beforeunload', beforeUnload)
-  void sheet.init(initialDate())
+  void sheet.init(initialDate(), initialLessonNo())
 })
 onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
-watch(classId, () => void sheet.init(initialDate()))
+watch(classId, () => void sheet.init(initialDate(), initialLessonNo()))
 </script>
 
 <template>
@@ -184,29 +200,40 @@ watch(classId, () => void sheet.init(initialDate()))
       data-testid="lesson-chips"
     >
       <button
-        v-for="n in sheet.lessonsPerDay.value"
-        :key="n"
+        v-for="chip in sheet.chips.value"
+        :key="chip.n"
         type="button"
         class="relative inline-flex h-11 min-w-[2.75rem] items-center justify-center rounded-xl border-2 px-3 text-sm font-semibold transition-colors"
-        :class="
-          sheet.lessonNo.value === n
+        :class="[
+          sheet.lessonNo.value === chip.n
             ? 'border-primary-600 bg-primary-600 text-white'
-            : 'border-border bg-surface text-fg hover:bg-surface-muted'
-        "
-        :aria-pressed="sheet.lessonNo.value === n"
-        :aria-label="t('attendance.lessonN', { n })"
-        @click="changeLesson(n)"
+            : 'border-border bg-surface text-fg hover:bg-surface-muted',
+          chip.lesson?.cancelled ? 'line-through opacity-70' : '',
+          chip.empty && sheet.lessonNo.value !== chip.n ? 'text-fg-muted' : '',
+        ]"
+        :aria-pressed="sheet.lessonNo.value === chip.n"
+        :aria-label="t('attendance.lessonN', { n: chip.n })"
+        data-testid="lesson-chip"
+        @click="changeLesson(chip.n)"
       >
-        {{ n }}
+        {{ chipLabel(chip) }}
         <span
-          v-if="(sheet.lessonMarked.value[n] ?? 0) > 0"
+          v-if="chip.lesson?.mine && sheet.lessonNo.value !== chip.n"
+          class="absolute -left-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-surface bg-primary-500"
+          :title="t('attendance.myLesson')"
+          data-testid="mine-dot"
+        />
+        <span
+          v-if="(sheet.lessonMarked.value[chip.n] ?? 0) > 0"
           class="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-surface"
           :class="
-            (sheet.lessonMarked.value[n] ?? 0) >= sheet.total.value ? 'bg-success' : 'bg-warning'
+            (sheet.lessonMarked.value[chip.n] ?? 0) >= sheet.total.value
+              ? 'bg-success'
+              : 'bg-warning'
           "
           :title="
             t('attendance.lessonProgress', {
-              done: sheet.lessonMarked.value[n] ?? 0,
+              done: sheet.lessonMarked.value[chip.n] ?? 0,
               total: sheet.total.value,
             })
           "
@@ -215,7 +242,34 @@ watch(classId, () => void sheet.init(initialDate()))
       </button>
     </div>
 
-    <div v-if="sheet.mode.value === 'lesson'" class="max-w-sm" data-testid="subject-field">
+    <!-- Jadvaldan aniqlangan dars: fan faqat o'qish uchun chip; admin/sinf rahbari o'zgartira oladi -->
+    <div
+      v-if="sheet.mode.value === 'lesson' && sheet.scheduledLesson.value && !sheet.overriding.value"
+      class="flex flex-wrap items-center gap-2"
+      data-testid="subject-chip-row"
+    >
+      <span
+        class="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700"
+        data-testid="subject-chip"
+      >
+        <BookOpen class="h-4 w-4" aria-hidden="true" />
+        {{ sheet.subjectLabel.value }}
+        <span v-if="sheet.scheduledLesson.value.teacher" class="font-normal text-fg-muted">
+          · {{ sheet.scheduledLesson.value.teacher.fullName }}
+        </span>
+      </span>
+      <button
+        v-if="sheet.canOverrideSubject.value"
+        type="button"
+        class="text-sm font-medium text-primary-700 underline-offset-2 hover:underline"
+        data-testid="subject-override"
+        @click="sheet.startOverride()"
+      >
+        {{ t('attendance.changeSubject') }}
+      </button>
+    </div>
+
+    <div v-else-if="sheet.mode.value === 'lesson'" class="max-w-sm" data-testid="subject-field">
       <BaseSelect
         :model-value="sheet.subjectId.value"
         :options="subjectOptions"
@@ -230,6 +284,27 @@ watch(classId, () => void sheet.init(initialDate()))
         "
         @update:model-value="changeSubject"
       />
+      <button
+        v-if="sheet.scheduledLesson.value && sheet.overriding.value"
+        type="button"
+        class="mt-1 text-sm font-medium text-primary-700 underline-offset-2 hover:underline"
+        data-testid="subject-revert"
+        @click="sheet.stopOverride()"
+      >
+        {{
+          t('attendance.backToScheduled', { name: sheet.scheduledLesson.value.subject?.name ?? '' })
+        }}
+      </button>
+    </div>
+
+    <div
+      v-if="sheet.mode.value === 'lesson' && !sheet.canTake.value && !sheet.loading.value"
+      class="flex items-start gap-2 rounded-xl bg-danger-soft p-3 text-sm text-danger"
+      role="alert"
+      data-testid="cannot-take"
+    >
+      <Lock class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+      {{ sheet.cannotTakeReason.value || t('attendance.cannotTake') }}
     </div>
 
     <div
@@ -326,13 +401,15 @@ watch(classId, () => void sheet.init(initialDate()))
       :message="
         !sheet.isWorkingDay.value
           ? t('attendance.saveBlocked')
-          : sheet.subjectMissing.value && sheet.hasUnsaved.value
-            ? t('attendance.subjectRequired')
-            : sheet.invalidDirty.value.length
-              ? t('scoring.invalidRows', { n: sheet.invalidDirty.value.length })
-              : sheet.hasUnsaved.value
-                ? t('scoring.unsavedHint')
-                : ''
+          : !sheet.canTake.value
+            ? t('attendance.saveNotAllowed')
+            : sheet.subjectMissing.value && sheet.hasUnsaved.value
+              ? t('attendance.subjectRequired')
+              : sheet.invalidDirty.value.length
+                ? t('scoring.invalidRows', { n: sheet.invalidDirty.value.length })
+                : sheet.hasUnsaved.value
+                  ? t('scoring.unsavedHint')
+                  : ''
       "
       :danger="sheet.invalidDirty.value.length > 0"
       :show-discard="sheet.hasUnsaved.value"

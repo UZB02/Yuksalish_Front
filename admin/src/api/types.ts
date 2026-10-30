@@ -858,6 +858,17 @@ export interface AttendanceSettings {
   ratingImpact: RatingImpact
 }
 
+export type TimetableEnforcement = 'off' | 'suggest' | 'strict'
+
+/** Davomatga jadvalning ta'siri (`timetable` sozlamasi) */
+export interface TimetableAttendanceSettings {
+  enforcement: TimetableEnforcement
+  homeroomCanTakeAnyLesson: boolean
+  strictNoTimetable: 'manual' | 'block'
+}
+
+export type AttendanceSource = 'timetable' | 'override' | 'manual'
+
 export interface AttendanceRecord {
   id: string
   studentId: string
@@ -869,6 +880,10 @@ export interface AttendanceRecord {
   /** Dars rejimida darsning fani (kunlik rejim va eski yozuvlarda null) */
   subjectId?: string | null
   subject?: { id: string; name: string } | null
+  /** Snapshot: dars o'qituvchisi va manba (jadval / almashtirish / qo'lda) */
+  teacherId?: string | null
+  teacher?: { id: string; fullName: string } | null
+  source?: AttendanceSource | null
   statusId: string
   status: {
     id: string
@@ -909,6 +924,24 @@ export interface AttendanceSubjectOption {
   assigned: boolean
 }
 
+/** Sinfning shu sanadagi jadvaldan aniqlangan darsi (sheet.lessons) */
+export interface AttendanceSheetLesson {
+  classId: string
+  date: string
+  lessonNo: number
+  groupKey: string | null
+  subjectId: string
+  teacherId: string
+  room: string | null
+  source: 'timetable' | 'override'
+  overrideType?: string
+  cancelled: boolean
+  subject: { id: string; name: string } | null
+  teacher: { id: string; fullName: string } | null
+  /** Joriy foydalanuvchining darsi */
+  mine: boolean
+}
+
 export interface AttendanceSheet {
   class: { id: string; name: string }
   date: string
@@ -920,6 +953,21 @@ export interface AttendanceSheet {
   /** Dars rejimida tanlanadigan fanlar (rolga qarab) */
   subjects?: AttendanceSubjectOption[]
   lessonsPerDay: number
+  /** Dars rejimida ruxsat etilgan eng katta dars raqami: max(lessonsPerDay, jadvaldagi eng katta dars) */
+  maxLessonNo?: number | null
+  timetable?: {
+    enforcement: TimetableEnforcement
+    hasTimetable: boolean
+    homeroomCanTakeAnyLesson: boolean
+  }
+  /** So'ralgan dars raqami uchun jadvaldagi dars (yo'q bo'lsa null) */
+  lesson?: AttendanceSheetLesson | null
+  lessons?: AttendanceSheetLesson[]
+  /** Joriy foydalanuvchi shu darsga davomat ola oladimi */
+  canTake?: boolean
+  cannotTakeReason?: string | null
+  /** Jadvaldagi fan o'rniga boshqasini tanlash mumkin (admin / sinf rahbari, suggest) */
+  canOverrideSubject?: boolean
   isWorkingDay: boolean
   settings: AttendanceSettings
   statuses: AttendanceStatus[]
@@ -938,7 +986,7 @@ export interface AttendanceBulkPayload {
   classId: string
   date: string
   lessonNo?: number
-  /** Dars rejimida majburiy */
+  /** Dars rejimida: jadvaldan aniqlangan darsda ixtiyoriy (server o'zi aniqlaydi), aks holda majburiy */
   subjectId?: string
   items: AttendanceBulkItem[]
 }
@@ -1275,4 +1323,33 @@ export interface AuditFilters {
   actions: string[]
   entities: string[]
   users: { id: string; fullName: string; username: string; role: Role }[]
+}
+
+export type TodayAttendanceStatus = 'taken' | 'partial' | 'none'
+
+/** GET /timetable/me/today: o'qituvchining bugungi darsi */
+export interface TodayLesson {
+  date: string
+  lessonNo: number
+  classId: string
+  class: { id: string; name: string }
+  subjectId: string
+  subject: { id: string; name: string }
+  room: string | null
+  source: 'timetable' | 'override'
+  overrideType: string | null
+  substitute: boolean
+  cancelled: boolean
+  status: TodayAttendanceStatus
+  markedStudents: number
+  totalStudents: number
+}
+
+export interface MyTodayLessons {
+  date: string
+  attendanceMode: AttendanceMode
+  working: boolean
+  /** O'qituvchiga bugun amal qiladigan jadval versiyasi bormi */
+  hasTimetable: boolean
+  lessons: TodayLesson[]
 }

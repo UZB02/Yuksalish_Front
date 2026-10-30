@@ -9,6 +9,7 @@ import { scoresApi } from '@/api/scores.api'
 import type { AttendanceProgress, SchoolClass, TodayProgress } from '@/api/types'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import ProgressBar from '@/components/scoring/ProgressBar.vue'
+import TodayLessons from '@/components/timetable/TodayLessons.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -101,6 +102,8 @@ onMounted(load)
           : t('myClasses.description')
     "
   />
+
+  <TodayLessons v-if="!needsSchool && mode === 'mine' && auth.user?.role === 'teacher'" />
 
   <NeedsSchool v-if="needsSchool" />
 

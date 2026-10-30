@@ -42,10 +42,14 @@ describe('visibleSettingsTabs', () => {
       'rating',
       'public',
       'attendance',
+      'timetable',
     ])
   })
-  it("attendance.settings maktab admini faqat Davomat tabini ko'radi", () => {
-    expect(visibleSettingsTabs(false, (p) => p === 'attendance.settings')).toEqual(['attendance'])
+  it("attendance.settings maktab admini faqat Davomat va Dars jadvali tablarini ko'radi", () => {
+    expect(visibleSettingsTabs(false, (p) => p === 'attendance.settings')).toEqual([
+      'attendance',
+      'timetable',
+    ])
   })
   it('ruxsatsiz hech narsa', () => {
     expect(visibleSettingsTabs(false, () => false)).toEqual([])

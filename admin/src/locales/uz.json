@@ -172,6 +172,25 @@
     "attendanceTotal": "Jami o'quvchilar: {n}",
     "attendanceProgress": "Bugungi davomat progressi"
   },
+  "todayLessons": {
+    "title": "Bugungi darslarim",
+    "emptyToday": "Bugun darsingiz yo'q",
+    "noTimetable": "Jadval kiritilmagan",
+    "noTimetableText": "Sizga biriktirilgan dars jadvali hali kiritilmagan.",
+    "notWorking": "Bugun dam olish kuni",
+    "lessonNo": "{n}-dars",
+    "substitute": "O'rinbosar",
+    "cancelled": "Bekor qilingan",
+    "attendance": "Davomat",
+    "grade": "Baho",
+    "marked": "{done}/{total}",
+    "dailyHint": "Davomat kunlik olinadi",
+    "status": {
+      "taken": "Davomat olingan",
+      "partial": "Qisman",
+      "none": "Olinmagan"
+    }
+  },
   "myClasses": {
     "title": "Mening sinflarim",
     "description": "Sizga biriktirilgan sinflar",
@@ -792,7 +811,8 @@
       "scoring": "Baholash qoidalari",
       "rating": "Reyting",
       "public": "Ochiq ko'rinish",
-      "attendance": "Davomat"
+      "attendance": "Davomat",
+      "timetable": "Dars jadvali"
     },
     "fields": {
       "minScore": {
@@ -993,6 +1013,15 @@
       "mode": {
         "daily": "Kunlik",
         "lesson": "Dars bo'yicha"
+      },
+      "enforcement": {
+        "off": "O'chiq",
+        "suggest": "Tavsiya",
+        "strict": "Qat'iy"
+      },
+      "strictNoTimetable": {
+        "manual": "Qo'lda olinadi",
+        "block": "Bloklanadi"
       }
     },
     "methodHelp": {
@@ -1117,6 +1146,27 @@
     "penalty": "Davomat jarimasi",
     "penaltyHint": "Davomat bo'yicha ayirilgan ball (reytingga ta'sir yoqilgan)"
   },
+  "settingsTimetable": {
+    "fields": {
+      "enforcement": {
+        "label": "Jadval va davomat",
+        "hint": "O'chiq: jadval davomatga ta'sir qilmaydi. Tavsiya: fan va o'qituvchi jadvaldan avtomatik to'ldiriladi, admin va sinf rahbari o'zgartira oladi. Qat'iy: bo'sh soatga davomat olinmaydi va fanni o'zgartirib bo'lmaydi."
+      },
+      "homeroomCanTakeAnyLesson": {
+        "label": "Sinf rahbari istalgan darsga davomat oladi",
+        "hint": "Yoqilsa, sinf rahbari o'z sinfining boshqa o'qituvchi darsiga ham davomat oladi (Tavsiya rejimida fanni ham o'zgartira oladi)"
+      },
+      "strictNoTimetable": {
+        "label": "Jadvali yo'q sinf (Qat'iy rejimda)",
+        "hint": "Qat'iy rejimda jadvali kiritilmagan sinf uchun davomat qo'lda olinadimi yoki bloklanadimi"
+      }
+    },
+    "enforcementHelp": {
+      "off": "Davomat hozirgidek, jadvalsiz olinadi.",
+      "suggest": "Jadvalda dars bor bo'lsa, fan avtomatik tanlanadi. Oddiy o'qituvchi faqat o'z darsiga davomat oladi.",
+      "strict": "Jadvaldan boshqa dars va fanga davomat olib bo'lmaydi (admin ham)."
+    }
+  },
   "settingsAttendance": {
     "weekdays": {
       "1": "Du",
@@ -1190,6 +1240,12 @@
     "noSubjects": "Bu sinfda sizga biriktirilgan fan yo'q",
     "subjectRequired": "Saqlash uchun darsning fanini tanlang",
     "lessonProgress": "{done}/{total} o'quvchi belgilangan",
+    "myLesson": "Sizning darsingiz",
+    "changeSubject": "o'zgartirish",
+    "backToScheduled": "Jadvaldagi fanga qaytish: {name}",
+    "emptyLesson": "{n} · (bo'sh)",
+    "cannotTake": "Bu darsga davomat olishga ruxsatingiz yo'q",
+    "saveNotAllowed": "Bu darsga davomat olishga ruxsat yo'q, saqlab bo'lmaydi",
     "notWorkingDay": "Bu kun ish kuni emas. Dam olish kuni uchun davomat olinmaydi.",
     "saveBlocked": "Ish kuni bo'lmagan kun uchun saqlab bo'lmaydi",
     "onlyUnmarked": "Faqat olinmaganlar",

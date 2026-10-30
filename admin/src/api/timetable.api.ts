@@ -1,4 +1,5 @@
 import { deleteData, getData, sendData } from './http'
+import type { MyTodayLessons } from './types'
 
 export type TimetableStatus = 'draft' | 'active' | 'superseded'
 export type TimetablePhase = 'draft' | 'past' | 'current' | 'future'
@@ -194,6 +195,8 @@ export const timetableApi = {
   teacherWeek: (teacherId: string, date?: string) =>
     getData<TeacherWeek>(`/timetable/teachers/${teacherId}/week`, { date }),
   myWeek: (date?: string) => getData<TeacherWeek>('/timetable/me/week', { date }),
+  /** Bugungi darslarim (davomat holati bilan) */
+  myToday: () => getData<MyTodayLessons>('/timetable/me/today'),
   day: (date?: string) => getData<TimetableDay>('/timetable/day', { date }),
   lessons: (classId: string, date: string) =>
     getData<{ classId: string; date: string; lessons: TimetableLesson[] }>('/timetable/lessons', {

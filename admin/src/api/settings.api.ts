@@ -9,15 +9,17 @@ import type {
   ScoringSettings,
   ScoringSettingsResponse,
   SettingsResponse,
+  TimetableAttendanceSettings,
 } from './types'
 
-export type SettingsKind = 'scoring' | 'rating' | 'public' | 'attendance'
+export type SettingsKind = 'scoring' | 'rating' | 'public' | 'attendance' | 'timetable'
 
 interface SettingsMap {
   scoring: ScoringSettings
   rating: RatingSettings
   public: PublicSettings
   attendance: AttendanceSettings
+  timetable: TimetableAttendanceSettings
 }
 
 export const settingsApi = {

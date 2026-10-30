@@ -15,6 +15,7 @@ import { isApiError } from '@/api/errors'
 import { attendanceApi } from '@/api/attendance.api'
 import { scoresApi } from '@/api/scores.api'
 import ProgressBar from '@/components/scoring/ProgressBar.vue'
+import TodayLessons from '@/components/timetable/TodayLessons.vue'
 import TopRatings from '@/components/ratings/TopRatings.vue'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { PERMISSIONS } from '@/constants/permissions'
@@ -201,6 +202,8 @@ watch(() => schoolCtx.schoolId, load)
       {{ t('dashboard.attendanceTotal', { n: summary.attendanceToday.total }) }}
     </p>
   </section>
+
+  <TodayLessons v-if="isTeacher && !needsSchool && !forbidden" class="mt-6" />
 
   <section v-if="isTeacher && attendanceProgress.length" class="card mt-6 p-6">
     <h2 class="mb-4 text-base font-semibold text-fg">{{ t('dashboard.attendanceProgress') }}</h2>

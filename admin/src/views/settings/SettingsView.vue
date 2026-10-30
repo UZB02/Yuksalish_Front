@@ -8,6 +8,7 @@ import AttendanceSettingsTab from './AttendanceSettingsTab.vue'
 import PublicSettingsTab from './PublicSettingsTab.vue'
 import RatingSettingsTab from './RatingSettingsTab.vue'
 import ScoringSettingsTab from './ScoringSettingsTab.vue'
+import TimetableSettingsTab from './TimetableSettingsTab.vue'
 
 interface SettingsTab {
   key: SettingsTabKey
@@ -20,11 +21,12 @@ const ALL: SettingsTab[] = [
   { key: 'rating', labelKey: 'settings.tabs.rating', component: RatingSettingsTab },
   { key: 'public', labelKey: 'settings.tabs.public', component: PublicSettingsTab },
   { key: 'attendance', labelKey: 'settings.tabs.attendance', component: AttendanceSettingsTab },
+  { key: 'timetable', labelKey: 'settings.tabs.timetable', component: TimetableSettingsTab },
 ]
 
 const { t } = useI18n()
 const auth = useAuthStore()
-// Maktab admini faqat "Davomat" tabini ko'radi
+// Maktab admini faqat "Davomat" va "Dars jadvali" tablarini ko'radi
 const tabs = computed(() => {
   const keys = visibleSettingsTabs(auth.isSuperadmin, (p) => auth.hasPermission(p))
   return ALL.filter((x) => keys.includes(x.key))

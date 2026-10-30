@@ -6,6 +6,7 @@ import type {
   AttendanceMode,
   AttendanceRecord,
   AttendanceSettings,
+  AttendanceSheetLesson,
   AttendanceSheetStudent,
   AttendanceStatus,
   AttendanceSubjectOption,
@@ -72,6 +73,14 @@ function toRow(s: AttendanceSheetStudent): AttendanceRow {
   }
 }
 
+/** Dars tanlagich chipi: jadvaldagi dars, bo'sh slot yoki jadvalsiz oddiy raqam */
+export interface LessonChip {
+  n: number
+  lesson: AttendanceSheetLesson | null
+  /** Sinfda jadval bor, lekin bu soatda dars yo'q */
+  empty: boolean
+}
+
 export interface LiveCounts {
   present: number
   late: number
@@ -102,6 +111,16 @@ export function useAttendanceSheet(getClassId: () => string) {
   const subjectId = ref<string | null>(null)
   const subjects = ref<AttendanceSubjectOption[]>([])
   const savedSubjectId = ref<string | null>(null)
+  /** Jadval (P2): shu sanadagi darslar, tanlangan darsning jadvaldagi yozuvi va ruxsat */
+  const lessons = ref<AttendanceSheetLesson[]>([])
+  const lesson = ref<AttendanceSheetLesson | null>(null)
+  const hasTimetable = ref(false)
+  const maxLessonNo = ref(1)
+  const canTake = ref(true)
+  const cannotTakeReason = ref<string | null>(null)
+  const canOverrideSubject = ref(false)
+  /** Admin / sinf rahbari jadvaldagi fan o'rniga boshqasini tanlayapti */
+  const overriding = ref(false)
   let requestId = 0
 
   const statusById = computed(() => new Map(statuses.value.map((s) => [s.id, s])))
@@ -138,10 +157,11 @@ export function useAttendanceSheet(getClassId: () => string) {
         lessonNo: lessonNo.value ?? undefined,
       })
       if (current !== requestId) return
-      // Dars rejimida dars tanlanmagan bo'lsa 1-darsdan boshlaymiz
+      // Dars rejimida dars tanlanmagan bo'lsa: o'qituvchining bugungi birinchi darsi, aks holda 1-dars
       if (sheet.mode === 'lesson' && lessonNo.value === null) {
-        lessonNo.value = sheet.lessonNo ?? 1
-        if (sheet.lessonNo === null) {
+        const mine = (sheet.lessons ?? []).find((l) => l.mine && !l.cancelled)
+        lessonNo.value = mine?.lessonNo ?? sheet.lessonNo ?? 1
+        if (lessonNo.value !== sheet.lessonNo) {
           sheet = await attendanceApi.sheet(getClassId(), {
             date: date.value,
             lessonNo: lessonNo.value,
@@ -153,10 +173,17 @@ export function useAttendanceSheet(getClassId: () => string) {
       className.value = sheet.class.name
       mode.value = sheet.mode
       lessonsPerDay.value = sheet.lessonsPerDay
+      lessons.value = sheet.lessons ?? []
+      lesson.value = sheet.lesson ?? null
+      hasTimetable.value = sheet.timetable?.hasTimetable ?? false
+      maxLessonNo.value = Math.max(sheet.maxLessonNo ?? 0, sheet.lessonsPerDay)
+      canTake.value = sheet.canTake ?? true
+      cannotTakeReason.value = sheet.cannotTakeReason ?? null
+      canOverrideSubject.value = sheet.canOverrideSubject ?? false
       isWorkingDay.value = sheet.isWorkingDay
       settings.value = sheet.settings
       statuses.value = sheet.statuses
-      applySubjects(sheet.mode, sheet.subjects ?? [], sheet.subjectId ?? null)
+      applySubjects(sheet.mode, sheet.subjects ?? [], sheet.subjectId ?? null, lesson.value)
       core.replaceRows(sheet.students.map(toRow), !!opts.keepDirty)
       if (sheet.mode === 'lesson') void loadLessonProgress(current)
     } catch (e) {
@@ -174,6 +201,7 @@ export function useAttendanceSheet(getClassId: () => string) {
     m: AttendanceMode,
     options: AttendanceSubjectOption[],
     saved: string | null,
+    scheduled: AttendanceSheetLesson | null = null,
   ) {
     if (m !== 'lesson') {
       subjects.value = []
@@ -184,6 +212,7 @@ export function useAttendanceSheet(getClassId: () => string) {
     subjects.value = options
     savedSubjectId.value = saved
     if (saved) subjectId.value = saved
+    else if (scheduled && !scheduled.cancelled) subjectId.value = scheduled.subjectId
     else if (!options.some((o) => o.id === subjectId.value)) {
       subjectId.value = options.length === 1 ? options[0].id : null
     }
@@ -193,9 +222,41 @@ export function useAttendanceSheet(getClassId: () => string) {
     subjectId.value = id
   }
 
+  /** Jadvaldan aniqlangan (bekor qilinmagan) dars: fan faqat o'qish uchun chip */
+  const scheduledLesson = computed(() =>
+    lesson.value && !lesson.value.cancelled ? lesson.value : null,
+  )
+
+  /** Ko'rsatiladigan fan nomi (jadval yoki saqlangan/tanlangan fan) */
+  const subjectLabel = computed(() => {
+    const id = subjectId.value
+    if (!id) return ''
+    if (scheduledLesson.value?.subjectId === id) return scheduledLesson.value.subject?.name ?? ''
+    return subjects.value.find((s) => s.id === id)?.name ?? ''
+  })
+
+  function startOverride() {
+    overriding.value = true
+  }
+  /** Jadvaldagi fanga qaytish */
+  function stopOverride() {
+    overriding.value = false
+    if (scheduledLesson.value && !savedSubjectId.value)
+      subjectId.value = scheduledLesson.value.subjectId
+  }
+
+  /** Dars chiplari: 1..maxLessonNo; jadvali bor sinfda bo'sh slotlar "(bo'sh)" */
+  const chips = computed<LessonChip[]>(() =>
+    Array.from({ length: maxLessonNo.value }, (_, i) => {
+      const n = i + 1
+      const l = lessons.value.find((x) => x.lessonNo === n) ?? null
+      return { n, lesson: l, empty: hasTimetable.value && !l }
+    }),
+  )
+
   /** Dars chiplaridagi to'ldirilganlik belgisi: har bir dars uchun belgilangan o'quvchilar soni. */
   async function loadLessonProgress(forRequest = requestId) {
-    const n = lessonsPerDay.value
+    const n = maxLessonNo.value
     try {
       const counts = await Promise.all(
         Array.from({ length: n }, (_, i) =>
@@ -282,6 +343,7 @@ export function useAttendanceSheet(getClassId: () => string) {
   const canSave = computed(
     () =>
       dateOk.value &&
+      canTake.value &&
       !subjectMissing.value &&
       changedCount.value > 0 &&
       invalidDirty.value.length === 0 &&
@@ -302,6 +364,16 @@ export function useAttendanceSheet(getClassId: () => string) {
       }
     })
 
+  /**
+   * Fan yuboriladi: jadvaldan aniqlangan darsda faqat u jadvaldagidan farq qilsa
+   * (server o'zi aniqlaydi); jadvalsiz/bo'sh slotda doim.
+   */
+  function sendsSubject(): boolean {
+    if (mode.value !== 'lesson' || !subjectId.value) return false
+    const sched = scheduledLesson.value
+    return !sched || subjectId.value !== sched.subjectId
+  }
+
   async function save() {
     if (!canSave.value) return null
     const items = buildItems()
@@ -311,7 +383,7 @@ export function useAttendanceSheet(getClassId: () => string) {
         classId: getClassId(),
         date: date.value,
         ...(mode.value === 'lesson' && lessonNo.value ? { lessonNo: lessonNo.value } : {}),
-        ...(mode.value === 'lesson' && subjectId.value ? { subjectId: subjectId.value } : {}),
+        ...(sendsSubject() ? { subjectId: subjectId.value! } : {}),
         items,
       })
       core.applyBulkResult(new Set(items.map((i) => i.studentId)), result.failed)
@@ -326,10 +398,15 @@ export function useAttendanceSheet(getClassId: () => string) {
    * Birinchi yuklash. `?date=` berilgan bo'lsa shu sana (ish kuni bo'lmasa ham - ogohlantirish chiqadi);
    * aks holda bugun ish kuni bo'lmasa backdateDays ichidagi eng yaqin oldingi ish kuniga o'tadi.
    */
-  async function init(queryDate?: string | null) {
+  async function init(queryDate?: string | null, queryLessonNo?: number | null) {
     subjectId.value = null
+    overriding.value = false
     const explicit = isIsoDate(queryDate)
     if (explicit) date.value = queryDate
+    lessonNo.value =
+      typeof queryLessonNo === 'number' && Number.isInteger(queryLessonNo) && queryLessonNo >= 1
+        ? queryLessonNo
+        : null
     await load()
     if (explicit || loadError.value || isWorkingDay.value) return
     const target = nearestWorkingDay(
@@ -349,6 +426,7 @@ export function useAttendanceSheet(getClassId: () => string) {
     if (next.lessonNo !== undefined) lessonNo.value = next.lessonNo
     // Boshqa sana/dars: fan serverdan qayta aniqlanadi (saqlangan bo'lsa) yoki qayta tanlanadi
     subjectId.value = null
+    overriding.value = false
     await load()
   }
 
@@ -372,6 +450,19 @@ export function useAttendanceSheet(getClassId: () => string) {
     savedSubjectId,
     subjectMissing,
     setSubject,
+    lessons,
+    lesson,
+    scheduledLesson,
+    hasTimetable,
+    maxLessonNo,
+    canTake,
+    cannotTakeReason,
+    canOverrideSubject,
+    overriding,
+    subjectLabel,
+    startOverride,
+    stopOverride,
+    chips,
     load,
     isDirty,
     errorsOf,
