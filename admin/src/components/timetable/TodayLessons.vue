@@ -44,7 +44,12 @@ const attendanceTo = (l: TodayLesson) => ({
 })
 const gradeTo = (l: TodayLesson) => ({
   name: 'grading',
-  query: { classId: l.classId, subjectId: l.subjectId, date: l.date },
+  query: {
+    classId: l.classId,
+    subjectId: l.subjectId,
+    date: l.date,
+    lessonNo: String(l.lessonNo),
+  },
 })
 
 onMounted(async () => {

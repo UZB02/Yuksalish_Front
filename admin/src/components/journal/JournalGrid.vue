@@ -5,12 +5,13 @@ import { TriangleAlert } from 'lucide-vue-next'
 import type { JournalGridData } from '@/api/journal.api'
 import AvatarImage from '@/components/ui/AvatarImage.vue'
 import JournalCell from './JournalCell.vue'
+import type { JournalColumn } from '@/api/journal.api'
 import { dayOf, fmtAvg, groupByMonth, isLowAvg } from './journal.utils'
 
 const props = defineProps<{ data: JournalGridData; today: string }>()
 
 const { t } = useI18n()
-const months = computed(() => groupByMonth(props.data.dates))
+const months = computed(() => groupByMonth(props.data.columns))
 
 // Qat'iy balandliklar (sticky sarlavha qatorlari uchun top ofsetlari)
 const H1 = 28
@@ -27,6 +28,23 @@ const rightOf = (i: number) => ({
   width: `${COL}px`,
   minWidth: `${COL}px`,
 })
+
+/** Sarlavhaning 3-qatori: dars ustuni uchun "3-d", ish kuni ustuni uchun hafta kuni */
+const subLabel = (c: JournalColumn) =>
+  c.lessonNo > 0
+    ? t('journal.lessonShort', { n: c.lessonNo })
+    : t(`journal.weekdayShort.${c.weekday}`)
+const headTone = (c: JournalColumn, strong: boolean) => {
+  if (c.cancelled) return 'bg-surface-muted text-fg-muted opacity-60 line-through'
+  if (c.date === props.today) return 'bg-primary-100 text-primary-700'
+  return strong ? 'bg-surface-muted text-fg' : 'bg-surface-muted text-fg-muted'
+}
+const headTitle = (c: JournalColumn) =>
+  c.cancelled
+    ? t('journal.cancelledLesson')
+    : c.source === 'record'
+      ? t('journal.recordColumn')
+      : undefined
 
 const stickyName = 'sticky left-0 z-20 bg-surface'
 </script>
@@ -68,14 +86,15 @@ const stickyName = 'sticky left-0 z-20 bg-surface'
         </tr>
         <tr>
           <th
-            v-for="d in data.dates"
-            :key="d.date"
+            v-for="d in data.columns"
+            :key="d.key"
             class="sticky z-10 min-w-9 border-b border-r border-border px-0 text-center text-xs font-semibold"
-            :class="
-              d.date === today ? 'bg-primary-100 text-primary-700' : 'bg-surface-muted text-fg'
-            "
+            :class="headTone(d, true)"
             :style="head2"
+            :title="headTitle(d)"
             :data-date="d.date"
+            :data-column="d.key"
+            :data-cancelled="d.cancelled ? 'true' : undefined"
             :data-today="d.date === today ? 'true' : undefined"
           >
             {{ dayOf(d.date) }}
@@ -83,17 +102,15 @@ const stickyName = 'sticky left-0 z-20 bg-surface'
         </tr>
         <tr>
           <th
-            v-for="d in data.dates"
-            :key="d.date"
-            class="sticky z-10 border-b border-r border-border px-0 text-center text-[10px] font-medium uppercase"
-            :class="
-              d.date === today
-                ? 'bg-primary-100 text-primary-700'
-                : 'bg-surface-muted text-fg-muted'
-            "
+            v-for="d in data.columns"
+            :key="d.key"
+            class="sticky z-10 border-b border-r border-border px-0 text-center text-[10px] font-medium"
+            :class="[headTone(d, false), d.lessonNo > 0 ? '' : 'uppercase']"
             :style="head3"
+            :title="headTitle(d)"
+            data-testid="sub-head"
           >
-            {{ t(`journal.weekdayShort.${d.weekday}`) }}
+            {{ subLabel(d) }}
           </th>
         </tr>
       </thead>
@@ -122,10 +139,12 @@ const stickyName = 'sticky left-0 z-20 bg-surface'
             </div>
           </td>
           <JournalCell
-            v-for="d in data.dates"
-            :key="d.date"
-            :cell="data.cells[s.id]?.[d.date]"
+            v-for="d in data.columns"
+            :key="d.key"
+            :cell="data.cells[s.id]?.[d.key]"
             :date="d.date"
+            :lesson-no="d.lessonNo"
+            :cancelled="d.cancelled"
             :student-name="s.fullName"
             :today="d.date === today"
           />
@@ -176,14 +195,14 @@ const stickyName = 'sticky left-0 z-20 bg-surface'
             {{ t('journal.grid.classAvg') }}
           </th>
           <td
-            v-for="d in data.dates"
-            :key="d.date"
+            v-for="d in data.columns"
+            :key="d.key"
             class="h-7 border-b border-r border-border text-center text-[11px] tabular-nums text-fg-muted"
           >
             {{
-              data.summary.perDate[d.date]?.avg === null
+              data.summary.perColumn[d.key]?.avg === null
                 ? ''
-                : fmtAvg(data.summary.perDate[d.date]?.avg)
+                : fmtAvg(data.summary.perColumn[d.key]?.avg)
             }}
           </td>
           <td
@@ -213,11 +232,11 @@ const stickyName = 'sticky left-0 z-20 bg-surface'
             {{ t('journal.grid.gradeCount') }}
           </th>
           <td
-            v-for="d in data.dates"
-            :key="d.date"
+            v-for="d in data.columns"
+            :key="d.key"
             class="h-7 border-r border-border text-center text-[11px] tabular-nums text-fg-muted"
           >
-            {{ data.summary.perDate[d.date]?.count || '' }}
+            {{ data.summary.perColumn[d.key]?.count || '' }}
           </td>
           <td
             class="sticky z-10 border-l border-border bg-surface-muted text-center text-sm font-bold tabular-nums"

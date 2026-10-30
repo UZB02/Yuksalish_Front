@@ -14,8 +14,13 @@ const props = defineProps<{
   studentName?: string
   today?: boolean
   interactive?: boolean
+  /** Dars raqami (0 - ish kuni ustuni) */
+  lessonNo?: number
+  cancelled?: boolean
 }>()
-const emit = defineEmits<{ select: [payload: { date: string; cell?: JournalCellData }] }>()
+const emit = defineEmits<{
+  select: [payload: { date: string; lessonNo: number; cell?: JournalCellData }]
+}>()
 
 const { t } = useI18n()
 
@@ -26,6 +31,8 @@ const markAbsence = computed(() =>
 
 const tooltip = computed(() => {
   const parts: string[] = [fmtDate(props.date)]
+  if ((props.lessonNo ?? 0) > 0) parts.push(t('journal.lessonLong', { n: props.lessonNo }))
+  if (props.cancelled) parts.push(t('journal.cancelledLesson'))
   if (props.cell?.grade !== undefined)
     parts.push(t('journal.tooltip.grade', { n: props.cell.grade }))
   if (absence.value) parts.push(t(absenceKey(absence.value)))
@@ -35,6 +42,7 @@ const tooltip = computed(() => {
 const tone = computed(() => {
   if (props.cell?.grade !== undefined) return GRADE_CLASS[props.cell.grade]
   if (markAbsence.value) return ABSENCE_CLASS[markAbsence.value]
+  if (props.cancelled) return 'bg-surface-muted opacity-60'
   return props.today ? 'bg-primary-50' : ''
 })
 </script>
@@ -48,10 +56,12 @@ const tone = computed(() => {
     ]"
     :title="tooltip"
     :data-date="date"
+    :data-lesson="lessonNo || undefined"
+    :data-cancelled="cancelled ? 'true' : undefined"
     :data-grade="cell?.grade"
     :data-absence="absence"
     :data-today="today ? 'true' : undefined"
-    @click="interactive && emit('select', { date, cell })"
+    @click="interactive && emit('select', { date, lessonNo: lessonNo ?? 0, cell })"
   >
     <span v-if="cell?.grade !== undefined" class="font-semibold">{{ cell.grade }}</span>
     <span v-else-if="markAbsence" class="text-xs font-semibold">{{ markAbsence }}</span>

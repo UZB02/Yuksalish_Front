@@ -69,7 +69,9 @@ async function save() {
     :title="t('grades.edit')"
     :description="
       grade
-        ? `${grade.student.fullName} - ${grade.subject.name} - ${formatDate(grade.date)}`
+        ? `${grade.student.fullName} - ${grade.subject.name} - ${formatDate(grade.date)}${
+            grade.lessonNo > 0 ? `, ${t('grading.lesson.n', { n: grade.lessonNo })}` : ''
+          }`
         : undefined
     "
     persistent

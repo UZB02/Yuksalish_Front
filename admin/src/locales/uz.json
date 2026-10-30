@@ -1766,6 +1766,14 @@
     "noAssignmentsTitle": "Sizga fan biriktirilmagan",
     "noAssignmentsText": "Fan bahosini qo'yish uchun maktab administratori sizni sinf va fanga biriktirishi kerak.",
     "alreadyGraded": "Allaqachon baholangan",
+    "lesson": {
+      "label": "Dars",
+      "n": "{n}-dars",
+      "pick": "Darsni tanlang",
+      "required": "Bu kuni fanning bir nechta darsi bor. Baholarni saqlashdan oldin darsni tanlang.",
+      "cancelled": "bekor qilingan",
+      "mine": "sizning darsingiz"
+    },
     "addComment": "Izoh qo'shish",
     "commentPlaceholder": "Izoh (ixtiyoriy)",
     "onlyUngraded": "Faqat baholanmaganlar",
@@ -1969,6 +1977,10 @@
     "tooltip": {
       "grade": "Baho: {n}"
     },
+    "lessonShort": "{n}-d",
+    "lessonLong": "{n}-dars",
+    "cancelledLesson": "Dars bekor qilingan",
+    "recordColumn": "Jadvaldan tashqari baho",
     "absence": {
       "N": "Sababsiz yo'q (N)",
       "B": "Sababli yo'q (B)",

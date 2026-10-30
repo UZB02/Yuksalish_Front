@@ -447,6 +447,8 @@ export interface SubjectGrade {
   value: number
   comment: string | null
   date: string
+  /** Dars raqami (jadval); 0 - darsga bog'lanmagan */
+  lessonNo: number
   editable: boolean
   createdAt: string
   updatedAt: string
@@ -475,10 +477,23 @@ export interface GradeSheetStudent {
   alreadyGraded: boolean
 }
 
+/** Fanning shu kundagi darsi (baholash varag'ida) */
+export interface GradeSheetLesson {
+  lessonNo: number
+  teacher: { id: string; fullName: string }
+  cancelled: boolean
+  room: string | null
+  mine: boolean
+}
+
 export interface GradeSheet {
   class: { id: string; name: string }
   subject: { id: string; name: string }
   date: string
+  /** null - fanning bir nechta darsi bor, tanlanishi kerak; 0 - darsga bog'lanmagan */
+  lessonNo: number | null
+  hasTimetable: boolean
+  lessons: GradeSheetLesson[]
   settings: { editWindowHours: number; backdateDays: number }
   students: GradeSheetStudent[]
 }
@@ -498,6 +513,7 @@ export interface BulkGradesPayload {
   classId: string
   subjectId: string
   date: string
+  lessonNo?: number
   items: BulkGradeItem[]
 }
 

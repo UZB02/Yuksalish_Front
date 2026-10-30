@@ -26,6 +26,19 @@ export interface JournalSummaryRow {
   absentB: number
 }
 
+/**
+ * Jurnal ustuni. key: `YYYY-MM-DD#lessonNo` (dars) yoki `YYYY-MM-DD` (ish kuni, lessonNo 0).
+ * source: timetable - jadval darsi; workday - jadval qamramagan ish kuni; record - ustuni yo'q baho.
+ */
+export interface JournalColumn {
+  key: string
+  date: string
+  weekday: number
+  lessonNo: number
+  source: 'timetable' | 'workday' | 'record'
+  cancelled: boolean
+}
+
 export interface JournalGridData {
   class: { id: string; name: string }
   subject: { id: string; name: string }
@@ -33,12 +46,12 @@ export interface JournalGridData {
   school: { id: string; name: string }
   from: string
   to: string
-  dates: { date: string; weekday: number }[]
+  columns: JournalColumn[]
   students: JournalStudent[]
   cells: Record<string, Record<string, JournalCellData>>
   summary: {
     perStudent: Record<string, JournalSummaryRow>
-    perDate: Record<string, { avg: number | null; count: number }>
+    perColumn: Record<string, { avg: number | null; count: number }>
     classAvg: number | null
     classCount: number
   }

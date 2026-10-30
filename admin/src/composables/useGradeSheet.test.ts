@@ -35,6 +35,9 @@ const sheetOf = (students: GradeSheetStudent[]): GradeSheet => ({
   class: { id: 'c1', name: '7-A' },
   subject: { id: 's1', name: 'Matematika' },
   date: '2026-10-16',
+  lessonNo: 0,
+  hasTimetable: false,
+  lessons: [],
   settings: { editWindowHours: 24, backdateDays: 3 },
   students,
 })
@@ -102,6 +105,7 @@ describe('useGradeSheet', () => {
       classId: 'c1',
       subjectId: 's1',
       date: expect.any(String),
+      lessonNo: 0,
       items: [{ studentId: '2', value: 5, comment: 'a`lo' }],
     })
   })
@@ -149,5 +153,81 @@ describe('utils/grades', () => {
     expect(gradeTone(5)).toBe('success')
     expect(gradeTone(2)).toBe('danger')
     expect(gradeTone(null)).toBe('neutral')
+  })
+})
+
+describe('useGradeSheet: darslar', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  const lessonOf = (lessonNo: number, over = {}) => ({
+    lessonNo,
+    teacher: { id: 't1', fullName: 'Aliyev A.' },
+    cancelled: false,
+    room: null,
+    mine: true,
+    ...over,
+  })
+  const withLessons = (
+    lessonNo: number | null,
+    lessons: ReturnType<typeof lessonOf>[],
+    students = [student('1')],
+  ): GradeSheet => ({
+    ...sheetOf(students),
+    lessonNo,
+    hasTimetable: true,
+    lessons,
+  })
+
+  it('dars yo`q: lessonNo 0, tanlagich kerak emas, payload lessonNo: 0', async () => {
+    const sh = await setup([student('1')])
+    expect(sh.lessons.value).toEqual([])
+    expect(sh.lessonNo.value).toBe(0)
+    expect(sh.needsLesson.value).toBe(false)
+    sh.patch('1', { value: 4 })
+    vi.mocked(gradesApi.bulk).mockResolvedValue({ created: 1, updated: 0, failed: [] })
+    await sh.save()
+    expect(vi.mocked(gradesApi.bulk).mock.calls[0]![0]).toMatchObject({ lessonNo: 0 })
+  })
+
+  it('bitta dars: server aniqlaydi, payloadda shu dars', async () => {
+    vi.mocked(gradesApi.sheet).mockResolvedValue(withLessons(2, [lessonOf(2)]))
+    const sh = useGradeSheet(
+      () => 'c1',
+      () => 's1',
+    )
+    await sh.load()
+    expect(sh.lessonNo.value).toBe(2)
+    expect(sh.needsLesson.value).toBe(false)
+    sh.patch('1', { value: 5 })
+    vi.mocked(gradesApi.bulk).mockResolvedValue({ created: 1, updated: 0, failed: [] })
+    await sh.save()
+    expect(vi.mocked(gradesApi.bulk).mock.calls[0]![0]).toMatchObject({ lessonNo: 2 })
+  })
+
+  it('bir nechta dars: tanlanmaguncha saqlab bo`lmaydi; tanlansa varaq shu dars uchun yuklanadi', async () => {
+    const many = [lessonOf(1), lessonOf(3)]
+    vi.mocked(gradesApi.sheet).mockResolvedValueOnce(withLessons(null, many))
+    const sh = useGradeSheet(
+      () => 'c1',
+      () => 's1',
+    )
+    await sh.load()
+    expect(sh.lessonNo.value).toBeNull()
+    expect(sh.needsLesson.value).toBe(true)
+    sh.patch('1', { value: 4 })
+    expect(sh.canSave.value).toBe(false)
+    expect(await sh.save()).toBeNull()
+    expect(gradesApi.bulk).not.toHaveBeenCalled()
+
+    vi.mocked(gradesApi.sheet).mockResolvedValue(withLessons(3, many))
+    await sh.pickLesson(3)
+    expect(vi.mocked(gradesApi.sheet).mock.calls.at(-1)).toEqual([
+      'c1',
+      's1',
+      expect.any(String),
+      3,
+    ])
+    expect(sh.lessonNo.value).toBe(3)
+    expect(sh.needsLesson.value).toBe(false)
   })
 })

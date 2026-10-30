@@ -39,6 +39,8 @@ const selectKey = ref(0)
 const search = ref('')
 const onlyUngraded = ref(false)
 const today = ref(todayTashkent())
+/** Havoladan (?lessonNo=) kelgan dars: birinchi yuklashda so'raladi */
+const pendingLesson = ref<number | null>(null)
 
 const sheet = useGradeSheet(
   () => classId.value,
@@ -103,9 +105,24 @@ async function init() {
     } else if (info.value.mode !== 'all' && classOptions.value.length === 1) {
       classId.value = classOptions.value[0]!.value
     }
-    if (classId.value && subjectOptions.value.length === 1) {
+    // Havoladan (Bugungi darslarim) ?subjectId=&date=&lessonNo= bilan kelinganda oldindan tanlanadi
+    const wantedSubject = typeof route.query.subjectId === 'string' ? route.query.subjectId : ''
+    if (
+      classId.value &&
+      wantedSubject &&
+      subjectOptions.value.some((o) => o.value === wantedSubject)
+    ) {
+      subjectId.value = wantedSubject
+    } else if (classId.value && subjectOptions.value.length === 1) {
       subjectId.value = subjectOptions.value[0]!.value
     }
+    const wantedDate = typeof route.query.date === 'string' ? route.query.date : ''
+    if (/^\d{4}-\d{2}-\d{2}$/.test(wantedDate)) {
+      const b = dateBounds(today.value, sheet.backdateDays.value)
+      if (wantedDate >= b.min && wantedDate <= b.max) sheet.date.value = wantedDate
+    }
+    const wantedLesson = typeof route.query.lessonNo === 'string' ? route.query.lessonNo : ''
+    if (/^\d{1,2}$/.test(wantedLesson)) pendingLesson.value = Number(wantedLesson)
   } catch (e) {
     initError.value = errorMessage(e, t)
   } finally {
@@ -153,11 +170,18 @@ async function changeDate(next: string) {
   if (next < bounds.value.min || next > bounds.value.max) return
   if (!(await confirmDiscard(t('scoring.unsaved.dateText')))) return
   sheet.date.value = next
+  sheet.requestedLesson.value = null
   await sheet.load()
 }
 function onDateInput(e: Event) {
   const v = (e.target as HTMLInputElement).value
   if (v) void changeDate(v)
+}
+
+async function changeLesson(n: number) {
+  if (n === sheet.lessonNo.value) return
+  if (!(await confirmDiscard(t('grading.unsavedChange')))) return
+  await sheet.pickLesson(n)
 }
 
 async function save() {
@@ -175,6 +199,11 @@ async function save() {
 
 watch([classId, subjectId], () => {
   search.value = ''
+  sheet.requestedLesson.value = null
+  if (classId.value && subjectId.value) {
+    sheet.requestedLesson.value = pendingLesson.value
+    pendingLesson.value = null
+  }
   void sheet.load()
 })
 watch(
@@ -280,6 +309,58 @@ defineExpose({ hasUnsaved: sheet.hasUnsaved })
     </div>
 
     <template v-else>
+      <div v-if="sheet.lessons.value.length" class="mb-3" data-testid="lesson-picker">
+        <span class="mb-1.5 block text-sm font-medium text-fg">{{
+          t('grading.lesson.label')
+        }}</span>
+        <div
+          v-if="sheet.lessons.value.length === 1"
+          class="inline-flex items-center gap-2 rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-sm text-fg"
+          data-testid="lesson-chip"
+        >
+          <b>{{ t('grading.lesson.n', { n: sheet.lessons.value[0]!.lessonNo }) }}</b>
+          <span class="text-fg-muted">{{ sheet.lessons.value[0]!.teacher.fullName }}</span>
+        </div>
+        <div
+          v-else
+          role="radiogroup"
+          :aria-label="t('grading.lesson.pick')"
+          class="flex flex-wrap gap-2"
+        >
+          <button
+            v-for="l in sheet.lessons.value"
+            :key="l.lessonNo"
+            type="button"
+            role="radio"
+            :aria-checked="sheet.lessonNo.value === l.lessonNo"
+            :disabled="l.cancelled"
+            :data-lesson="l.lessonNo"
+            class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
+            :class="
+              sheet.lessonNo.value === l.lessonNo
+                ? 'border-primary-600 bg-primary-600 text-white'
+                : 'border-border bg-surface text-fg hover:bg-surface-muted'
+            "
+            @click="changeLesson(l.lessonNo)"
+          >
+            <b :class="l.cancelled ? 'line-through' : ''">{{
+              t('grading.lesson.n', { n: l.lessonNo })
+            }}</b>
+            <span class="text-xs opacity-80">
+              {{ l.cancelled ? t('grading.lesson.cancelled') : l.teacher.fullName }}
+            </span>
+          </button>
+        </div>
+        <p
+          v-if="sheet.needsLesson.value"
+          class="mt-2 text-sm text-warning"
+          role="alert"
+          data-testid="lesson-required"
+        >
+          {{ t('grading.lesson.required') }}
+        </p>
+      </div>
+
       <div v-if="!sheet.loading.value || sheet.rows.value.length" class="mb-3 space-y-1">
         <div class="flex items-center justify-between text-sm">
           <span class="text-fg">
@@ -357,11 +438,13 @@ defineExpose({ hasUnsaved: sheet.hasUnsaved })
           :message="
             sheet.invalidDirty.value.length
               ? t('scoring.invalidRows', { n: sheet.invalidDirty.value.length })
-              : sheet.hasUnsaved.value
-                ? t('scoring.unsavedHint')
-                : ''
+              : sheet.needsLesson.value && sheet.hasUnsaved.value
+                ? t('grading.lesson.required')
+                : sheet.hasUnsaved.value
+                  ? t('scoring.unsavedHint')
+                  : ''
           "
-          :danger="sheet.invalidDirty.value.length > 0"
+          :danger="sheet.invalidDirty.value.length > 0 || sheet.needsLesson.value"
           :show-discard="sheet.hasUnsaved.value"
           :saving="sheet.saving.value"
           :can-save="sheet.canSave.value"

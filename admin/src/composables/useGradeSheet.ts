@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { gradesApi } from '@/api/grades.api'
-import type { BulkGradeItem, GradeSheetStudent } from '@/api/types'
+import type { BulkGradeItem, GradeSheetLesson, GradeSheetStudent } from '@/api/types'
 import {
   gradeDraftsEqual,
   validateGradeDraft,
@@ -56,6 +56,12 @@ export function useGradeSheet(getClassId: () => string, getSubjectId: () => stri
   const loading = ref(false)
   const loadError = ref<unknown>(null)
   const saving = ref(false)
+  /** Foydalanuvchi (yoki havola) tanlagan dars; null - serverga qoldiriladi */
+  const requestedLesson = ref<number | null>(null)
+  /** Server aniqlagan dars: null - tanlanishi kerak; 0 - darsga bog'lanmagan */
+  const lessonNo = ref<number | null>(0)
+  const lessons = ref<GradeSheetLesson[]>([])
+  const hasTimetable = ref(false)
   let requestId = 0
 
   const core = useBulkRows<GradeDraft, GradeSheetRow>({
@@ -79,12 +85,15 @@ export function useGradeSheet(getClassId: () => string, getSubjectId: () => stri
     loading.value = true
     loadError.value = null
     try {
-      const sheet = await gradesApi.sheet(classId, subjectId, date.value)
+      const sheet = await gradesApi.sheet(classId, subjectId, date.value, requestedLesson.value)
       if (current !== requestId) return
       className.value = sheet.class.name
       subjectName.value = sheet.subject.name
       backdateDays.value = sheet.settings.backdateDays
       editWindowHours.value = sheet.settings.editWindowHours
+      lessonNo.value = sheet.lessonNo
+      lessons.value = sheet.lessons ?? []
+      hasTimetable.value = !!sheet.hasTimetable
       core.replaceRows(sheet.students.map(toGradeRow), !!opts.keepDirty)
     } catch (e) {
       if (current === requestId) loadError.value = e
@@ -102,9 +111,21 @@ export function useGradeSheet(getClassId: () => string, getSubjectId: () => stri
     return r.gradeId ? 'saved' : 'empty'
   }
 
+  /** Fanning kunda bir nechta darsi bor, lekin dars hali tanlanmagan */
+  const needsLesson = computed(() => lessons.value.length > 1 && lessonNo.value === null)
   const canSave = computed(
-    () => changedCount.value > 0 && invalidDirty.value.length === 0 && !saving.value,
+    () =>
+      changedCount.value > 0 &&
+      invalidDirty.value.length === 0 &&
+      !saving.value &&
+      lessonNo.value !== null,
   )
+
+  /** Dars tanlash: tanlov saqlanadi va varaq shu dars uchun qayta yuklanadi */
+  async function pickLesson(n: number | null) {
+    requestedLesson.value = n
+    await load()
+  }
   const hasUnsaved = computed(() => changedCount.value > 0)
 
   /** Faqat o'zgargan va to'g'ri qatorlar. */
@@ -127,6 +148,7 @@ export function useGradeSheet(getClassId: () => string, getSubjectId: () => stri
         classId: getClassId(),
         subjectId: getSubjectId(),
         date: date.value,
+        lessonNo: lessonNo.value as number,
         items,
       })
       core.applyBulkResult(new Set(items.map((i) => i.studentId)), result.failed)
@@ -144,6 +166,12 @@ export function useGradeSheet(getClassId: () => string, getSubjectId: () => stri
     subjectName,
     backdateDays,
     editWindowHours,
+    requestedLesson,
+    lessonNo,
+    lessons,
+    hasTimetable,
+    needsLesson,
+    pickLesson,
     rows,
     loading,
     loadError,

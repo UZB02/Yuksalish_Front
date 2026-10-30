@@ -119,7 +119,9 @@ describe('TodayLessons', () => {
     const att = w.find('[data-testid="lesson-attendance"]')
     expect(att.attributes('href')).toBe('/classes/c1/attendance?date=2026-10-16&lessonNo=3')
     const grade = w.find('[data-testid="lesson-grade"]')
-    expect(grade.attributes('href')).toBe('/grading?classId=c1&subjectId=inf&date=2026-10-16')
+    expect(grade.attributes('href')).toBe(
+      '/grading?classId=c1&subjectId=inf&date=2026-10-16&lessonNo=3',
+    )
   })
 
   it('ruxsat bo`lmagan tugmalar yashiriladi', async () => {

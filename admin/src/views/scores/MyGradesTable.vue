@@ -81,13 +81,19 @@ onMounted(() => {
 })
 watch([from, to, classFilter, subjectFilter], () => void list.reset())
 
+/** "05.10.2026" yoki darsga bog'langan bo'lsa "05.10.2026, 3-dars" */
+const lessonDate = (g: SubjectGrade) =>
+  g.lessonNo > 0
+    ? `${formatDate(g.date)}, ${t('grading.lesson.n', { n: g.lessonNo })}`
+    : formatDate(g.date)
+
 async function remove(g: SubjectGrade) {
   const ok = await confirm({
     title: t('grades.deleteTitle'),
     message: t('grades.deleteText', {
       name: g.student.fullName,
       subject: g.subject.name,
-      date: formatDate(g.date),
+      date: lessonDate(g),
     }),
     confirmText: t('common.delete'),
     variant: 'danger',
@@ -135,7 +141,15 @@ async function remove(g: SubjectGrade) {
         :loading="list.loading.value"
         :caption="t('grades.title')"
       >
-        <template #cell-date="{ row }">{{ formatDate(row.date) }}</template>
+        <template #cell-date="{ row }">
+          {{ formatDate(row.date) }}
+          <span
+            v-if="row.lessonNo > 0"
+            class="ml-1 text-xs text-fg-muted"
+            data-testid="lesson-label"
+            >{{ t('grading.lesson.n', { n: row.lessonNo }) }}</span
+          >
+        </template>
         <template #cell-student="{ row }">
           <RouterLink
             :to="{ name: 'student-profile', params: { id: row.studentId } }"

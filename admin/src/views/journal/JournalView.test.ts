@@ -4,7 +4,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createI18n } from 'vue-i18n'
 import uz from '@/locales/uz.json'
-import { journalApi, type JournalGridData, type JournalOptions } from '@/api/journal.api'
+import {
+  journalApi,
+  type JournalColumn,
+  type JournalGridData,
+  type JournalOptions,
+} from '@/api/journal.api'
 import type { Role, User } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import { selectOption } from '@/test-utils/selectOption'
@@ -42,6 +47,23 @@ const OPTIONS: JournalOptions = {
   ],
 }
 
+const wd = (date: string, weekday: number): JournalColumn => ({
+  key: date,
+  date,
+  weekday,
+  lessonNo: 0,
+  source: 'workday',
+  cancelled: false,
+})
+const lesson = (date: string, weekday: number, lessonNo: number): JournalColumn => ({
+  key: `${date}#${lessonNo}`,
+  date,
+  weekday,
+  lessonNo,
+  source: 'timetable',
+  cancelled: false,
+})
+
 const GRID: JournalGridData = {
   class: { id: 'c5', name: '5-A' },
   subject: { id: 'math', name: 'Matematika' },
@@ -49,12 +71,7 @@ const GRID: JournalGridData = {
   school: { id: 's1', name: 'Maktab' },
   from: '2026-10-01',
   to: '2026-10-31',
-  dates: [
-    { date: '2026-10-01', weekday: 4 },
-    { date: '2026-10-02', weekday: 5 },
-    { date: '2026-10-05', weekday: 1 },
-    { date: '2026-10-06', weekday: 2 },
-  ],
+  columns: [wd('2026-10-01', 4), wd('2026-10-02', 5), wd('2026-10-05', 1), wd('2026-10-06', 2)],
   students: [
     { id: 'a', fullName: 'Aliyev Ali', studentCode: null, photo: null, transferred: false },
     { id: 'b', fullName: 'Valiyev Vali', studentCode: null, photo: null, transferred: false },
@@ -79,7 +96,7 @@ const GRID: JournalGridData = {
       b: { avg: 2, count: 1, absentN: 1, absentB: 1 },
       z: { avg: null, count: 0, absentN: 0, absentB: 0 },
     },
-    perDate: {
+    perColumn: {
       '2026-10-01': { avg: 3.5, count: 2 },
       '2026-10-02': { avg: 4, count: 1 },
       '2026-10-05': { avg: 3, count: 1 },
@@ -359,5 +376,103 @@ describe('JournalView: mobil "kun bo`yicha" rejim', () => {
     const w = await mountView(FULL)
     expect(w.find('[data-testid="journal-grid"]').exists()).toBe(true)
     expect(w.find('[data-testid="journal-daylist"]').exists()).toBe(false)
+  })
+})
+
+describe('JournalView: dars ustunlari', () => {
+  const LESSON_GRID: JournalGridData = {
+    ...GRID,
+    columns: [
+      wd('2026-10-01', 4),
+      lesson('2026-10-05', 1, 1),
+      { ...lesson('2026-10-05', 1, 3), cancelled: true },
+      { ...wd('2026-10-06', 2), key: '2026-10-06', source: 'record' },
+      { ...lesson('2026-10-06', 2, 2), source: 'timetable' },
+    ],
+    cells: {
+      a: {
+        '2026-10-01': { grade: 5, gradeId: 'g1' },
+        '2026-10-05#1': { grade: 4, gradeId: 'g2' },
+        '2026-10-05#3': { grade: 3, gradeId: 'g3' },
+        '2026-10-06': { grade: 2, gradeId: 'g4' },
+        '2026-10-06#2': { absence: 'N' },
+      },
+    },
+    summary: {
+      ...GRID.summary,
+      perColumn: {
+        '2026-10-01': { avg: 5, count: 1 },
+        '2026-10-05#1': { avg: 4, count: 1 },
+        '2026-10-05#3': { avg: 3, count: 1 },
+        '2026-10-06': { avg: 2, count: 1 },
+        '2026-10-06#2': { avg: null, count: 0 },
+      },
+    },
+  }
+  const byColumn = (w: VueWrapper, student: string, key: string) =>
+    w.find(`tr[data-student="${student}"] td[data-date="${key.slice(0, 10)}"]`)
+
+  it('jadvalli kunda har bir dars alohida ustun, sarlavhada "1-d" / "3-d"; jadvalsiz kun hafta kuni bilan', async () => {
+    vi.mocked(journalApi.subject).mockResolvedValue(LESSON_GRID)
+    const w = await mountView(FULL)
+    const heads = w.findAll('th[data-column]')
+    expect(heads.map((h) => h.attributes('data-column'))).toEqual([
+      '2026-10-01',
+      '2026-10-05#1',
+      '2026-10-05#3',
+      '2026-10-06',
+      '2026-10-06#2',
+    ])
+    expect(w.findAll('[data-testid="sub-head"]').map((h) => h.text())).toEqual([
+      'Pa',
+      '1-d',
+      '3-d',
+      'Se',
+      '2-d',
+    ])
+    // bir sanada ikki baho: har bir katak o'z bahosi
+    const cells = w.findAll('tr[data-student="a"] td[data-date="2026-10-05"]')
+    expect(cells.map((c) => c.text())).toEqual(['4', '3'])
+    expect(cells[0]!.attributes('data-lesson')).toBe('1')
+    expect(cells[0]!.attributes('title')).toContain('1-dars')
+    expect(byColumn(w, 'a', '2026-10-01').text()).toBe('5')
+  })
+
+  it('bekor qilingan dars kulrang, record ustuni izohli, pastki qator ustun kaliti bo`yicha', async () => {
+    vi.mocked(journalApi.subject).mockResolvedValue(LESSON_GRID)
+    const w = await mountView(FULL)
+    const cancelled = w.find('th[data-column="2026-10-05#3"]')
+    expect(cancelled.attributes('data-cancelled')).toBe('true')
+    expect(cancelled.classes()).toContain('opacity-60')
+    expect(cancelled.attributes('title')).toBe('Dars bekor qilingan')
+    expect(w.find('th[data-column="2026-10-06"]').attributes('title')).toBe(
+      'Jadvaldan tashqari baho',
+    )
+    expect(w.find('tr[data-student="a"] td[data-lesson="3"]').attributes('data-cancelled')).toBe(
+      'true',
+    )
+    const foot = w.find('[data-testid="foot-avg"]').text()
+    expect(foot).toContain('4.0')
+    expect(foot).toContain('3.0')
+    expect(w.find('[data-testid="foot-count"]').text()).toContain('1')
+  })
+
+  it('mobil: kun bo`yicha ro`yxatda har bir dars alohida chip, oldida dars belgisi', async () => {
+    mockMatchMedia(true)
+    vi.mocked(journalApi.subject).mockResolvedValue(LESSON_GRID)
+    const w = await mountView(FULL)
+    // bugun 06.10: 2 ustun (record + 2-dars)
+    expect(w.find('[data-testid="day-label"]').text()).toBe('06.10.2026')
+    await w.find('[data-testid="day-prev"]').trigger('click')
+    expect(w.find('[data-testid="day-label"]').text()).toBe('05.10.2026')
+    const a = w.find('li[data-student="a"]')
+    expect(a.findAll('[data-testid="lesson-tag"]').map((x) => x.text())).toEqual(['1-d', '3-d'])
+    expect(a.findAll('[data-testid="chip-grade"]').map((x) => x.text())).toEqual(['4', '3'])
+  })
+
+  it('bo`sh ustunlar bo`lsa "ish kunlari yo`q" holati', async () => {
+    vi.mocked(journalApi.subject).mockResolvedValue({ ...GRID, columns: [] })
+    const w = await mountView(FULL)
+    expect(w.find('[data-testid="empty-days"]').exists()).toBe(true)
   })
 })

@@ -119,7 +119,13 @@ watch(() => [props.studentId, props.from, props.to], load)
               </BaseBadge>
             </div>
             <p class="truncate text-xs text-fg-muted">
-              {{ formatDate(g.date) }} - {{ g.teacher.fullName }}
+              {{ formatDate(g.date)
+              }}<template v-if="g.lessonNo > 0"
+                ><span data-testid="lesson-label">
+                  · {{ t('grading.lesson.n', { n: g.lessonNo }) }}</span
+                ></template
+              >
+              - {{ g.teacher.fullName }}
             </p>
             <p v-if="g.comment" class="mt-1 text-sm text-fg-muted">{{ g.comment }}</p>
           </li>

@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeft, ChevronRight, TriangleAlert } from 'lucide-vue-next'
-import type { JournalGridData } from '@/api/journal.api'
+import type { JournalColumn, JournalGridData } from '@/api/journal.api'
 import AvatarImage from '@/components/ui/AvatarImage.vue'
 import { ABSENCE_CLASS, GRADE_CLASS, fmtAvg, fmtDate, isLowAvg } from './journal.utils'
 
@@ -12,9 +12,20 @@ const { t } = useI18n()
 
 const index = ref(0)
 
+/** Kunlar (har kunda bir yoki bir nechta dars ustuni) */
+const days = computed(() => {
+  const out: { date: string; weekday: number; columns: JournalColumn[] }[] = []
+  for (const c of props.data.columns) {
+    const last = out[out.length - 1]
+    if (last && last.date === c.date) last.columns.push(c)
+    else out.push({ date: c.date, weekday: c.weekday, columns: [c] })
+  }
+  return out
+})
+
 /** Boshlang'ich kun: bugun (yoki undan oldingi eng yaqin ish kuni), bo'lmasa oxirgisi */
 function initialIndex(): number {
-  const ds = props.data.dates
+  const ds = days.value
   if (!ds.length) return 0
   let best = -1
   ds.forEach((d, i) => {
@@ -28,15 +39,16 @@ watch(
   { immediate: true },
 )
 
-const day = computed(() => props.data.dates[index.value])
+const day = computed(() => days.value[index.value])
 const canPrev = computed(() => index.value > 0)
-const canNext = computed(() => index.value < props.data.dates.length - 1)
+const canNext = computed(() => index.value < days.value.length - 1)
 const go = (n: number) => {
   const next = index.value + n
-  if (next >= 0 && next < props.data.dates.length) index.value = next
+  if (next >= 0 && next < days.value.length) index.value = next
 }
-const cellOf = (studentId: string) =>
-  day.value ? props.data.cells[studentId]?.[day.value.date] : undefined
+const cellOf = (studentId: string, key: string) => props.data.cells[studentId]?.[key]
+/** Bir kunda bir nechta dars bo'lsa har bir chip oldida dars belgisi chiqadi */
+const showLesson = (c: JournalColumn) => c.lessonNo > 0
 </script>
 
 <template>
@@ -108,29 +120,48 @@ const cellOf = (studentId: string) =>
             <span>B: {{ data.summary.perStudent[s.id].absentB }}</span>
           </div>
         </div>
-        <div class="flex shrink-0 items-center gap-1.5" data-testid="day-chips">
-          <span
-            v-if="cellOf(s.id)?.grade !== undefined"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-semibold"
-            :class="GRADE_CLASS[cellOf(s.id)!.grade as number]"
-            data-testid="chip-grade"
-            >{{ cellOf(s.id)!.grade }}</span
+        <div class="flex shrink-0 flex-col items-end gap-1" data-testid="day-chips">
+          <div
+            v-for="col in day.columns"
+            :key="col.key"
+            class="flex items-center gap-1.5"
+            :class="col.cancelled ? 'opacity-50' : ''"
+            :data-column="col.key"
           >
-          <span
-            v-if="cellOf(s.id)?.absence === 'N' || cellOf(s.id)?.absence === 'B'"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-sm font-semibold"
-            :class="ABSENCE_CLASS[cellOf(s.id)!.absence as 'N' | 'B']"
-            data-testid="chip-absence"
-            >{{ cellOf(s.id)!.absence }}</span
-          >
-          <span
-            v-if="cellOf(s.id)?.absence === 'partial'"
-            class="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] text-fg-muted"
-            data-testid="chip-partial"
-          >
-            <span class="h-1.5 w-1.5 rounded-full bg-fg-muted" />{{ t('journal.absence.partial') }}
-          </span>
-          <span v-if="!cellOf(s.id)" class="text-sm text-fg-muted">—</span>
+            <span
+              v-if="showLesson(col)"
+              class="text-[11px] font-medium text-fg-muted"
+              data-testid="lesson-tag"
+              :title="col.cancelled ? t('journal.cancelledLesson') : undefined"
+              >{{ t('journal.lessonShort', { n: col.lessonNo }) }}</span
+            >
+            <span
+              v-if="cellOf(s.id, col.key)?.grade !== undefined"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-semibold"
+              :class="GRADE_CLASS[cellOf(s.id, col.key)!.grade as number]"
+              data-testid="chip-grade"
+              >{{ cellOf(s.id, col.key)!.grade }}</span
+            >
+            <span
+              v-if="
+                cellOf(s.id, col.key)?.absence === 'N' || cellOf(s.id, col.key)?.absence === 'B'
+              "
+              class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-sm font-semibold"
+              :class="ABSENCE_CLASS[cellOf(s.id, col.key)!.absence as 'N' | 'B']"
+              data-testid="chip-absence"
+              >{{ cellOf(s.id, col.key)!.absence }}</span
+            >
+            <span
+              v-if="cellOf(s.id, col.key)?.absence === 'partial'"
+              class="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] text-fg-muted"
+              data-testid="chip-partial"
+            >
+              <span class="h-1.5 w-1.5 rounded-full bg-fg-muted" />{{
+                t('journal.absence.partial')
+              }}
+            </span>
+            <span v-if="!cellOf(s.id, col.key)" class="text-sm text-fg-muted">—</span>
+          </div>
         </div>
       </li>
     </ul>

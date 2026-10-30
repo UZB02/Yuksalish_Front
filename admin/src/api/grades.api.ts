@@ -21,8 +21,13 @@ export const gradesApi = {
   },
   bulk: (payload: BulkGradesPayload) => sendData<BulkScoresResult>('post', '/grades/bulk', payload),
   assignments: () => getData<GradeAssignments>('/grades/my-assignments'),
-  sheet: (classId: string, subjectId: string, date?: string) =>
-    getData<GradeSheet>('/grades/sheet', { classId, subjectId, date }),
+  sheet: (classId: string, subjectId: string, date?: string, lessonNo?: number | null) =>
+    getData<GradeSheet>('/grades/sheet', {
+      classId,
+      subjectId,
+      date,
+      lessonNo: lessonNo ?? undefined,
+    }),
   studentSummary: (studentId: string, params: { from?: string; to?: string } = {}) =>
     getData<StudentGradeSummary>(`/students/${studentId}/grade-summary`, params),
 }

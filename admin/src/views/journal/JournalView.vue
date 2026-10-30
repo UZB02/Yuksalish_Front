@@ -256,7 +256,7 @@ watch(
         <div v-if="!data.students.length" class="card" data-testid="empty-students">
           <EmptyState :icon="NotebookText" :title="t('journal.empty.noStudents')" />
         </div>
-        <div v-else-if="!data.dates.length" class="card" data-testid="empty-days">
+        <div v-else-if="!data.columns.length" class="card" data-testid="empty-days">
           <EmptyState :icon="NotebookText" :title="t('journal.empty.noDays')" />
         </div>
         <template v-else>
