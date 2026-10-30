@@ -2,9 +2,9 @@
 import { computed } from 'vue'
 import { Plus, Trash2, X } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
-import type { TimetableWarning } from '@/api/timetable.api'
 import DropdownMenu, { type DropdownItem } from '@/components/ui/DropdownMenu.vue'
-import { cellKey, type CellMap } from '@/utils/timetable'
+import { cellKey, severityOf, type CellMap } from '@/utils/timetable'
+import { cellIssueSummary, type TimetableIssue } from '@/utils/timetableIssues'
 import TimetableCellContent from './TimetableCellContent.vue'
 
 /** Hafta kuni x dars raqami to'ri (kompyuter ko'rinishi) */
@@ -12,7 +12,7 @@ const props = defineProps<{
   weekdays: number[]
   lessons: number
   cells: CellMap
-  warningsMap: Record<string, TimetableWarning[]>
+  issuesMap: Record<string, TimetableIssue[]>
   outOfRangeKeys: string[]
   /** Sozlamadagi ish kunlari: undan tashqari ustunlar qizil */
   workingWeekdays: number[]
@@ -36,6 +36,11 @@ const dayItems = computed<DropdownItem[]>(() => [
   { key: 'clear', label: t('timetable.clearDay'), danger: true },
 ])
 const badDay = (w: number) => !props.workingWeekdays.includes(w)
+const sevOf = (w: number, n: number) => severityOf(props.issuesMap[cellKey(w, n)])
+const ariaOf = (w: number, n: number) =>
+  [`${t(`journal.weekdayLong.${w}`)}, ${n}`, cellIssueSummary(props.issuesMap[cellKey(w, n)], t)]
+    .filter(Boolean)
+    .join(', ')
 </script>
 
 <template>
@@ -90,23 +95,31 @@ const badDay = (w: number) => !props.workingWeekdays.includes(w)
             class="group relative h-[4.5rem] border-l border-t border-border p-0 align-top"
             :class="[
               badDay(w) ? 'bg-danger-soft/40' : '',
-              warningsMap[cellKey(w, n)]?.some((x) => x.severity === 'error')
-                ? 'bg-danger-soft/60'
-                : '',
+              sevOf(w, n) === 'error' ? 'bg-danger-soft/25' : '',
+              sevOf(w, n) === 'warning' ? 'bg-warning-soft/30' : '',
             ]"
+            :data-cell="cellKey(w, n)"
+            :data-severity="sevOf(w, n) ?? undefined"
           >
+            <span
+              v-if="sevOf(w, n)"
+              class="pointer-events-none absolute inset-y-0 left-0 w-[3px]"
+              :class="sevOf(w, n) === 'error' ? 'bg-danger' : 'bg-warning'"
+              aria-hidden="true"
+              data-testid="cell-stripe"
+            />
             <button
               v-if="editable"
               type="button"
               class="block h-full w-full px-2 py-1.5 text-left transition-colors hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary-600"
               :data-testid="`cell-${w}-${n}`"
-              :aria-label="`${t(`journal.weekdayLong.${w}`)}, ${n}`"
+              :aria-label="ariaOf(w, n)"
               @click="emit('edit', w, n)"
             >
               <TimetableCellContent
                 v-if="cells[cellKey(w, n)]"
                 :cell="cells[cellKey(w, n)]"
-                :warnings="warningsMap[cellKey(w, n)]"
+                :issues="issuesMap[cellKey(w, n)]"
                 :out-of-range="outSet.has(cellKey(w, n))"
               />
               <span
@@ -120,7 +133,7 @@ const badDay = (w: number) => !props.workingWeekdays.includes(w)
               <TimetableCellContent
                 v-if="cells[cellKey(w, n)]"
                 :cell="cells[cellKey(w, n)]"
-                :warnings="warningsMap[cellKey(w, n)]"
+                :issues="issuesMap[cellKey(w, n)]"
                 :out-of-range="outSet.has(cellKey(w, n))"
               />
             </div>

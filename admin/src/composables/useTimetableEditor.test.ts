@@ -18,6 +18,7 @@ vi.mock('@/api/timetable.api', () => ({
     createVersion: vi.fn(),
     deleteVersion: vi.fn(),
     activate: vi.fn(),
+    busyTeachers: vi.fn(),
   },
 }))
 
@@ -211,6 +212,20 @@ describe('useTimetableEditor', () => {
     expect(ed.warnings.value).toHaveLength(1)
     ed.discard()
     expect(ed.warnings.value).toHaveLength(2)
+  })
+
+  it('blockingCount noyob xatolarni sanaydi; loadBusy qoralamada validFrom bilan so`raydi', async () => {
+    const ed = await setup({ warnings: [W(), W(), W({ weekday: 2 })] })
+    expect(ed.blockingCount.value).toBe(2)
+    api.busyTeachers.mockResolvedValue({
+      items: [{ teacherId: 't1', classId: 'c2', className: '1-B' }],
+    })
+    expect(await ed.loadBusy(1, 2)).toEqual([{ teacherId: 't1', classId: 'c2', className: '1-B' }])
+    expect(api.busyTeachers).toHaveBeenCalledWith('d1', 1, 2, ed.validFrom.value)
+    const viewer = await setup({ manage: false, draft: false })
+    api.busyTeachers.mockClear()
+    expect(await viewer.loadBusy(1, 1)).toEqual([])
+    expect(api.busyTeachers).not.toHaveBeenCalled()
   })
 
   it("sozlamadan tashqari kataklar: kun va dars qatori ko'rsatiladi", async () => {

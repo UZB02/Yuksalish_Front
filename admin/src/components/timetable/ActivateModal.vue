@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { Ban, TriangleAlert } from 'lucide-vue-next'
+import { CircleX, TriangleAlert } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ActivatePayload, TimetableWarning } from '@/api/timetable.api'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -8,6 +8,7 @@ import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { isPastDate } from '@/utils/timetable'
+import { buildIssues, type IssueContext } from '@/utils/timetableIssues'
 
 /**
  * Faollashtirish oynasi: sana, ogohlantirishlar (sana bo'yicha qayta yuklanadi),
@@ -27,6 +28,8 @@ const props = defineProps<{
   bulkCount?: number
   /** Ommaviy rejimda: oldindan ma'lum ogohlantirishlar (sinflar bo'yicha yig'ilgan) */
   presetWarnings?: TimetableWarning[]
+  /** Muammo matnlari uchun fan/o'qituvchi nomlari (ixtiyoriy) */
+  issueContext?: IssueContext
 }>()
 const emit = defineEmits<{ close: []; submit: [payload: ActivatePayload] }>()
 const { t } = useI18n()
@@ -75,8 +78,9 @@ watch(from, () => {
   if (props.open) void refresh()
 })
 
-const errors = computed(() => warnings.value.filter((w) => w.code === 'teacher_double_booked'))
-const others = computed(() => warnings.value.filter((w) => w.code !== 'teacher_double_booked'))
+const issues = computed(() => buildIssues(warnings.value, t, props.issueContext))
+const errors = computed(() => issues.value.filter((i) => i.severity === 'error'))
+const others = computed(() => issues.value.filter((i) => i.severity !== 'error'))
 const hasUnassigned = computed(() => warnings.value.some((w) => w.code === 'teacher_not_assigned'))
 const past = computed(() => isPastDate(from.value, props.today))
 
@@ -100,8 +104,8 @@ function submit() {
   })
 }
 
-const where = (w: TimetableWarning) =>
-  `${t(`journal.weekdayShort.${w.weekday}`)}, ${w.lessonNo}-${t('timetable.lessonSuffix')}`
+const where = (i: { className?: string; cellLabel: string }) =>
+  i.className ? `${i.className} · ${i.cellLabel}` : i.cellLabel
 </script>
 
 <template>
@@ -137,12 +141,14 @@ const where = (w: TimetableWarning) =>
 
       <section v-if="errors.length" class="space-y-2" data-testid="block-warnings">
         <h3 class="flex items-center gap-1.5 text-sm font-semibold text-danger">
-          <Ban class="h-4 w-4" aria-hidden="true" />
+          <CircleX class="h-4 w-4" aria-hidden="true" />
           {{ t('timetable.activate.doubleBooked', { n: errors.length }) }}
         </h3>
-        <ul class="max-h-40 space-y-1 overflow-y-auto rounded-lg bg-danger-soft px-3 py-2 text-xs">
-          <li v-for="(w, i) in errors" :key="i" class="text-danger">
-            {{ where(w) }}: {{ w.message }}
+        <ul class="max-h-48 space-y-2 overflow-y-auto rounded-lg bg-danger-soft px-3 py-2">
+          <li v-for="i in errors" :key="i.key" class="text-xs" data-testid="block-item">
+            <p class="font-semibold text-danger">{{ i.title }}</p>
+            <p class="text-fg">{{ i.text }}</p>
+            <p class="text-fg-muted">{{ where(i) }}</p>
           </li>
         </ul>
         <BaseCheckbox
@@ -171,9 +177,11 @@ const where = (w: TimetableWarning) =>
           <TriangleAlert class="h-4 w-4" aria-hidden="true" />
           {{ t('timetable.activate.warnings', { n: others.length }) }}
         </h3>
-        <ul class="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-warning-soft px-3 py-2 text-xs">
-          <li v-for="(w, i) in others" :key="i" class="text-warning">
-            {{ where(w) }}: {{ w.message }}
+        <ul class="max-h-40 space-y-2 overflow-y-auto rounded-lg bg-warning-soft px-3 py-2">
+          <li v-for="i in others" :key="i.key" class="text-xs" data-testid="soft-item">
+            <p class="font-semibold text-warning">{{ i.title }}</p>
+            <p class="text-fg">{{ i.text }}</p>
+            <p class="text-fg-muted">{{ where(i) }}</p>
           </li>
         </ul>
       </section>

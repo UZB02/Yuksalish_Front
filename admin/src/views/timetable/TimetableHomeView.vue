@@ -90,7 +90,7 @@ const bulkOpen = ref(false)
 const bulkBusy = ref(false)
 async function bulkWarnings(from: string): Promise<TimetableWarning[]> {
   const r = await timetableApi.bulkPreview({ versionIds: selectedDrafts.value, validFrom: from })
-  return r.warnings.map((w) => ({ ...w, message: `${w.className}: ${w.message}` }))
+  return r.warnings
 }
 async function bulkActivate(payload: ActivatePayload) {
   bulkBusy.value = true

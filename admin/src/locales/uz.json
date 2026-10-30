@@ -1927,7 +1927,64 @@
     "thisWeek": "Shu hafta",
     "weeklyCount": "Haftasiga {n} ta dars",
     "noLessonsDay": "Bu kuni dars yo'q",
-    "noLessonsWeek": "Bu haftada darslar topilmadi. Jadval hali faollashtirilmagan bo'lishi mumkin."
+    "noLessonsWeek": "Bu haftada darslar topilmadi. Jadval hali faollashtirilmagan bo'lishi mumkin.",
+    "issues": {
+      "severity": {
+        "error": "Xato",
+        "warning": "Ogohlantirish"
+      },
+      "title": {
+        "teacher_double_booked": "O'qituvchi band",
+        "teacher_not_assigned": "Fan sinfga biriktirilmagan",
+        "other_teacher": "Boshqa o'qituvchi biriktirilgan",
+        "subject_inactive": "Fan nofaol",
+        "teacher_inactive": "O'qituvchi nofaol",
+        "out_of_range": "Dam olish kuniga qo'yilgan"
+      },
+      "text": {
+        "teacher_double_booked": "{teacher} {day}, {no}-darsda {cls} sinfida ham dars beradi.",
+        "multiVersion": "Bu sinfning {n} ta versiyasida to'qnashadi.",
+        "teacher_not_assigned": "{subject} fani bu sinfga yoki shu o'qituvchiga biriktirilmagan.",
+        "other_teacher": "{subject} fani bu sinfda boshqa o'qituvchiga biriktirilgan (biriktirilgan: {assigned}, jadvalda: {teacher}).",
+        "subject_inactive": "{subject} fani faol emas yoki topilmadi. Boshqa fan tanlang yoki fanni faollashtiring.",
+        "teacher_inactive": "{teacher} faol emas yoki topilmadi. Boshqa o'qituvchi tanlang.",
+        "out_of_range": "{day} ish kunlariga kirmaydi (yoki dars raqami chegaradan tashqarida). Darsni ish kuniga ko'chiring yoki o'chiring."
+      },
+      "teacherFallback": "O'qituvchi",
+      "subjectFallback": "Fan",
+      "dayShort": {
+        "1": "Dush",
+        "2": "Sesh",
+        "3": "Chor",
+        "4": "Pay",
+        "5": "Jum",
+        "6": "Shan",
+        "7": "Yak"
+      },
+      "lessonNo": "{no}-dars",
+      "nError": "{n} ta xato",
+      "nWarning": "{n} ta ogohlantirish",
+      "summaryErrors": "{n} xato",
+      "summaryWarnings": "{n} ogohlantirish",
+      "none": "Muammo yo'q",
+      "panelTitle": "Muammolar",
+      "panelHint": "Xatolar faollashtirishda majburlash va izoh talab qiladi. Ogohlantirishlar faollashtirishga to'sqinlik qilmaydi.",
+      "openPanel": "Muammolarni ko'rish",
+      "tabAll": "Hammasi",
+      "tabErrors": "Xatolar",
+      "tabWarnings": "Ogohlantirishlar",
+      "groupErrors": "Xatolar",
+      "groupWarnings": "Ogohlantirishlar",
+      "empty": "Muammo topilmadi",
+      "emptyFiltered": "Bu bo'limda muammo yo'q",
+      "goToCell": "Katakka o'tish",
+      "edit": "Tahrirlash",
+      "openClass": "{name} jadvalini ochish",
+      "blockedHint": "{n} ta xato bor: faollashtirishda majburlash va izoh talab qilinadi",
+      "busy": "band",
+      "legendError": "Xato (faollashtirishda majburlash kerak)",
+      "legendWarning": "Ogohlantirish"
+    }
   },
   "journal": {
     "title": "Sinf jurnali",

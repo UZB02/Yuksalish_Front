@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import {
   timetableApi,
   type ActivatePayload,
+  type BusyTeacher,
   type ClassVersions,
   type CopyFrom,
   type TimetableOptions,
@@ -23,6 +24,7 @@ import {
   type CellMap,
   type CellValue,
 } from '@/utils/timetable'
+import { issueKey } from '@/utils/timetableIssues'
 
 export type EditorMode = 'readonly' | 'view' | 'draft' | 'correct'
 
@@ -117,8 +119,10 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     if (canRemoveLesson.value) rowsOverride.value = gridLessons.value - 1
   }
   const warningsMap = computed(() => warningsByCell(warnings.value))
+  /** Majburlashni talab qiladigan (xato) noyob muammolar soni */
   const blockingCount = computed(
-    () => warnings.value.filter((w) => w.code === 'teacher_double_booked').length,
+    () =>
+      new Set(warnings.value.filter((w) => w.severity === 'error').map((w) => issueKey(w))).size,
   )
   const cellSeverity = (weekday: number, lessonNo: number) =>
     severityOf(warningsMap.value[cellKey(weekday, lessonNo)])
@@ -292,6 +296,19 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     return (await timetableApi.version(v.id, from)).warnings
   }
 
+  /** Katak uchun boshqa sinflarda band o'qituvchilar (tahrirlash oynasi) */
+  async function loadBusy(weekday: number, lessonNo: number): Promise<BusyTeacher[]> {
+    const v = version.value
+    if (!v || !canManage()) return []
+    const r = await timetableApi.busyTeachers(
+      v.id,
+      weekday,
+      lessonNo,
+      mode.value === 'draft' ? validFrom.value : undefined,
+    )
+    return r.items
+  }
+
   return {
     loading,
     loadingVersion,
@@ -335,5 +352,6 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     removeVersion,
     activate,
     previewWarnings,
+    loadBusy,
   }
 }

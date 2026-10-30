@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { TimetableOptions, TimetableWarning } from '@/api/timetable.api'
+import { CircleX, TriangleAlert } from 'lucide-vue-next'
+import type { BusyTeacher, TimetableOptions } from '@/api/timetable.api'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
@@ -12,6 +13,13 @@ import {
   teacherOptions,
   type CellValue,
 } from '@/utils/timetable'
+import {
+  buildIssues,
+  busyClassesOf,
+  issueContextFrom,
+  previewCellWarnings,
+  type TimetableIssue,
+} from '@/utils/timetableIssues'
 
 /**
  * Katakni tahrirlash: fan (sinfga biriktirilganlar birinchi), o'qituvchi (fandan kelib chiqib
@@ -23,7 +31,10 @@ const props = defineProps<{
   lessonNo: number
   value?: CellValue
   options: TimetableOptions
-  warnings?: TimetableWarning[]
+  /** Saqlangan holat bo'yicha shu katakning muammolari (tanlov o'zgarmaguncha ko'rsatiladi) */
+  issues?: TimetableIssue[]
+  /** Shu vaqtda boshqa sinflarda band o'qituvchilar */
+  busy?: BusyTeacher[]
 }>()
 const emit = defineEmits<{ close: []; save: [value: CellValue]; clear: [] }>()
 const { t } = useI18n()
@@ -60,10 +71,20 @@ const teacherGroups = computed(() =>
 )
 const teacherItems = computed(() =>
   teacherGroups.value.flatMap((g) =>
-    g.items.map((i) => ({
-      value: i.id,
-      label: g.key === 'assigned' ? `${i.label} · ${t('timetable.assignedTeacher')}` : i.label,
-    })),
+    g.items.map((i) => {
+      const busyIn = busyClassesOf(props.busy ?? [], i.id)
+      return {
+        value: i.id,
+        name: i.label,
+        label: [
+          i.label,
+          g.key === 'assigned' ? t('timetable.assignedTeacher') : '',
+          busyIn.length ? `${t('timetable.issues.busy')} · ${busyIn.join(', ')}` : '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
+      }
+    }),
   ),
 )
 
@@ -87,9 +108,32 @@ function save() {
     teacherId: teacherId.value,
     room: room.value.trim() || null,
     subjectName: s?.label,
-    teacherName: tt?.label.replace(` · ${t('timetable.assignedTeacher')}`, ''),
+    teacherName: tt?.name,
   })
 }
+const ctx = computed(() =>
+  issueContextFrom(props.options, props.value ? { cell: props.value } : {}),
+)
+/** Jonli ko'rinish: tanlov o'zgarmagan bo'lsa serverdagi muammolar, aks holda mijozda hisoblangan */
+const liveIssues = computed<TimetableIssue[]>(() => {
+  const unchanged =
+    !!props.value &&
+    props.value.subjectId === subjectId.value &&
+    props.value.teacherId === teacherId.value
+  if (unchanged) return props.issues ?? []
+  return buildIssues(
+    previewCellWarnings({
+      weekday: props.weekday,
+      lessonNo: props.lessonNo,
+      subjectId: subjectId.value,
+      teacherId: teacherId.value,
+      options: props.options,
+      busy: props.busy ?? [],
+    }),
+    t,
+    ctx.value,
+  )
+})
 const title = computed(() =>
   t('timetable.cellTitle', { day: t(`journal.weekdayLong.${props.weekday}`), no: props.lessonNo }),
 )
@@ -98,11 +142,31 @@ const title = computed(() =>
 <template>
   <BaseModal :open="open" :title="title" size="md" @close="emit('close')">
     <form class="space-y-4" data-testid="cell-editor" @submit.prevent="save">
-      <ul
-        v-if="warnings?.length"
-        class="space-y-1 rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning"
-      >
-        <li v-for="(w, i) in warnings" :key="i">{{ w.message }}</li>
+      <ul v-if="liveIssues.length" class="space-y-2" aria-live="polite" data-testid="cell-issues">
+        <li
+          v-for="i in liveIssues"
+          :key="i.key"
+          class="flex items-start gap-2 rounded-lg px-3 py-2"
+          :class="i.severity === 'error' ? 'bg-danger-soft' : 'bg-warning-soft'"
+          :data-severity="i.severity"
+        >
+          <CircleX
+            v-if="i.severity === 'error'"
+            class="mt-0.5 h-4 w-4 shrink-0 text-danger"
+            aria-hidden="true"
+          />
+          <TriangleAlert v-else class="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+          <div class="min-w-0 text-sm">
+            <p
+              class="font-semibold"
+              :class="i.severity === 'error' ? 'text-danger' : 'text-warning'"
+            >
+              <span class="sr-only">{{ t(`timetable.issues.severity.${i.severity}`) }}: </span
+              >{{ i.title }}
+            </p>
+            <p class="text-fg">{{ i.text }}</p>
+          </div>
+        </li>
       </ul>
       <BaseSelect
         :model-value="subjectId"

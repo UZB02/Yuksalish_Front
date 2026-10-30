@@ -65,7 +65,18 @@ export interface TimetableWarning {
     versionId: string
     validFrom: string
     validTo: string | null
+    /** Shu sinfning to'qnashayotgan versiyalari (eski serverda bo'lmasligi mumkin) */
+    versions?: { versionId: string; validFrom: string; validTo: string | null }[]
   }
+  /** Ommaviy faollashtirish oldindan ko'rishida: ogohlantirish qaysi sinfniki */
+  classId?: string
+  className?: string
+}
+
+export interface BusyTeacher {
+  teacherId: string
+  classId: string
+  className: string
 }
 
 export interface VersionWithWarnings {
@@ -235,6 +246,13 @@ export const timetableApi = {
   ) => sendData<VersionWithWarnings>('post', `/timetable/classes/${classId}/versions`, body),
   version: (id: string, validFrom?: string) =>
     getData<VersionWithWarnings>(`/timetable/versions/${id}`, { validFrom }),
+  /** Katak (hafta kuni + dars) uchun boshqa sinflarda band o'qituvchilar */
+  busyTeachers: (id: string, weekday: number, lessonNo: number, validFrom?: string) =>
+    getData<{ items: BusyTeacher[] }>(`/timetable/versions/${id}/busy-teachers`, {
+      weekday,
+      lessonNo,
+      validFrom,
+    }),
   saveDraft: (
     id: string,
     body: { entries: EntryPayload[]; validFrom?: string; note?: string | null },

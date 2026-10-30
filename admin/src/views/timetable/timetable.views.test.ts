@@ -383,7 +383,8 @@ describe('ClassTimetableView', () => {
     )
     expect(w.get('[data-testid="tt-title"]').text()).toContain('5-A')
     expect(w.get('[data-testid="cell-1-1"]').find('[data-testid="cell-error"]').exists()).toBe(true)
-    expect(w.get('[data-testid="warning-list"]').text()).toContain('Aliyev 5-B da ham')
+    expect(w.find('[data-testid="warning-list"]').exists()).toBe(false)
+    expect(w.get('[data-testid="issue-summary"]').text()).toContain('1 xato')
     expect(document.body.querySelector('[data-testid="save-bar-message"]')).toBeNull()
 
     await w.get('[data-testid="cell-2-1"]').trigger('click')

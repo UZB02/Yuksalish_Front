@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, Ban, CirclePlus, Pencil, TriangleAlert } from 'lucide-vue-next'
+import { ArrowLeft, CircleCheck, CirclePlus, CircleX, Pencil, TriangleAlert } from 'lucide-vue-next'
 import { isApiError } from '@/api/errors'
-import { timetableApi, type ActivatePayload, type ClassOverviewRow } from '@/api/timetable.api'
+import {
+  timetableApi,
+  type ActivatePayload,
+  type BusyTeacher,
+  type ClassOverviewRow,
+} from '@/api/timetable.api'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import ActivateModal from '@/components/timetable/ActivateModal.vue'
 import CellEditorModal from '@/components/timetable/CellEditorModal.vue'
+import TimetableIssuesDrawer from '@/components/timetable/TimetableIssuesDrawer.vue'
 import TimetableDayList from '@/components/timetable/TimetableDayList.vue'
 import TimetableGrid from '@/components/timetable/TimetableGrid.vue'
 import VersionPanel from '@/components/timetable/VersionPanel.vue'
@@ -31,6 +37,13 @@ import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
 import { cellKey, versionLabel, type CellValue } from '@/utils/timetable'
+import {
+  buildIssues,
+  countIssues,
+  issueContextFrom,
+  issuesByCell,
+  type TimetableIssue,
+} from '@/utils/timetableIssues'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -157,6 +170,46 @@ async function applyCopy() {
   }
 }
 
+// ---------- Muammolar ----------
+const issueCtx = computed(() => issueContextFrom(ed.options.value, ed.cells.value))
+const issues = computed(() => buildIssues(ed.warnings.value, t, issueCtx.value))
+const issueCounts = computed(() => countIssues(issues.value))
+const issuesMap = computed(() => issuesByCell(issues.value))
+const issuesOpen = ref(false)
+const focusWeekday = ref<number | undefined>()
+const issueSummaryLabel = computed(() =>
+  [
+    issueCounts.value.error ? t('timetable.issues.nError', { n: issueCounts.value.error }) : '',
+    issueCounts.value.warning
+      ? t('timetable.issues.nWarning', { n: issueCounts.value.warning })
+      : '',
+  ]
+    .filter(Boolean)
+    .join(', '),
+)
+
+/** Katakni ko'rinadigan qilib, qisqa vaqt ajratib ko'rsatadi */
+async function jumpToCell(weekday: number, lessonNo: number) {
+  focusWeekday.value = undefined
+  await nextTick()
+  focusWeekday.value = weekday
+  await nextTick()
+  const el = document.querySelector<HTMLElement>(`[data-cell="${cellKey(weekday, lessonNo)}"]`)
+  if (!el) return
+  el.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+  el.classList.remove('tt-pulse')
+  void el.offsetWidth
+  el.classList.add('tt-pulse')
+  setTimeout(() => el.classList.remove('tt-pulse'), 2000)
+}
+function onIssueJump(i: TimetableIssue) {
+  if (mobile.value) issuesOpen.value = false
+  void jumpToCell(i.weekday, i.lessonNo)
+}
+function onIssueEdit(i: TimetableIssue) {
+  openCell(i.weekday, i.lessonNo)
+}
+
 // ---------- Katak tahriri ----------
 const cellOpen = ref<{ weekday: number; lessonNo: number } | null>(null)
 const editingCell = computed(() =>
@@ -164,8 +217,20 @@ const editingCell = computed(() =>
     ? ed.cells.value[cellKey(cellOpen.value.weekday, cellOpen.value.lessonNo)]
     : undefined,
 )
+const busy = ref<BusyTeacher[]>([])
+let busySeq = 0
 function openCell(weekday: number, lessonNo: number) {
-  if (ed.editable.value) cellOpen.value = { weekday, lessonNo }
+  if (!ed.editable.value) return
+  cellOpen.value = { weekday, lessonNo }
+  busy.value = []
+  const my = ++busySeq
+  ed.loadBusy(weekday, lessonNo)
+    .then((items) => {
+      if (my === busySeq) busy.value = items
+    })
+    .catch(() => {
+      /* band belgilari ixtiyoriy: yuklanmasa jim o'tadi */
+    })
 }
 function saveCell(value: CellValue) {
   if (!cellOpen.value) return
@@ -453,26 +518,78 @@ function beforeUnload(e: BeforeUnloadEvent) {
         <span v-else class="text-sm text-fg">
           {{ fmt(v.validFrom) }} – {{ v.validTo ? fmt(v.validTo) : '…' }}
         </span>
-        <span
-          v-if="ed.warnings.value.length"
-          class="inline-flex items-center gap-1 text-sm"
-          :class="ed.blockingCount.value ? 'text-danger' : 'text-warning'"
-          data-testid="warn-count"
+        <button
+          v-if="issueCounts.total"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-lg border border-border px-2.5 py-1 text-sm font-medium hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600"
+          :aria-label="`${t('timetable.issues.panelTitle')}: ${issueSummaryLabel}`"
+          aria-haspopup="dialog"
+          data-testid="issue-summary"
+          @click="issuesOpen = true"
         >
-          <Ban v-if="ed.blockingCount.value" class="h-4 w-4" aria-hidden="true" />
-          <TriangleAlert v-else class="h-4 w-4" aria-hidden="true" />
-          {{ t('timetable.warningsN', { n: ed.warnings.value.length }) }}
+          <span
+            v-if="issueCounts.error"
+            class="inline-flex items-center gap-1 text-danger"
+            data-testid="summary-errors"
+          >
+            <CircleX class="h-4 w-4" aria-hidden="true" />
+            {{ t('timetable.issues.summaryErrors', { n: issueCounts.error }) }}
+          </span>
+          <span
+            v-if="issueCounts.error && issueCounts.warning"
+            class="text-fg-muted"
+            aria-hidden="true"
+          >
+            ·
+          </span>
+          <span
+            v-if="issueCounts.warning"
+            class="inline-flex items-center gap-1 text-warning"
+            data-testid="summary-warnings"
+          >
+            <TriangleAlert class="h-4 w-4" aria-hidden="true" />
+            {{ t('timetable.issues.summaryWarnings', { n: issueCounts.warning }) }}
+          </span>
+        </button>
+        <span
+          v-else
+          class="inline-flex items-center gap-1 text-sm text-success"
+          data-testid="issue-summary-ok"
+        >
+          <CircleCheck class="h-4 w-4" aria-hidden="true" />
+          {{ t('timetable.issues.none') }}
         </span>
         <BaseBadge v-if="v.forced" tone="danger">{{ t('timetable.forced') }}</BaseBadge>
-        <BaseButton
-          v-if="ed.mode.value === 'draft'"
-          class="ml-auto"
-          :loading="ed.saving.value"
-          data-testid="activate-open"
-          @click="openActivate"
-        >
-          {{ t('timetable.activate.open') }}
-        </BaseButton>
+        <div v-if="ed.mode.value === 'draft'" class="ml-auto flex flex-wrap items-center gap-3">
+          <p
+            v-if="issueCounts.error"
+            class="flex items-center gap-1.5 text-xs text-danger"
+            data-testid="activate-blocked-hint"
+          >
+            <CircleX class="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{{ t('timetable.issues.blockedHint', { n: issueCounts.error }) }}</span>
+            <button
+              type="button"
+              class="font-medium underline underline-offset-2 hover:no-underline"
+              data-testid="activate-hint-open"
+              @click="issuesOpen = true"
+            >
+              {{ t('timetable.issues.openPanel') }}
+            </button>
+          </p>
+          <BaseButton
+            :loading="ed.saving.value"
+            :title="
+              issueCounts.error
+                ? t('timetable.issues.blockedHint', { n: issueCounts.error })
+                : undefined
+            "
+            data-testid="activate-open"
+            @click="openActivate"
+          >
+            {{ t('timetable.activate.open') }}
+          </BaseButton>
+        </div>
         <BaseButton
           v-else-if="
             canManage && !ed.archived.value && ed.mode.value === 'view' && v.phase !== 'past'
@@ -513,10 +630,11 @@ function beforeUnload(e: BeforeUnloadEvent) {
         :weekdays="ed.gridWeekdays.value"
         :lessons-per-day="ed.settings.value.lessonsPerDay"
         :cells="ed.cells.value"
-        :warnings-map="ed.warningsMap.value"
+        :issues-map="issuesMap"
         :out-of-range-keys="ed.outOfRangeKeys.value"
         :editable="ed.editable.value"
         :initial-weekday="todayWeekday"
+        :focus-weekday="focusWeekday"
         @edit="openCell"
         @clear="clearCell"
         @day-action="onDayAction"
@@ -526,7 +644,7 @@ function beforeUnload(e: BeforeUnloadEvent) {
         :weekdays="ed.gridWeekdays.value"
         :lessons="ed.gridLessons.value"
         :cells="ed.cells.value"
-        :warnings-map="ed.warningsMap.value"
+        :issues-map="issuesMap"
         :out-of-range-keys="ed.outOfRangeKeys.value"
         :working-weekdays="ed.settings.value.workingWeekdays"
         :editable="ed.editable.value"
@@ -542,35 +660,14 @@ function beforeUnload(e: BeforeUnloadEvent) {
       <!-- Belgilar -->
       <p class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-muted">
         <span class="inline-flex items-center gap-1">
-          <Ban class="h-3.5 w-3.5 text-danger" /> {{ t('timetable.legend.doubleBooked') }}
+          <CircleX class="h-3.5 w-3.5 text-danger" aria-hidden="true" />
+          {{ t('timetable.issues.legendError') }}
         </span>
         <span class="inline-flex items-center gap-1">
-          <TriangleAlert class="h-3.5 w-3.5 text-warning" /> {{ t('timetable.legend.warning') }}
-        </span>
-        <span v-if="ed.outOfRangeKeys.value.length" class="text-danger">
-          {{ t('timetable.legend.outOfRange') }}
+          <TriangleAlert class="h-3.5 w-3.5 text-warning" aria-hidden="true" />
+          {{ t('timetable.issues.legendWarning') }}
         </span>
       </p>
-
-      <!-- Ogohlantirishlar ro'yxati -->
-      <section v-if="ed.warnings.value.length" class="mt-4" data-testid="warning-list">
-        <h2 class="mb-2 text-sm font-semibold text-fg">{{ t('timetable.warningsTitle') }}</h2>
-        <ul class="space-y-1 rounded-xl border border-border bg-surface p-3 text-sm">
-          <li
-            v-for="(w, i) in ed.warnings.value"
-            :key="i"
-            class="flex gap-2"
-            :class="w.severity === 'error' ? 'text-danger' : 'text-warning'"
-          >
-            <span class="shrink-0 font-medium">
-              {{ t(`journal.weekdayShort.${w.weekday}`) }}, {{ w.lessonNo }}-{{
-                t('timetable.lessonSuffix')
-              }}
-            </span>
-            <span class="text-fg">{{ w.message }}</span>
-          </li>
-        </ul>
-      </section>
 
       <!-- Versiyalar tarixi -->
       <details class="mt-6" data-testid="history">
@@ -603,6 +700,17 @@ function beforeUnload(e: BeforeUnloadEvent) {
       />
     </template>
 
+    <TimetableIssuesDrawer
+      v-if="v"
+      :open="issuesOpen"
+      :issues="issues"
+      :mobile="mobile"
+      :can-edit="ed.editable.value"
+      @close="issuesOpen = false"
+      @jump="onIssueJump"
+      @edit="onIssueEdit"
+    />
+
     <!-- Modallar -->
     <CellEditorModal
       v-if="ed.options.value && cellOpen"
@@ -611,7 +719,8 @@ function beforeUnload(e: BeforeUnloadEvent) {
       :lesson-no="cellOpen.lessonNo"
       :value="editingCell"
       :options="ed.options.value"
-      :warnings="ed.warningsMap.value[cellKey(cellOpen.weekday, cellOpen.lessonNo)]"
+      :issues="issuesMap[cellKey(cellOpen.weekday, cellOpen.lessonNo)]"
+      :busy="busy"
       @close="cellOpen = null"
       @save="saveCell"
       @clear="clearCell()"
@@ -627,6 +736,7 @@ function beforeUnload(e: BeforeUnloadEvent) {
       :max="ed.info.value?.academicYear.endDate"
       :busy="activating"
       :load-warnings="ed.previewWarnings"
+      :issue-context="issueCtx"
       @close="activateOpen = false"
       @submit="onActivate"
     />
@@ -712,3 +822,24 @@ function beforeUnload(e: BeforeUnloadEvent) {
     </BaseModal>
   </template>
 </template>
+
+<style>
+@keyframes tt-pulse {
+  0% {
+    box-shadow: inset 0 0 0 3px rgb(var(--primary-500));
+    background-color: rgb(var(--primary-100));
+  }
+  100% {
+    box-shadow: inset 0 0 0 3px transparent;
+  }
+}
+.tt-pulse {
+  animation: tt-pulse 1.8s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tt-pulse {
+    animation: none;
+    box-shadow: inset 0 0 0 3px rgb(var(--primary-500));
+  }
+}
+</style>

@@ -91,7 +91,7 @@ export function warningsByCell(warnings: TimetableWarning[]): Record<string, Tim
 }
 
 export type CellSeverity = 'error' | 'warning' | null
-export function severityOf(ws: TimetableWarning[] | undefined): CellSeverity {
+export function severityOf(ws: { severity: 'error' | 'warning' }[] | undefined): CellSeverity {
   if (!ws?.length) return null
   return ws.some((w) => w.severity === 'error') ? 'error' : 'warning'
 }

@@ -3,10 +3,12 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import uz from '@/locales/uz.json'
 import type { TeacherWeek, TimetableWarning } from '@/api/timetable.api'
+import { buildIssues, issuesByCell } from '@/utils/timetableIssues'
 import ActivateModal from './ActivateModal.vue'
 import TeacherWeekGrid from './TeacherWeekGrid.vue'
 import TimetableDayList from './TimetableDayList.vue'
 import TimetableGrid from './TimetableGrid.vue'
+import TimetableIssuesDrawer from './TimetableIssuesDrawer.vue'
 
 const i18n = createI18n({ legacy: false, locale: 'uz', messages: { uz } })
 const global = { plugins: [i18n] }
@@ -49,16 +51,59 @@ const gridProps = (over: Record<string, unknown> = {}) => ({
   weekdays: [1, 2, 6],
   lessons: 4,
   cells: CELLS,
-  warningsMap: {
-    '1:1': [W({})],
-    '2:2': [W({ code: 'teacher_not_assigned', severity: 'warning', weekday: 2, lessonNo: 2 })],
-  },
+  issuesMap: issuesByCell(
+    buildIssues(
+      [W({}), W({ code: 'teacher_not_assigned', severity: 'warning', weekday: 2, lessonNo: 2 })],
+      i18n.global.t,
+    ),
+  ),
   outOfRangeKeys: ['6:2'],
   workingWeekdays: [1, 2],
   editable: true,
   canAddLesson: true,
   canRemoveLesson: true,
   ...over,
+})
+
+describe('TimetableIssuesDrawer', () => {
+  const issues = buildIssues(
+    [W({}), W({ code: 'subject_inactive', severity: 'warning', weekday: 2 })],
+    i18n.global.t,
+  )
+  it("mobil: modal varaq, body scroll bloki; yopilganda blok bo'shaydi", async () => {
+    const w = mount(TimetableIssuesDrawer, {
+      props: { open: true, issues, mobile: true, canEdit: false },
+      global: { plugins: [i18n], stubs: { RouterLink: true } },
+      attachTo: document.body,
+    })
+    await flushPromises()
+    const drawer = document.body.querySelector('[data-testid="issues-drawer"]')!
+    expect(drawer.getAttribute('aria-modal')).toBe('true')
+    expect(document.body.style.overflow).toBe('hidden')
+    expect(drawer.querySelector('[data-testid="issue-edit"]')).toBeNull()
+    ;(drawer.querySelector('[data-testid="issue-jump"]') as HTMLElement).click()
+    expect(w.emitted('jump')?.[0]?.[0]).toMatchObject({ weekday: 1, lessonNo: 1 })
+    await w.setProps({ open: false })
+    await flushPromises()
+    expect(document.body.style.overflow).toBe('')
+    w.unmount()
+  })
+
+  it("bo'sh holat: muammo yo'q", async () => {
+    const w = mount(TimetableIssuesDrawer, {
+      props: { open: true, issues: [] },
+      global: { plugins: [i18n], stubs: { RouterLink: true } },
+      attachTo: document.body,
+    })
+    await flushPromises()
+    expect(document.body.querySelector('[data-testid="issues-empty"]')?.textContent).toContain(
+      'Muammo topilmadi',
+    )
+    expect(
+      document.body.querySelector('[data-testid="issues-drawer"]')!.getAttribute('aria-modal'),
+    ).toBe('false')
+    w.unmount()
+  })
 })
 
 describe('TimetableGrid', () => {
@@ -188,6 +233,9 @@ describe('ActivateModal', () => {
     await flushPromises()
     const btn = () => q('activate-submit') as HTMLButtonElement
     expect(q('block-warnings')).not.toBeNull()
+    // takror bo'lsa ham bitta, tuzilgan sarlavha + tushuntirish bilan
+    expect(body().querySelectorAll('[data-testid="block-item"]')).toHaveLength(1)
+    expect(q('block-item')!.textContent).toContain("O'qituvchi band")
     expect(btn().disabled).toBe(true)
     const force = q('force')!.querySelector('input') as HTMLInputElement
     force.click()
