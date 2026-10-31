@@ -76,16 +76,25 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
   )
   const changeCount = computed(() => {
     if (!dirty.value) return 0
-    const now = new Map(cellsToPayload(cells.value).map((e) => [cellKey(e.weekday, e.lessonNo), e]))
+    // Katak (bir nechta dars bo'lishi mumkin) bo'yicha: o'zgargan kataklar soni
+    const group = (list: { weekday: number; lessonNo: number }[]) => {
+      const m = new Map<string, string[]>()
+      for (const e of list) {
+        const k = cellKey(e.weekday, e.lessonNo)
+        m.set(k, [...(m.get(k) ?? []), JSON.stringify(e)])
+      }
+      return new Map([...m].map(([k, v]) => [k, v.sort().join('|')]))
+    }
+    const now = group(cellsToPayload(cells.value))
     let base: { weekday: number; lessonNo: number }[] = []
     try {
       base = JSON.parse(baseSignature.value || '[]')
     } catch {
       base = []
     }
-    const before = new Map(base.map((e) => [cellKey(e.weekday, e.lessonNo), JSON.stringify(e)]))
+    const before = group(base)
     let n = 0
-    for (const [k, v] of now) if (before.get(k) !== JSON.stringify(v)) n++
+    for (const [k, v] of now) if (before.get(k) !== v) n++
     for (const k of before.keys()) if (!now.has(k)) n++
     return Math.max(n, validFrom.value !== baseValidFrom.value ? 1 : 0)
   })
@@ -198,11 +207,13 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     warnings.value = warnings.value.filter((w) => !set.has(cellKey(w.weekday, w.lessonNo)))
   }
 
-  function setCell(weekday: number, lessonNo: number, value: CellValue | null) {
+  /** Katakdagi darslarni almashtiradi (bo'sh ro'yxat/null — katakni tozalaydi) */
+  function setCell(weekday: number, lessonNo: number, value: CellValue[] | CellValue | null) {
     if (!editable.value) return
     const k = cellKey(weekday, lessonNo)
+    const list = value === null ? [] : Array.isArray(value) ? value : [value]
     const next = { ...cells.value }
-    if (value) next[k] = value
+    if (list.length) next[k] = list
     else delete next[k]
     cells.value = next
     invalidate([k])

@@ -382,6 +382,84 @@ describe('SubstitutionsView', () => {
     expect(api.deleteOverride).toHaveBeenCalledWith('o1')
   })
 
+  it('bir soatda ikkita dars: har bir qator alohida, amal aynan tanlangan darsga (targetTeacherId)', async () => {
+    api.teacherDay.mockResolvedValue({
+      date: '2026-11-02',
+      isWorkday: true,
+      lessons: [
+        lesson({
+          subject: { id: 'eng', name: 'Ingliz tili' },
+          teacher: { id: 't1', fullName: 'Aliyeva' },
+          targetTeacherId: 't1',
+        }),
+        lesson({
+          subject: { id: 'eng', name: 'Ingliz tili' },
+          teacher: { id: 't9', fullName: "G'aniyeva" },
+          targetTeacherId: 't9',
+        }),
+      ],
+    })
+    const w = await mountView()
+    await pickAbsentTeacher()
+    const rows = w.findAll('[data-testid="day-lesson"]')
+    expect(rows).toHaveLength(2)
+    // ikkinchi (G'aniyeva) darsini bekor qilish
+    await rows[1]!.get('[data-testid="act-cancel"]').trigger('click')
+    await flushPromises()
+    expect(body().textContent).toContain("G'aniyeva")
+    await click('[data-testid="override-submit"]')
+    expect(api.createOverride).toHaveBeenCalledWith({
+      classId: 'c1',
+      date: expect.any(String),
+      lessonNo: 2,
+      type: 'cancel',
+      targetTeacherId: 't9',
+    })
+    // o'rinbosar ham o'z darsiga
+    api.createOverride.mockClear()
+    await w
+      .findAll('[data-testid="day-lesson"]')[0]!
+      .get('[data-testid="act-substitute"]')
+      .trigger('click')
+    await flushPromises()
+    await click('[data-testid="teacher-t2"]')
+    await click('[data-testid="override-submit"]')
+    expect(api.createOverride).toHaveBeenCalledWith({
+      classId: 'c1',
+      date: expect.any(String),
+      lessonNo: 2,
+      type: 'substitute',
+      targetTeacherId: 't1',
+      teacherId: 't2',
+    })
+  })
+
+  it("kochirish: manba darsning targetTeacherId si from ga qo'shiladi", async () => {
+    api.teacherDay.mockResolvedValue({
+      date: '2026-11-02',
+      isWorkday: true,
+      lessons: [lesson({ targetTeacherId: 't1' })],
+    })
+    api.moveLesson.mockResolvedValue({ items: [ov(), ov({ id: 'o2' })] })
+    const w = await mountView()
+    await pickAbsentTeacher()
+    await w.get('[data-testid="act-move"]').trigger('click')
+    await flushPromises()
+    const d = body().querySelector<HTMLInputElement>('[data-testid="move-date"]')!
+    d.value = '2026-11-05'
+    d.dispatchEvent(new Event('input'))
+    await flushPromises()
+    await pick('move-lesson', '4')
+    await click('[data-testid="override-submit"]')
+    expect(api.moveLesson).toHaveBeenCalledWith({
+      classId: 'c1',
+      from: { date: expect.any(String), lessonNo: 2, targetTeacherId: 't1' },
+      to: { date: '2026-11-05', lessonNo: 4 },
+      teacherId: undefined,
+      reason: undefined,
+    })
+  })
+
   it('ozgarishlarni yuklash xatosi korsatiladi', async () => {
     api.overrides.mockRejectedValue(new ApiError('INTERNAL', 'x', 500))
     const w = await mountView()

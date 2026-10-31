@@ -13,7 +13,7 @@ import type {
 } from './types'
 
 export const attendanceApi = {
-  sheet: (classId: string, params: { date?: string; lessonNo?: number } = {}) =>
+  sheet: (classId: string, params: { date?: string; lessonNo?: number; teacherId?: string } = {}) =>
     getData<AttendanceSheet>(`/classes/${classId}/attendance-sheet`, params),
   bulk: (payload: AttendanceBulkPayload) =>
     sendData<BulkScoresResult>('post', '/attendance/bulk', payload),

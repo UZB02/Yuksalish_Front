@@ -7,12 +7,14 @@ import type { ExportFormat } from '@/api/types'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
-import { fmtDate, monthRange } from './journal.utils'
+import { fmtDate, monthRange, pairKey, splitPairKey, subjectPairOptions } from './journal.utils'
 
 const props = defineProps<{
   options: JournalOptions
   classId: string
   subjectId: string
+  /** Fanning bir nechta o'qituvchisi bo'lsa: tanlangan juftlikdagi o'qituvchi */
+  teacherId?: string
   from: string
   to: string
   error: 'order' | 'tooLong' | null
@@ -22,6 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:classId': [value: string]
   'update:subjectId': [value: string]
+  'update:teacherId': [value: string]
   range: [from: string, to: string]
   export: [format: ExportFormat]
 }>()
@@ -30,10 +33,17 @@ const { t } = useI18n()
 const classOptions = computed(() =>
   props.options.classes.map((c) => ({ value: c.id, label: c.name })),
 )
+/** Fan yoki (bir nechta o'qituvchi bo'lsa) "fan · o'qituvchi" juftligi */
 const subjectOptions = computed(() => {
   const cls = props.options.classes.find((c) => c.id === props.classId)
-  return (cls?.subjects ?? []).map((s) => ({ value: s.id, label: s.name }))
+  return subjectPairOptions(cls?.subjects ?? [])
 })
+const subjectValue = computed(() => pairKey(props.subjectId, props.teacherId ?? ''))
+function onSubject(key: string) {
+  const { subjectId, teacherId } = splitPairKey(key)
+  emit('update:teacherId', teacherId)
+  emit('update:subjectId', subjectId)
+}
 
 interface Pick {
   key: string
@@ -96,12 +106,12 @@ const rangeText = computed(() =>
       </div>
       <div class="w-full sm:w-60" data-testid="filter-subject">
         <BaseSelect
-          :model-value="subjectId"
+          :model-value="subjectValue"
           :options="subjectOptions"
           :aria-label="t('journal.filters.subject')"
           :placeholder="t('journal.filters.subjectPlaceholder')"
           :disabled="!classId"
-          @update:model-value="emit('update:subjectId', $event)"
+          @update:model-value="onSubject"
         />
       </div>
 

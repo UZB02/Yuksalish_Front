@@ -83,6 +83,47 @@ describe('ClassTeachersModal: rahbar, fanlar va qo`shimcha o`qituvchilar', () =>
     w.unmount()
   })
 
+  it("bir fanga ikkinchi o'qituvchi: fan boshqa qatorda ham tanlanadi, ikkala juftlik saqlanadi; aynan takror bloklanadi", async () => {
+    const w = mountModal()
+    await flushPromises()
+    const add = Array.from(body().querySelectorAll('button')).find((b) =>
+      b.textContent?.includes(uz.classes.addSubject),
+    )!
+    add.click()
+    await flushPromises()
+    const rows = body().querySelectorAll('[data-testid="assignment-row"]')
+    expect(rows).toHaveLength(2)
+    const [subjSel, teachSel] = Array.from(
+      rows[1]!.querySelectorAll('select'),
+    ) as HTMLSelectElement[]
+    // Matematika (1-qatorda tanlangan) 2-qator uchun ham tanlanadi
+    expect(Array.from(subjSel!.options).map((o) => o.value)).toContain('s1')
+    subjSel!.value = 's1'
+    subjSel!.dispatchEvent(new Event('change'))
+    await flushPromises()
+    // t2 (s1 ga allaqachon biriktirilgan) bu qatorda taklif qilinmaydi
+    const second = body().querySelectorAll('[data-testid="assignment-row"]')[1]!
+    const tsel = second.querySelectorAll('select')[1] as HTMLSelectElement
+    expect(Array.from(tsel.options).map((o) => o.value)).not.toContain('t2')
+    expect(Array.from(tsel.options).map((o) => o.value)).toContain('t4')
+    void teachSel
+    tsel.value = 't4'
+    tsel.dispatchEvent(new Event('change'))
+    await flushPromises()
+    expect(body().querySelector('[data-testid="assignment-duplicate"]')).toBeNull()
+    ;(body().querySelector('[data-testid="assign-save"]') as HTMLButtonElement).click()
+    await flushPromises()
+    expect(classesApi.update).toHaveBeenCalledWith('c1', {
+      homeroomTeacherId: 't1',
+      teacherIds: ['t3'],
+      subjects: [
+        { subjectId: 's1', teacherId: 't2' },
+        { subjectId: 's1', teacherId: 't4' },
+      ],
+    })
+    w.unmount()
+  })
+
   it('to`liq bo`lmagan fan qatori bilan saqlanmaydi', async () => {
     const w = mountModal()
     await flushPromises()

@@ -476,3 +476,102 @@ describe('JournalView: dars ustunlari', () => {
     expect(w.find('[data-testid="empty-days"]').exists()).toBe(true)
   })
 })
+
+describe("JournalView: bir fanning bir nechta o'qituvchisi (juftlik)", () => {
+  const MULTI: JournalOptions = {
+    ...OPTIONS,
+    classes: [
+      {
+        id: 'c7',
+        name: '7-A',
+        grade: 7,
+        homeroom: false,
+        subjects: [
+          {
+            id: 'eng',
+            name: 'Ingliz tili',
+            assigned: true,
+            teachers: [
+              { id: 'al', fullName: 'Aliyeva' },
+              { id: 'ga', fullName: "G'aniyeva" },
+            ],
+          },
+          {
+            id: 'math',
+            name: 'Matematika',
+            assigned: true,
+            teachers: [{ id: 'm', fullName: 'Karimov' }],
+          },
+        ],
+      },
+    ],
+  }
+  beforeEach(() => {
+    vi.mocked(journalApi.options).mockResolvedValue(MULTI)
+  })
+
+  it("fan tanlovi: bir nechta o'qituvchili fan juftliklarga ajraladi, bittalisi avvalgidek", async () => {
+    const w = await mountView()
+    await selectOption(w.find('[data-testid="filter-class"]'), '7-A')
+    const sub = w.find('[data-testid="filter-subject"]').find('select')
+    const labels = sub.exists()
+      ? Array.from((sub.element as HTMLSelectElement).options).map((o) => o.textContent?.trim())
+      : []
+    expect(labels).toEqual(
+      expect.arrayContaining(['Ingliz tili · Aliyeva', "Ingliz tili · G'aniyeva", 'Matematika']),
+    )
+    expect(labels).not.toContain('Ingliz tili')
+  })
+
+  it("juftlik tanlansa so'rovga teacherId qo'shiladi va URL ga yoziladi; bitta o'qituvchili fanda yo'q", async () => {
+    const w = await mountView()
+    await selectOption(w.find('[data-testid="filter-class"]'), '7-A')
+    await selectOption(w.find('[data-testid="filter-subject"]'), "Ingliz tili · G'aniyeva")
+    await flushPromises()
+    expect(journalApi.subject).toHaveBeenLastCalledWith({
+      classId: 'c7',
+      subjectId: 'eng',
+      teacherId: 'ga',
+      from: '2026-10-01',
+      to: '2026-10-31',
+    })
+    expect(router.currentRoute.value.query).toMatchObject({ subjectId: 'eng', teacherId: 'ga' })
+    await selectOption(w.find('[data-testid="filter-subject"]'), 'Matematika')
+    await flushPromises()
+    expect(journalApi.subject).toHaveBeenLastCalledWith({
+      classId: 'c7',
+      subjectId: 'math',
+      from: '2026-10-01',
+      to: '2026-10-31',
+    })
+    expect(router.currentRoute.value.query.teacherId).toBeUndefined()
+  })
+
+  it("URL dagi juftlik tiklanadi; o'qituvchisiz ko'p o'qituvchili fan va noto'g'ri o'qituvchi e'tiborsiz", async () => {
+    const w = await mountView({
+      classId: 'c7',
+      subjectId: 'eng',
+      teacherId: 'al',
+      from: '2026-10-01',
+      to: '2026-10-31',
+    })
+    expect(journalApi.subject).toHaveBeenCalledWith({
+      classId: 'c7',
+      subjectId: 'eng',
+      teacherId: 'al',
+      from: '2026-10-01',
+      to: '2026-10-31',
+    })
+    wrapper?.unmount()
+    vi.mocked(journalApi.subject).mockClear()
+    const w2 = await mountView({
+      classId: 'c7',
+      subjectId: 'eng',
+      from: '2026-10-01',
+      to: '2026-10-31',
+    })
+    expect(w2.find('[data-testid="empty-select"]').exists()).toBe(true)
+    expect(journalApi.subject).not.toHaveBeenCalled()
+    void w
+  })
+})

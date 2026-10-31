@@ -397,7 +397,7 @@ describe('ClassTimetableView', () => {
     await flushPromises()
     expect(document.body.querySelector('[data-testid="cell-editor"]')).not.toBeNull()
     // Fan tanlanganda o'qituvchi ClassSubject dan avtomatik
-    const subj = document.body.querySelector('[data-testid="cell-editor"]')!
+    const subj = document.body.querySelector('[data-testid="cell-line-0"]')!
     const { selectOption } = await import('@/test-utils/selectOption')
     const { DOMWrapper } = await import('@vue/test-utils')
     await selectOption(new DOMWrapper(subj), 'Ingliz tili')

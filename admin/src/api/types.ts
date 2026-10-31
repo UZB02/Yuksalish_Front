@@ -532,6 +532,8 @@ export interface BulkGradesPayload {
   subjectId: string
   date: string
   lessonNo?: number
+  /** Admin uchun: fanning bir nechta o'qituvchisi bo'lsa qaysi o'qituvchi darslari doirasida */
+  teacherId?: string
   items: BulkGradeItem[]
 }
 
@@ -941,6 +943,11 @@ export interface AttendanceSheetStudent {
   studentCode: string | null
   photo?: string | null
   record: AttendanceRecord | null
+  /** Shu soatda boshqa o'qituvchining (parallel) darsida belgilangan bo'lsa: kim va qaysi fan */
+  otherLesson?: {
+    teacher: { id: string; fullName: string } | null
+    subject: { id: string; name: string } | null
+  } | null
 }
 
 export interface AttendanceSheetSummary {
@@ -997,6 +1004,8 @@ export interface AttendanceSheet {
   /** So'ralgan dars raqami uchun jadvaldagi dars (yo'q bo'lsa null) */
   lesson?: AttendanceSheetLesson | null
   lessons?: AttendanceSheetLesson[]
+  /** Slotda bir nechta dars bor va qaysi biri ekani aniqlanmadi (admin / sinf rahbari tanlaydi) */
+  lessonChoiceRequired?: boolean
   /** Joriy foydalanuvchi shu darsga davomat ola oladimi */
   canTake?: boolean
   cannotTakeReason?: string | null
@@ -1022,6 +1031,8 @@ export interface AttendanceBulkPayload {
   lessonNo?: number
   /** Dars rejimida: jadvaldan aniqlangan darsda ixtiyoriy (server o'zi aniqlaydi), aks holda majburiy */
   subjectId?: string
+  /** Slotda bir nechta dars bo'lsa: qaysi o'qituvchining darsi (admin / sinf rahbari uchun) */
+  teacherId?: string
   items: AttendanceBulkItem[]
 }
 
@@ -1369,6 +1380,8 @@ export interface TodayLesson {
   class: { id: string; name: string }
   subjectId: string
   subject: { id: string; name: string }
+  /** Dars o'qituvchisi (bir soatda bir nechta dars bo'lishi mumkin) */
+  teacherId?: string
   room: string | null
   source: 'timetable' | 'override'
   overrideType: 'substitute' | 'replace' | 'cancel' | 'extra' | null

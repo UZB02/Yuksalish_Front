@@ -80,18 +80,38 @@ describe('SubjectAssignmentsEditor', () => {
     expect(w.emitted('update:modelValue')![1]![0]).toEqual([])
   })
 
-  it('boshqa qatorda tanlangan fan ikkinchi qatorda ko`rinmaydi; nofaol fan faqat o`zida', () => {
+  it('boshqa qatorda tanlangan fan boshqa o`qituvchi uchun ham tanlanadi; nofaol fan faqat o`zida', () => {
     const w = mountEditor([
       { subjectId: 's1', teacherId: 't1' },
       { subjectId: 's3', teacherId: 't2' },
     ])
     const selects = w.findAll('select')
     const opts = (i: number) => selects[i]!.findAll('option').map((o) => o.element.value)
-    // 1-qator (fan): s1 + s2 (s3 nofaol va boshqa qatorda), 2-qator: s3 (o'zi) + s2
+    // 1-qator (fan): s1 + s2 (s3 nofaol); 2-qator: s3 (o'zi) + s1 + s2 (ko'p o'qituvchi: fan band emas)
     expect(opts(0)).toContain('s1')
     expect(opts(0)).not.toContain('s3')
     expect(opts(2)).toContain('s3')
-    expect(opts(2)).not.toContain('s1')
+    expect(opts(2)).toContain('s1')
+  })
+
+  it("bir fanga ikkinchi o'qituvchi: o'qituvchi faqat aynan shu juftlikda takrorlanmaydi", () => {
+    const w = mountEditor([
+      { subjectId: 's1', teacherId: 't1' },
+      { subjectId: 's1', teacherId: '' },
+    ])
+    const selects = w.findAll('select')
+    const opts = (i: number) => selects[i]!.findAll('option').map((o) => o.element.value)
+    // 2-qator o'qituvchilari (select #3): t1 allaqachon s1 ga biriktirilgan -> yo'q; t2 bor
+    expect(opts(3)).not.toContain('t1')
+    expect(opts(3)).toContain('t2')
+    // 1-qatorda o'zining o'qituvchisi saqlanadi
+    expect(opts(1)).toContain('t1')
+    expect(w.find('[data-testid="assignment-duplicate"]').exists()).toBe(false)
+    const dup = mountEditor([
+      { subjectId: 's1', teacherId: 't1' },
+      { subjectId: 's1', teacherId: 't1' },
+    ])
+    expect(dup.find('[data-testid="assignment-duplicate"]').exists()).toBe(true)
   })
 
   it("o'zgargan fan/o'qituvchi tanlovi chiqariladi", async () => {

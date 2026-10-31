@@ -23,6 +23,9 @@ export interface OverrideLesson {
   lessonNo: number
   subjectId: string
   subjectName: string
+  /** Jadvaldagi asl dars o'qituvchisi (bir soatda bir nechta dars bo'lsa aynan shu darsga qo'llanadi) */
+  targetTeacherId?: string
+  teacherName?: string
 }
 
 /** Almashtirish oynasi: o'rinbosar / fan almashtirish / bekor / ko'chirish / qo'shimcha dars */
@@ -84,7 +87,14 @@ const title = computed(() => t(TITLES[props.mode]))
 const submitText = computed(() => t(SUBMITS[props.mode] ?? 'substitutions.modal.submit'))
 const lessonLabel = computed(() =>
   props.lesson
-    ? `${props.lesson.className} · ${t('substitutions.lessonNo', { n: props.lesson.lessonNo })} · ${props.lesson.subjectName}`
+    ? [
+        props.lesson.className,
+        t('substitutions.lessonNo', { n: props.lesson.lessonNo }),
+        props.lesson.subjectName,
+        props.lesson.teacherName,
+      ]
+        .filter(Boolean)
+        .join(' · ')
     : '',
 )
 
@@ -161,7 +171,13 @@ async function submit() {
     if (props.mode === 'move') {
       await timetableApi.moveLesson({
         classId: props.lesson!.classId,
-        from: { date: props.date, lessonNo: props.lesson!.lessonNo },
+        from: {
+          date: props.date,
+          lessonNo: props.lesson!.lessonNo,
+          ...(props.lesson!.targetTeacherId
+            ? { targetTeacherId: props.lesson!.targetTeacherId }
+            : {}),
+        },
         to: { date: targetDate.value, lessonNo: Number(lessonNo.value) },
         teacherId: teacherId.value || undefined,
         reason: why,
@@ -172,6 +188,9 @@ async function submit() {
         date: props.date,
         lessonNo: isExtra.value ? Number(lessonNo.value) : props.lesson!.lessonNo,
         type: props.mode,
+      }
+      if (!isExtra.value && props.lesson?.targetTeacherId) {
+        body.targetTeacherId = props.lesson.targetTeacherId
       }
       if (needsSubject.value) body.subjectId = subjectId.value
       if (needsTeacher.value) body.teacherId = teacherId.value

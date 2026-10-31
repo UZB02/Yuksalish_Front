@@ -42,7 +42,10 @@ export interface JournalColumn {
 export interface JournalGridData {
   class: { id: string; name: string }
   subject: { id: string; name: string }
+  /** Jurnal egasi: tanlangan (fan, o'qituvchi) juftligi; bir nechta bo'lib tanlanmasa null */
   teacher: { id: string; fullName: string } | null
+  /** Shu sinfda shu fanga biriktirilgan barcha o'qituvchilar */
+  teachers?: { id: string; fullName: string }[]
   school: { id: string; name: string }
   from: string
   to: string
@@ -67,13 +70,23 @@ export interface JournalOptions {
     name: string
     grade: number
     homeroom: boolean
-    subjects: { id: string; name: string; assigned: boolean }[]
+    subjects: JournalSubjectOption[]
   }[]
+}
+
+export interface JournalSubjectOption {
+  id: string
+  name: string
+  assigned: boolean
+  /** Fanning shu sinfdagi o'qituvchilari: bir nechta bo'lsa jurnal (fan, o'qituvchi) juftligi bo'yicha */
+  teachers?: { id: string; fullName: string }[]
 }
 
 export interface JournalQuery {
   classId: string
   subjectId: string
+  /** Fanning bir nechta o'qituvchisi bo'lsa: juftlikdagi o'qituvchi */
+  teacherId?: string
   from: string
   to: string
 }

@@ -205,6 +205,8 @@ export interface OverrideDto {
   teacher: { id: string; fullName: string } | null
   originalSubject: { id: string; name: string } | null
   originalTeacher: { id: string; fullName: string } | null
+  /** Qaysi darsga qaratilgan (asl dars o'qituvchisi; extra uchun yangi dars o'qituvchisi) */
+  targetTeacherId?: string | null
   room: string | null
   reason: string | null
   moveGroupId: string | null
@@ -218,6 +220,11 @@ export interface DayLessonDto {
   lessonNo: number
   subject: { id: string; name: string }
   teacher: { id: string; fullName: string }
+  /**
+   * Jadvaldagi asl dars o'qituvchisi: almashtirish aynan shu darsga qo'llanadi
+   * (bir soatda bir nechta dars bo'lishi mumkin). Eski serverda bo'lmasligi mumkin.
+   */
+  targetTeacherId?: string
   originalTeacher: { id: string; fullName: string } | null
   source: 'timetable' | 'override'
   overrideType: OverrideType | null
@@ -243,6 +250,8 @@ export interface CreateOverridePayload {
   classId: string
   date: string
   lessonNo: number
+  /** Bir soatda bir nechta dars bo'lsa: jadvaldagi asl dars o'qituvchisi */
+  targetTeacherId?: string
   type: OverrideType
   subjectId?: string
   teacherId?: string
@@ -252,7 +261,7 @@ export interface CreateOverridePayload {
 
 export interface MoveOverridePayload {
   classId: string
-  from: { date: string; lessonNo: number }
+  from: { date: string; lessonNo: number; targetTeacherId?: string }
   to: { date: string; lessonNo: number }
   teacherId?: string
   reason?: string | null

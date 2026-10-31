@@ -267,7 +267,10 @@ describe('ClassTimetableView: muammolar', () => {
     await flushPromises()
     const editor = body('[data-testid="cell-editor"]')!
     expect(api.busyTeachers).toHaveBeenCalledWith('d1', 3, 1, '2026-09-01')
-    await selectOption(new DOMWrapper(editor), 'Ingliz tili')
+    await selectOption(
+      new DOMWrapper(editor.querySelector('[data-testid="cell-line-0"]')!),
+      'Ingliz tili',
+    )
     await flushPromises()
     const items = Array.from(editor.querySelectorAll('[data-testid="cell-issues"] li'))
     expect(items).toHaveLength(1)

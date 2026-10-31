@@ -13,28 +13,35 @@ import TimetableIssuesDrawer from './TimetableIssuesDrawer.vue'
 const i18n = createI18n({ legacy: false, locale: 'uz', messages: { uz } })
 const global = { plugins: [i18n] }
 
+/** Katak = darslar ro'yxati (bir katakda bir nechta dars bo'lishi mumkin) */
 const CELLS = {
-  '1:1': {
-    subjectId: 'math',
-    teacherId: 't1',
-    room: '12',
-    subjectName: 'Matematika',
-    teacherName: 'Aliyev',
-  },
-  '2:2': {
-    subjectId: 'eng',
-    teacherId: 't2',
-    room: null,
-    subjectName: 'Ingliz tili',
-    teacherName: 'Karimov',
-  },
-  '6:2': {
-    subjectId: 'eng',
-    teacherId: 't2',
-    room: null,
-    subjectName: 'Rasm',
-    teacherName: 'Karimov',
-  },
+  '1:1': [
+    {
+      subjectId: 'math',
+      teacherId: 't1',
+      room: '12',
+      subjectName: 'Matematika',
+      teacherName: 'Aliyev',
+    },
+  ],
+  '2:2': [
+    {
+      subjectId: 'eng',
+      teacherId: 't2',
+      room: null,
+      subjectName: 'Ingliz tili',
+      teacherName: 'Karimov',
+    },
+  ],
+  '6:2': [
+    {
+      subjectId: 'eng',
+      teacherId: 't2',
+      room: null,
+      subjectName: 'Rasm',
+      teacherName: 'Karimov',
+    },
+  ],
 }
 const W = (over: Partial<TimetableWarning>): TimetableWarning => ({
   code: 'teacher_double_booked',
@@ -53,7 +60,17 @@ const gridProps = (over: Record<string, unknown> = {}) => ({
   cells: CELLS,
   issuesMap: issuesByCell(
     buildIssues(
-      [W({}), W({ code: 'teacher_not_assigned', severity: 'warning', weekday: 2, lessonNo: 2 })],
+      [
+        W({}),
+        W({
+          code: 'teacher_not_assigned',
+          severity: 'warning',
+          weekday: 2,
+          lessonNo: 2,
+          subjectId: 'eng',
+          teacherId: 't2',
+        }),
+      ],
       i18n.global.t,
     ),
   ),
@@ -157,6 +174,57 @@ describe('TimetableGrid', () => {
   })
 })
 
+describe('TimetableGrid: bir katakda bir nechta dars', () => {
+  const PARALLEL = {
+    '1:1': [
+      {
+        subjectId: 'eng',
+        teacherId: 'al',
+        room: null,
+        subjectName: 'Ingliz tili',
+        teacherName: 'Aliyeva',
+      },
+      {
+        subjectId: 'eng',
+        teacherId: 'ga',
+        room: '7',
+        subjectName: 'Ingliz tili',
+        teacherName: "G'aniyeva",
+      },
+    ],
+  }
+
+  it('katakda har bir dars alohida qatorda; muammo belgisi faqat tegishli darsda', () => {
+    const issues = buildIssues(
+      [W({ teacherId: 'ga', subjectId: 'eng', code: 'teacher_not_assigned', severity: 'warning' })],
+      i18n.global.t,
+    )
+    const w = mount(TimetableGrid, {
+      props: gridProps({ cells: PARALLEL, issuesMap: issuesByCell(issues), outOfRangeKeys: [] }),
+      global,
+    })
+    const lines = w.get('[data-testid="cell-1-1"]').findAll('[data-testid="cell-line"]')
+    expect(lines).toHaveLength(2)
+    expect(lines[0]!.text()).toContain('Aliyeva')
+    expect(lines[1]!.text()).toContain("G'aniyeva")
+    expect(lines[1]!.text()).toContain('7')
+    expect(lines[0]!.find('[data-testid="cell-warning"]').exists()).toBe(false)
+    expect(lines[1]!.find('[data-testid="cell-warning"]').exists()).toBe(true)
+  })
+
+  it('mobil royxatda ham ikkala dars; bosilganda edit', async () => {
+    const w = mount(TimetableDayList, {
+      props: { ...gridProps({ cells: PARALLEL, outOfRangeKeys: [] }), lessonsPerDay: 2 },
+      global,
+    })
+    await w.get('[data-testid="tt-tab-1"]').trigger('click')
+    const cell = w.get('[data-testid="m-cell-1-1"]')
+    expect(cell.findAll('[data-testid="cell-line"]')).toHaveLength(2)
+    await cell.trigger('click')
+    expect(w.emitted('edit')?.[0]).toEqual([1, 1])
+  })
+})
+
 describe('TimetableDayList (mobil)', () => {
   it('kun tablari va tanlangan kun darslari; bosilganda edit', async () => {
     const w = mount(TimetableDayList, {
@@ -173,7 +241,7 @@ describe('TimetableDayList (mobil)', () => {
   })
 
   it("kun qatorlari max(lessonsPerDay, shu kunda ishlatilgan); qo'shish 12 gacha; bo'sh oxirgisini olish", async () => {
-    const cells = { ...CELLS, '1:8': { subjectId: 'math', teacherId: 't1', room: null } }
+    const cells = { ...CELLS, '1:8': [{ subjectId: 'math', teacherId: 't1', room: null }] }
     const w = mount(TimetableDayList, {
       props: { ...gridProps({ cells }), lessonsPerDay: 3, initialWeekday: 2 },
       global,

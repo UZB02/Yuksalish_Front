@@ -13,6 +13,7 @@ import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useToast } from '@/composables/useToast'
+import { hasDuplicatePair } from '@/utils/classSubjects'
 import { errorMessage } from '@/utils/errors'
 
 /**
@@ -87,6 +88,7 @@ async function save() {
   if (!c) return
   showErrors.value = true
   if (rows.value.some((r) => !r.subjectId || !r.teacherId)) return
+  if (hasDuplicatePair(rows.value)) return
   submitting.value = true
   try {
     const busy = new Set([homeroomId.value, ...rows.value.map((r) => r.teacherId)])

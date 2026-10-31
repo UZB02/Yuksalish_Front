@@ -277,3 +277,104 @@ describe('AttendanceView: aniqlangan fan va ruxsat', () => {
     })
   })
 })
+
+describe('AttendanceView: bir soatda bir nechta dars (parallel o`qituvchilar)', () => {
+  const ENG_AL = lesson({
+    lessonNo: 1,
+    subjectId: 'eng',
+    subject: { id: 'eng', name: 'Ingliz tili' },
+    teacherId: 'al',
+    teacher: { id: 'al', fullName: 'Aliyeva' },
+  })
+  const ENG_GA = lesson({
+    lessonNo: 1,
+    subjectId: 'eng',
+    subject: { id: 'eng', name: 'Ingliz tili' },
+    teacherId: 'ga',
+    teacher: { id: 'ga', fullName: "G'aniyeva" },
+    mine: false,
+  })
+  const PAIR = [ENG_AL, ENG_GA]
+
+  /** Admin: teacherId berilmaguncha tanlov talab qilinadi; berilsa o'sha dars */
+  function mockParallel(extra: Partial<AttendanceSheet> = {}) {
+    vi.mocked(attendanceApi.sheet).mockImplementation(async (_id, params) => {
+      const chosen = PAIR.find((l) => l.teacherId === params?.teacherId) ?? null
+      return sheetFor({
+        lessons: PAIR,
+        lessonNo: params?.lessonNo ?? 1,
+        lesson: chosen ?? ENG_AL,
+        lessonChoiceRequired: !chosen,
+        subjectId: null,
+        ...extra,
+      })
+    })
+  }
+
+  it('tanlov talab qilinadi: ikkala dars tugma sifatida, saqlash o`chiq', async () => {
+    mockParallel()
+    const w = await mountView('/attendance/c1?lessonNo=1')
+    const btns = w.findAll('[data-testid="slot-lesson"]')
+    expect(btns.map((b) => b.text().replace(/\s+/g, ' '))).toEqual([
+      'Ingliz tili · Aliyeva',
+      "Ingliz tili · G'aniyeva",
+    ])
+    expect(w.get('[data-testid="slot-lessons-hint"]').text()).toBe(
+      uz.attendance.chooseLessonRequired,
+    )
+    expect(btns.every((b) => b.attributes('aria-pressed') === 'false')).toBe(true)
+    await w.find('ul button').trigger('click')
+    const save = w.findAll('button').find((b) => b.text().includes('Saqlash'))
+    expect(save!.attributes('disabled')).toBeDefined()
+  })
+
+  it('dars tanlanganda varaq teacherId bilan qayta yuklanadi va bulk ga teacherId yuboriladi', async () => {
+    mockParallel()
+    vi.mocked(attendanceApi.bulk).mockResolvedValue({ created: 1, updated: 0, failed: [] })
+    const w = await mountView('/attendance/c1?lessonNo=1')
+    await w.findAll('[data-testid="slot-lesson"]')[1]!.trigger('click')
+    await flushPromises()
+    const calls = vi.mocked(attendanceApi.sheet).mock.calls
+    expect(calls[calls.length - 1]![1]).toMatchObject({ lessonNo: 1, teacherId: 'ga' })
+    expect(w.get('[data-testid="slot-lessons-hint"]').text()).toBe(uz.attendance.chooseLesson)
+    expect(w.findAll('[data-testid="slot-lesson"]')[1]!.attributes('aria-pressed')).toBe('true')
+    await w.find('ul button').trigger('click')
+    const save = w.findAll('button').find((b) => b.text().includes('Saqlash'))
+    await save!.trigger('click')
+    await flushPromises()
+    expect(vi.mocked(attendanceApi.bulk).mock.calls[0]![0]).toMatchObject({
+      classId: 'c1',
+      lessonNo: 1,
+      teacherId: 'ga',
+    })
+  })
+
+  it("boshqa o'qituvchi belgilagan o'quvchi uchun ogohlantirish ko'rsatiladi", async () => {
+    mockParallel({
+      lessonChoiceRequired: false,
+      students: [
+        {
+          studentId: 's1',
+          fullName: 'Aliyev Ali',
+          studentCode: null,
+          photo: null,
+          record: null,
+          otherLesson: {
+            teacher: { id: 'ga', fullName: "G'aniyeva" },
+            subject: { id: 'eng', name: 'Ingliz tili' },
+          },
+        },
+      ],
+    })
+    const w = await mountView('/attendance/c1?lessonNo=1')
+    const warn = w.get('[data-testid="other-lesson"]')
+    expect(warn.text()).toContain("G'aniyeva")
+    expect(warn.text()).toContain('Ingliz tili')
+  })
+
+  it('bir darsli soatda tanlov ko`rinmaydi', async () => {
+    mockSheet()
+    const w = await mountView('/attendance/c1?lessonNo=1')
+    expect(w.find('[data-testid="slot-lessons"]').exists()).toBe(false)
+  })
+})

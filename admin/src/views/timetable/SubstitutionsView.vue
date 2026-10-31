@@ -150,6 +150,8 @@ const toModalLesson = (l: DayLessonDto): OverrideLesson => ({
   lessonNo: l.lessonNo,
   subjectId: l.subject.id,
   subjectName: l.subject.name,
+  targetTeacherId: l.targetTeacherId,
+  teacherName: (l.originalTeacher ?? l.teacher).fullName,
 })
 const openModal = (mode: OverrideMode, l: DayLessonDto | null = null) => {
   modal.value = { mode, lesson: l ? toModalLesson(l) : null }
@@ -281,7 +283,7 @@ const lessonLabel = (cls: string, no: number) =>
           <ul v-else class="space-y-2">
             <li
               v-for="l in lessons"
-              :key="`${l.classId}-${l.lessonNo}`"
+              :key="`${l.classId}-${l.lessonNo}-${l.targetTeacherId ?? ''}`"
               class="rounded-xl border border-border p-3"
               data-testid="day-lesson"
             >

@@ -7,6 +7,7 @@ import { cellIssueSummary, issueTooltip, type TimetableIssue } from '@/utils/tim
 
 /** Bitta katak mazmuni: fan, o'qituvchi, xona va muammo belgisi */
 const props = defineProps<{
+  /** Bitta dars (katakda bir nechta dars bo'lsa har biri uchun alohida ko'rsatiladi) */
   cell?: CellValue
   issues?: TimetableIssue[]
   outOfRange?: boolean

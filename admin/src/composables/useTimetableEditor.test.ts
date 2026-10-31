@@ -144,11 +144,45 @@ describe('useTimetableEditor', () => {
     expect(ed.changeCount.value).toBe(1)
     ed.discard()
     expect(ed.dirty.value).toBe(false)
-    expect(ed.cells.value['1:1']?.subjectId).toBe('math')
+    expect(ed.cells.value['1:1']?.[0]?.subjectId).toBe('math')
 
     const ro = await setup({ manage: false })
     ro.setCell(2, 1, { subjectId: 'eng', teacherId: 't2', room: null })
     expect(Object.keys(ro.cells.value)).toEqual(['1:1'])
+  })
+
+  it("bir katakka bir nechta dars: massiv saqlanadi, changeCount katak bo'yicha, PUT har darsni alohida yuboradi", async () => {
+    const ed = await setup()
+    // 1:1 katagida matematika bor edi; unga parallel ingliz tili (ikki o'qituvchi) qo'shiladi
+    ed.setCell(1, 1, [
+      { subjectId: 'math', teacherId: 't1', room: null, subjectName: 'Matematika' },
+      { subjectId: 'eng', teacherId: 't2', room: '5', subjectName: 'Ingliz tili' },
+    ])
+    expect(ed.cells.value['1:1']).toHaveLength(2)
+    expect(ed.dirty.value).toBe(true)
+    expect(ed.changeCount.value).toBe(1) // bitta katak o'zgardi
+    // bitta darsni olib tashlash asl holatga qaytaradi
+    ed.setCell(1, 1, [{ subjectId: 'math', teacherId: 't1', room: null }])
+    expect(ed.dirty.value).toBe(false)
+    ed.setCell(1, 1, [
+      { subjectId: 'math', teacherId: 't1', room: null },
+      { subjectId: 'eng', teacherId: 't2', room: ' 5 ' },
+    ])
+    api.saveDraft.mockResolvedValue({
+      version: version('d1', { status: 'draft', phase: 'draft' }),
+      warnings: [],
+    })
+    api.versions.mockResolvedValue(INFO([summary('d1', { status: 'draft', phase: 'draft' })]))
+    await ed.save()
+    expect(api.saveDraft).toHaveBeenCalledWith(
+      'd1',
+      expect.objectContaining({
+        entries: [
+          { weekday: 1, lessonNo: 1, subjectId: 'math', teacherId: 't1', room: null },
+          { weekday: 1, lessonNo: 1, subjectId: 'eng', teacherId: 't2', room: '5' },
+        ],
+      }),
+    )
   })
 
   it('kunni nusxalash va tozalash', async () => {

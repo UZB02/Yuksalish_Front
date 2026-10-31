@@ -7,6 +7,7 @@ import {
   cellKey,
   maxLessonNo,
   rowCountFor,
+  issuesForLesson,
   severityOf,
   TIMETABLE_MAX_LESSONS,
   type CellMap,
@@ -149,18 +150,23 @@ const countOf = (w: number) => Object.keys(props.cells).filter((k) => k.startsWi
           :aria-label="editable ? ariaOf(n) : undefined"
           @click="editable && emit('edit', active, n)"
         >
-          <TimetableCellContent
-            v-if="cells[cellKey(active, n)]"
-            :cell="cells[cellKey(active, n)]"
-            :issues="issuesMap[cellKey(active, n)]"
-            :out-of-range="outSet.has(cellKey(active, n))"
-          />
+          <div v-if="cells[cellKey(active, n)]?.length" class="space-y-1.5">
+            <TimetableCellContent
+              v-for="(c, li) in cells[cellKey(active, n)]"
+              :key="li"
+              :cell="c"
+              :issues="issuesForLesson(issuesMap[cellKey(active, n)], c)"
+              :out-of-range="li === 0 && outSet.has(cellKey(active, n))"
+              :class="li > 0 ? 'border-t border-dashed border-border pt-1.5' : ''"
+              data-testid="cell-line"
+            />
+          </div>
           <span v-else-if="editable" class="flex h-full items-center gap-1 text-sm text-fg-muted">
             <Plus class="h-4 w-4" aria-hidden="true" /> {{ t('timetable.addLesson') }}
           </span>
         </component>
         <button
-          v-if="editable && cells[cellKey(active, n)]"
+          v-if="editable && cells[cellKey(active, n)]?.length"
           type="button"
           class="px-2 text-fg-muted hover:text-danger"
           :aria-label="t('timetable.clearCell')"

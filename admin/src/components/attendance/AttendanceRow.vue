@@ -84,6 +84,19 @@ const border = computed(
         })
       }}
     </p>
+    <p
+      v-if="row.otherLesson"
+      class="mt-1 flex items-start gap-1 text-xs text-warning"
+      data-testid="other-lesson"
+    >
+      <AlertCircle class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      {{
+        t('attendance.otherLesson', {
+          teacher: row.otherLesson.teacher?.fullName ?? '?',
+          subject: row.otherLesson.subject?.name ?? '',
+        })
+      }}
+    </p>
     <p v-if="row.serverError" class="mt-1 text-xs text-danger" role="alert">
       {{ row.serverError }}
     </p>

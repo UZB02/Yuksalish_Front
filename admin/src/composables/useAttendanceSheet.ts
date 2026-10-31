@@ -32,6 +32,8 @@ export interface AttendanceRow extends BulkRow<AttendanceDraft> {
   studentCode: string | null
   /** Serverdagi yozuv (kim belgilagan, editable) */
   record: AttendanceRecord | null
+  /** Boshqa o'qituvchining parallel darsida belgilangan (ogohlantirish uchun) */
+  otherLesson?: AttendanceSheetStudent['otherLesson']
 }
 
 export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettings = {
@@ -66,6 +68,7 @@ function toRow(s: AttendanceSheetStudent): AttendanceRow {
     studentCode: s.studentCode,
     photo: s.photo ?? null,
     record: r,
+    otherLesson: s.otherLesson ?? null,
     editable: r ? r.editable : true,
     baseline: { ...d },
     draft: { ...d },
@@ -79,6 +82,8 @@ export interface LessonChip {
   lesson: AttendanceSheetLesson | null
   /** Sinfda jadval bor, lekin bu soatda dars yo'q */
   empty: boolean
+  /** Bu soatda bir nechta dars bor (parallel o'qituvchilar) */
+  parallel?: boolean
 }
 
 export interface LiveCounts {
@@ -114,6 +119,9 @@ export function useAttendanceSheet(getClassId: () => string) {
   /** Jadval (P2): shu sanadagi darslar, tanlangan darsning jadvaldagi yozuvi va ruxsat */
   const lessons = ref<AttendanceSheetLesson[]>([])
   const lesson = ref<AttendanceSheetLesson | null>(null)
+  /** Slotda bir nechta dars (parallel o'qituvchilar): tanlangan dars o'qituvchisi va tanlov talabi */
+  const teacherId = ref<string | null>(null)
+  const lessonChoiceRequired = ref(false)
   const hasTimetable = ref(false)
   const maxLessonNo = ref(1)
   const canTake = ref(true)
@@ -155,6 +163,7 @@ export function useAttendanceSheet(getClassId: () => string) {
       let sheet = await attendanceApi.sheet(getClassId(), {
         date: date.value,
         lessonNo: lessonNo.value ?? undefined,
+        teacherId: teacherId.value ?? undefined,
       })
       if (current !== requestId) return
       // Dars rejimida dars tanlanmagan bo'lsa: o'qituvchining bugungi birinchi darsi, aks holda 1-dars
@@ -165,6 +174,7 @@ export function useAttendanceSheet(getClassId: () => string) {
           sheet = await attendanceApi.sheet(getClassId(), {
             date: date.value,
             lessonNo: lessonNo.value,
+            teacherId: teacherId.value ?? undefined,
           })
           if (current !== requestId) return
         }
@@ -175,6 +185,7 @@ export function useAttendanceSheet(getClassId: () => string) {
       lessonsPerDay.value = sheet.lessonsPerDay
       lessons.value = sheet.lessons ?? []
       lesson.value = sheet.lesson ?? null
+      lessonChoiceRequired.value = sheet.lessonChoiceRequired ?? false
       hasTimetable.value = sheet.timetable?.hasTimetable ?? false
       maxLessonNo.value = Math.max(sheet.maxLessonNo ?? 0, sheet.lessonsPerDay)
       canTake.value = sheet.canTake ?? true
@@ -245,14 +256,30 @@ export function useAttendanceSheet(getClassId: () => string) {
       subjectId.value = scheduledLesson.value.subjectId
   }
 
+  /** Tanlangan soatdagi barcha darslar (parallel o'qituvchilar bo'lsa bir nechta) */
+  const slotLessons = computed(() =>
+    lessonNo.value === null ? [] : lessons.value.filter((x) => x.lessonNo === lessonNo.value),
+  )
+
   /** Dars chiplari: 1..maxLessonNo; jadvali bor sinfda bo'sh slotlar "(bo'sh)" */
   const chips = computed<LessonChip[]>(() =>
     Array.from({ length: maxLessonNo.value }, (_, i) => {
       const n = i + 1
-      const l = lessons.value.find((x) => x.lessonNo === n) ?? null
-      return { n, lesson: l, empty: hasTimetable.value && !l }
+      const at = lessons.value.filter((x) => x.lessonNo === n)
+      // Bir soatda bir nechta dars: o'zinikini (mine) ko'rsatamiz, bo'lmasa birinchisini
+      const l = at.find((x) => x.mine && !x.cancelled) ?? at[0] ?? null
+      return { n, lesson: l, empty: hasTimetable.value && !l, parallel: at.length > 1 }
     }),
   )
+
+  /** Parallel darslardan birini tanlash (admin / sinf rahbari): varaq shu dars uchun qayta yuklanadi */
+  async function chooseLesson(nextTeacherId: string) {
+    if (teacherId.value === nextTeacherId && !lessonChoiceRequired.value) return
+    teacherId.value = nextTeacherId
+    subjectId.value = null
+    overriding.value = false
+    await load()
+  }
 
   /** Dars chiplaridagi to'ldirilganlik belgisi: har bir dars uchun belgilangan o'quvchilar soni. */
   async function loadLessonProgress(forRequest = requestId) {
@@ -345,6 +372,7 @@ export function useAttendanceSheet(getClassId: () => string) {
       dateOk.value &&
       canTake.value &&
       !subjectMissing.value &&
+      !lessonChoiceRequired.value &&
       changedCount.value > 0 &&
       invalidDirty.value.length === 0 &&
       !saving.value,
@@ -384,6 +412,7 @@ export function useAttendanceSheet(getClassId: () => string) {
         date: date.value,
         ...(mode.value === 'lesson' && lessonNo.value ? { lessonNo: lessonNo.value } : {}),
         ...(sendsSubject() ? { subjectId: subjectId.value! } : {}),
+        ...(teacherId.value ? { teacherId: teacherId.value } : {}),
         items,
       })
       core.applyBulkResult(new Set(items.map((i) => i.studentId)), result.failed)
@@ -400,6 +429,7 @@ export function useAttendanceSheet(getClassId: () => string) {
    */
   async function init(queryDate?: string | null, queryLessonNo?: number | null) {
     subjectId.value = null
+    teacherId.value = null
     overriding.value = false
     const explicit = isIsoDate(queryDate)
     if (explicit) date.value = queryDate
@@ -426,6 +456,7 @@ export function useAttendanceSheet(getClassId: () => string) {
     if (next.lessonNo !== undefined) lessonNo.value = next.lessonNo
     // Boshqa sana/dars: fan serverdan qayta aniqlanadi (saqlangan bo'lsa) yoki qayta tanlanadi
     subjectId.value = null
+    teacherId.value = null
     overriding.value = false
     await load()
   }
@@ -452,6 +483,10 @@ export function useAttendanceSheet(getClassId: () => string) {
     setSubject,
     lessons,
     lesson,
+    slotLessons,
+    teacherId,
+    lessonChoiceRequired,
+    chooseLesson,
     scheduledLesson,
     hasTimetable,
     maxLessonNo,

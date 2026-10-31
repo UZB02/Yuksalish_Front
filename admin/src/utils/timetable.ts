@@ -23,33 +23,42 @@ export interface CellValue {
   subjectName?: string
   teacherName?: string
 }
-export type CellMap = Record<string, CellValue>
+/**
+ * Katak -> shu vaqtdagi darslar. Bir katakda bir nechta dars bo'lishi mumkin (parallel o'qituvchilar);
+ * bo'sh katak xaritada bo'lmaydi.
+ */
+export type CellMap = Record<string, CellValue[]>
+
+/** Bir xil (fan, o'qituvchi) juftligi katakda ikki marta bo'lmaydi; o'qituvchi ham ikki marta bo'lmaydi */
+export const lessonLabel = (c: Pick<CellValue, 'subjectName' | 'teacherName'>) =>
+  [c.subjectName ?? '?', c.teacherName ?? '?'].join(' · ')
 
 export function entriesToCells(entries: TimetableEntry[]): CellMap {
   const out: CellMap = {}
   for (const e of entries) {
-    out[cellKey(e.weekday, e.lessonNo)] = {
+    const k = cellKey(e.weekday, e.lessonNo)
+    ;(out[k] ??= []).push({
       subjectId: e.subjectId,
       teacherId: e.teacherId,
       room: e.room ?? null,
       subjectName: e.subject?.name,
       teacherName: e.teacher?.fullName,
-    }
+    })
   }
   return out
 }
 
 export function cellsToPayload(cells: CellMap): EntryPayload[] {
   return Object.entries(cells)
-    .map(([k, v]) => {
+    .flatMap(([k, list]) => {
       const [weekday, lessonNo] = k.split(':').map(Number) as [number, number]
-      return {
+      return list.map((v) => ({
         weekday,
         lessonNo,
         subjectId: v.subjectId,
         teacherId: v.teacherId,
         room: v.room?.trim() ? v.room.trim() : null,
-      }
+      }))
     })
     .sort((a, b) => a.weekday - b.weekday || a.lessonNo - b.lessonNo)
 }
@@ -73,7 +82,7 @@ export function copyDay(cells: CellMap, from: number, to: number, lessons: numbe
   for (const [k, v] of Object.entries(cells)) if (!k.startsWith(`${to}:`)) out[k] = v
   for (let n = 1; n <= lessons; n++) {
     const src = cells[cellKey(from, n)]
-    if (src) out[cellKey(to, n)] = { ...src }
+    if (src?.length) out[cellKey(to, n)] = src.map((c) => ({ ...c }))
   }
   return out
 }
@@ -111,9 +120,41 @@ export function subjectOptions(opts: TimetableOptions, extra?: { id: string; nam
     .sort((a, b) => Number(b.assigned) - Number(a.assigned) || a.label.localeCompare(b.label, 'uz'))
 }
 
-/** Fan tanlanganda o'qituvchi: avval ClassSubject'dagi */
+/** Fan tanlanganda o'qituvchi: avval ClassSubject'dagi (birinchisi) */
 export function defaultTeacherFor(opts: TimetableOptions, subjectId: string): string | null {
   return opts.classAssignments.find((a) => a.subjectId === subjectId)?.teacherId ?? null
+}
+
+/** Sinfda shu fanga biriktirilgan barcha o'qituvchilar (bir nechta bo'lishi mumkin) */
+export const assignedTeachersOf = (
+  opts: Pick<TimetableOptions, 'classAssignments'>,
+  subjectId: string,
+) => opts.classAssignments.filter((a) => a.subjectId === subjectId).map((a) => a.teacherId)
+
+export interface PairOption {
+  /** `subjectId:teacherId` */
+  key: string
+  subjectId: string
+  teacherId: string
+  /** "Ingliz tili · Aliyeva" */
+  label: string
+}
+
+/**
+ * Sinfga biriktirilgan har bir (fan, o'qituvchi) juftligi alohida variant:
+ * "Ingliz tili · Aliyeva", "Ingliz tili · G'aniyeva".
+ */
+export function pairOptions(opts: TimetableOptions): PairOption[] {
+  const subjects = new Map(opts.subjects.map((s) => [s.id, s.name]))
+  const teachers = new Map(opts.teachers.map((t) => [t.id, t.fullName]))
+  return opts.classAssignments
+    .map((a) => ({
+      key: `${a.subjectId}:${a.teacherId}`,
+      subjectId: a.subjectId,
+      teacherId: a.teacherId,
+      label: `${subjects.get(a.subjectId) ?? '?'} · ${teachers.get(a.teacherId) ?? '?'}`,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'uz'))
 }
 
 /**
@@ -127,7 +168,7 @@ export function teacherOptions(
 ): OptionGroup[] {
   const all = [...opts.teachers]
   for (const e of extra ?? []) if (!all.some((t) => t.id === e.id)) all.push(e)
-  const assignedId = subjectId ? defaultTeacherFor(opts, subjectId) : null
+  const assignedIds = subjectId ? assignedTeachersOf(opts, subjectId) : []
   const others = new Set(subjectId ? (opts.subjectTeachers[subjectId] ?? []) : [])
   const used = new Set<string>()
   const pick = (ids: (string | null)[]) =>
@@ -139,7 +180,7 @@ export function teacherOptions(
         used.add(t.id)
         return { id: t.id, label: t.fullName }
       })
-  const assigned = pick([assignedId])
+  const assigned = pick(assignedIds)
   const subject = pick([...others]).sort((a, b) => a.label.localeCompare(b.label, 'uz'))
   const rest = pick(all.map((t) => t.id)).sort((a, b) => a.label.localeCompare(b.label, 'uz'))
   const groups: OptionGroup[] = [
@@ -150,8 +191,15 @@ export function teacherOptions(
   return groups.filter((g) => g.items.length)
 }
 
-/** Haftalik darslar soni (o'qituvchi hafta jadvali uchun) */
-export const countCells = (cells: CellMap) => Object.keys(cells).length
+/** Katak muammolaridan aynan shu darsga (o'qituvchiga) tegishlilari; o'qituvchisiz muammo hammasiga */
+export const issuesForLesson = <T extends { teacherId?: string }>(
+  issues: T[] | undefined,
+  lesson: Pick<CellValue, 'teacherId'>,
+): T[] => (issues ?? []).filter((i) => !i.teacherId || i.teacherId === lesson.teacherId)
+
+/** Haftalik darslar soni (parallel darslar alohida sanaladi) */
+export const countCells = (cells: CellMap) =>
+  Object.values(cells).reduce((n, list) => n + list.length, 0)
 
 /** Faollashtirish sanasi bugundan oldinmi (tasdiq kerak) */
 export const isPastDate = (date: string, today: string) => !!date && date < today

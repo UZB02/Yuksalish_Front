@@ -18,26 +18,34 @@ export interface IssueContext {
   assignedTeacherName?: (subjectId: string) => string | undefined
 }
 
+interface NamedLesson {
+  subjectId: string
+  teacherId: string
+  subjectName?: string
+  teacherName?: string
+}
+
 /** Sozlamalar (fanlar, o'qituvchilar, biriktirishlar) va kataklardagi nomlardan kontekst */
 export function issueContextFrom(
   options: TimetableOptions | null | undefined,
-  cells: Record<
-    string,
-    { subjectId: string; teacherId: string; subjectName?: string; teacherName?: string }
-  > = {},
+  cells: Record<string, NamedLesson | NamedLesson[]> = {},
 ): IssueContext {
   const subjects = new Map((options?.subjects ?? []).map((s) => [s.id, s.name]))
   const teachers = new Map((options?.teachers ?? []).map((x) => [x.id, x.fullName]))
-  for (const c of Object.values(cells)) {
+  for (const c of Object.values(cells).flat()) {
     if (c.subjectName && !subjects.has(c.subjectId)) subjects.set(c.subjectId, c.subjectName)
     if (c.teacherName && !teachers.has(c.teacherId)) teachers.set(c.teacherId, c.teacherName)
   }
   return {
     subjectName: (id) => subjects.get(id),
     teacherName: (id) => teachers.get(id),
+    // Fanga bir nechta o'qituvchi biriktirilgan bo'lishi mumkin: hammasi vergul bilan
     assignedTeacherName: (sid) => {
-      const a = options?.classAssignments.find((x) => x.subjectId === sid)
-      return a ? teachers.get(a.teacherId) : undefined
+      const names = (options?.classAssignments ?? [])
+        .filter((x) => x.subjectId === sid)
+        .map((x) => teachers.get(x.teacherId))
+        .filter((n): n is string => !!n)
+      return names.length ? names.join(', ') : undefined
     },
   }
 }
@@ -53,6 +61,9 @@ export interface TimetableIssue {
   text: string
   /** "Dush · 1-dars · Informatika" */
   cellLabel: string
+  /** Ogohlantirish aynan qaysi dars (o'qituvchi/fan) uchun — katakda bir nechta dars bo'lishi mumkin */
+  teacherId?: string
+  subjectId?: string
   /** To'qnashuvda: ikkinchi sinf */
   otherClass?: { id: string; name: string }
   /** Ommaviy faollashtirishda: ogohlantirish qaysi sinfniki */
@@ -60,7 +71,9 @@ export interface TimetableIssue {
 }
 
 export const issueKey = (w: TimetableWarning) =>
-  [w.code, w.weekday, w.lessonNo, w.other?.classId ?? '', w.classId ?? ''].join('|')
+  [w.code, w.weekday, w.lessonNo, w.other?.classId ?? '', w.classId ?? '', w.teacherId ?? ''].join(
+    '|',
+  )
 
 const KNOWN: string[] = [
   'teacher_double_booked',
@@ -133,6 +146,8 @@ export function formatIssue(
     ]
       .filter(Boolean)
       .join(' · '),
+    teacherId: w.teacherId,
+    subjectId: w.subjectId,
     otherClass: w.other ? { id: w.other.classId, name: w.other.className } : undefined,
     className: w.className,
   }
@@ -231,8 +246,11 @@ export function previewCellWarnings(input: {
       },
     })
   }
-  const assigned = input.options.classAssignments.find((a) => a.subjectId === subjectId)
-  if (assigned?.teacherId !== teacherId) {
+  // Fanga bir nechta o'qituvchi biriktirilgan bo'lishi mumkin: ulardan biri bo'lsa ogohlantirilmaydi
+  const assigned = input.options.classAssignments.some(
+    (a) => a.subjectId === subjectId && a.teacherId === teacherId,
+  )
+  if (!assigned) {
     out.push({ ...base, code: 'teacher_not_assigned', severity: 'warning', message: '' })
   }
   return out

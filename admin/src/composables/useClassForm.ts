@@ -8,6 +8,7 @@ import { subjectsApi } from '@/api/subjects.api'
 import type { AcademicYear, ClassPayload, SchoolClass, Subject } from '@/api/types'
 import type { AssignmentRow } from '@/components/domain/SubjectAssignmentsEditor.vue'
 import { useToast } from '@/composables/useToast'
+import { hasDuplicatePair } from '@/utils/classSubjects'
 import { applyServerErrors, errorMessage } from '@/utils/errors'
 import { classSchema } from '@/validation/domain'
 
@@ -93,6 +94,7 @@ export function useClassForm(schoolClass: Ref<SchoolClass | null>, years: Ref<Ac
     rowsSubmitted.value = true
     // To'liq bo'lmagan qator (fan yoki o'qituvchi tanlanmagan) saqlashga yo'l qo'ymaydi.
     if (subjectRows.value.some((r) => !r.subjectId || !r.teacherId)) return null
+    if (hasDuplicatePair(subjectRows.value)) return null
     submitting.value = true
     try {
       let saved: SchoolClass

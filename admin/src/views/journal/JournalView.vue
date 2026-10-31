@@ -15,7 +15,12 @@ import JournalDayList from '@/components/journal/JournalDayList.vue'
 import JournalFilters from '@/components/journal/JournalFilters.vue'
 import JournalGrid from '@/components/journal/JournalGrid.vue'
 import JournalLegend from '@/components/journal/JournalLegend.vue'
-import { isDate, monthRange, rangeError } from '@/components/journal/journal.utils'
+import {
+  isDate,
+  monthRange,
+  rangeError,
+  subjectPairOptions,
+} from '@/components/journal/journal.utils'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
@@ -49,6 +54,8 @@ const optionsLoading = ref(false)
 const optionsError = ref('')
 const classId = ref('')
 const subjectId = ref('')
+/** Fanning bir nechta o'qituvchisi bo'lsa: jurnal (fan, o'qituvchi) juftligi bo'yicha */
+const teacherId = ref('')
 const from = ref('')
 const to = ref('')
 
@@ -59,7 +66,13 @@ const periodError = computed(() =>
 const validDates = computed(() => isDate(from.value) && isDate(to.value))
 const query = computed<JournalQuery | null>(() =>
   classId.value && subjectId.value && validDates.value && !periodError.value
-    ? { classId: classId.value, subjectId: subjectId.value, from: from.value, to: to.value }
+    ? {
+        classId: classId.value,
+        subjectId: subjectId.value,
+        ...(teacherId.value ? { teacherId: teacherId.value } : {}),
+        from: from.value,
+        to: to.value,
+      }
     : null,
 )
 
@@ -74,7 +87,13 @@ function applyQuery() {
   const qc = typeof q.classId === 'string' ? q.classId : ''
   classId.value = o.classes.some((c) => c.id === qc) ? qc : ''
   const qs = typeof q.subjectId === 'string' ? q.subjectId : ''
-  subjectId.value = classId.value && subjectsOf(classId.value).some((s) => s.id === qs) ? qs : ''
+  const qt = typeof q.teacherId === 'string' ? q.teacherId : ''
+  const picked = classId.value ? subjectsOf(classId.value).find((s) => s.id === qs) : undefined
+  // Bir nechta o'qituvchili fan faqat juftlik (o'qituvchi) bilan tanlanadi
+  const multi = (picked?.teachers?.length ?? 0) > 1
+  const pairOk = !multi || (!!qt && !!picked?.teachers?.some((x) => x.id === qt))
+  subjectId.value = picked && pairOk ? qs : ''
+  teacherId.value = picked && pairOk && multi ? qt : ''
   if (isDate(q.from) && isDate(q.to)) {
     from.value = q.from
     to.value = q.to
@@ -101,9 +120,17 @@ async function loadOptions() {
 function onClass(id: string) {
   classId.value = id
   const subs = subjectsOf(id)
-  if (!subs.some((s) => s.id === subjectId.value)) {
-    // O'qituvchining sinfida bitta fan bo'lsa, uni darrov tanlaymiz
-    subjectId.value = subs.length === 1 ? subs[0]!.id : ''
+  const stillValid = subs.some(
+    (s) =>
+      s.id === subjectId.value &&
+      (teacherId.value ? !!s.teachers?.some((x) => x.id === teacherId.value) : true),
+  )
+  if (!stillValid) {
+    // O'qituvchining sinfida bitta variant (fan yoki fan-o'qituvchi juftligi) bo'lsa, uni darrov tanlaymiz
+    const opts = subjectPairOptions(subs)
+    const only = opts.length === 1 ? opts[0]!.value.split(':') : null
+    subjectId.value = only?.[0] ?? ''
+    teacherId.value = only?.[1] ?? ''
   }
 }
 function onRange(f: string, tt: string) {
@@ -112,11 +139,12 @@ function onRange(f: string, tt: string) {
 }
 
 // URL bilan sinxronlash (ulashiladigan havola)
-watch([classId, subjectId, from, to], () => {
+watch([classId, subjectId, teacherId, from, to], () => {
   if (!options.value) return
   const next: Record<string, string> = {}
   if (classId.value) next.classId = classId.value
   if (subjectId.value) next.subjectId = subjectId.value
+  if (teacherId.value) next.teacherId = teacherId.value
   if (isDate(from.value)) next.from = from.value
   if (isDate(to.value)) next.to = to.value
   void router.replace({ query: next })
@@ -180,6 +208,7 @@ watch(
     data.value = null
     classId.value = ''
     subjectId.value = ''
+    teacherId.value = ''
     if (!needsSchool.value) void loadOptions()
   },
 )
@@ -216,6 +245,7 @@ watch(
         :options="options"
         :class-id="classId"
         :subject-id="subjectId"
+        :teacher-id="teacherId"
         :from="from"
         :to="to"
         :error="periodError"
@@ -223,6 +253,7 @@ watch(
         :busy="busy"
         @update:class-id="onClass"
         @update:subject-id="subjectId = $event"
+        @update:teacher-id="teacherId = $event"
         @range="onRange"
         @export="doExport"
       />

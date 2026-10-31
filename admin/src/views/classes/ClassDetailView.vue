@@ -21,6 +21,7 @@ import Skeleton from '@/components/ui/Skeleton.vue'
 import { PERMISSIONS } from '@/constants/permissions'
 import { useTeacherLookup } from '@/composables/useLookups'
 import { useAuthStore } from '@/stores/auth'
+import { groupBySubject, subjectTeachersLabel } from '@/utils/classSubjects'
 import { errorMessage } from '@/utils/errors'
 import StudentsPanel from '../students/StudentsPanel.vue'
 import ClassTeachersModal from './ClassTeachersModal.vue'
@@ -37,6 +38,8 @@ const assignOpen = ref(false)
 
 const classId = computed(() => String(route.params.id))
 const canManage = computed(() => auth.hasPermission(PERMISSIONS.CLASSES_MANAGE))
+/** "Ingliz tili — Aliyeva, G'aniyeva": bir fanning barcha o'qituvchilari birga */
+const subjectGroups = computed(() => groupBySubject(schoolClass.value?.subjects))
 /** O'qituvchi o'z sinfi jadvalini ruxsatsiz ham ko'radi (server tekshiradi); admin uchun timetable.view/manage */
 const canSeeTimetable = computed(
   () =>
@@ -125,6 +128,22 @@ watch(classId, () => load())
                 tc.fullName
               }}</BaseBadge>
               <span v-if="schoolClass.teachers.length === 0" class="text-fg">-</span>
+            </dd>
+          </div>
+          <div
+            v-if="subjectGroups.length"
+            class="flex flex-wrap gap-x-2"
+            data-testid="class-subjects"
+          >
+            <dt class="text-fg-muted">{{ t('classes.subjectsSection') }}:</dt>
+            <dd class="min-w-0 text-fg">
+              <span
+                v-for="(g, i) in subjectGroups"
+                :key="g.subjectId"
+                data-testid="class-subject-group"
+              >
+                {{ subjectTeachersLabel(g) }}<span v-if="i < subjectGroups.length - 1">; </span>
+              </span>
             </dd>
           </div>
           <div class="flex flex-wrap gap-x-2">

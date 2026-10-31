@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { Plus, Trash2, X } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import DropdownMenu, { type DropdownItem } from '@/components/ui/DropdownMenu.vue'
-import { cellKey, severityOf, type CellMap } from '@/utils/timetable'
+import { cellKey, issuesForLesson, severityOf, type CellMap } from '@/utils/timetable'
 import { cellIssueSummary, type TimetableIssue } from '@/utils/timetableIssues'
 import TimetableCellContent from './TimetableCellContent.vue'
 
@@ -116,12 +116,17 @@ const ariaOf = (w: number, n: number) =>
               :aria-label="ariaOf(w, n)"
               @click="emit('edit', w, n)"
             >
-              <TimetableCellContent
-                v-if="cells[cellKey(w, n)]"
-                :cell="cells[cellKey(w, n)]"
-                :issues="issuesMap[cellKey(w, n)]"
-                :out-of-range="outSet.has(cellKey(w, n))"
-              />
+              <div v-if="cells[cellKey(w, n)]?.length" class="space-y-1.5">
+                <TimetableCellContent
+                  v-for="(c, li) in cells[cellKey(w, n)]"
+                  :key="li"
+                  :cell="c"
+                  :issues="issuesForLesson(issuesMap[cellKey(w, n)], c)"
+                  :out-of-range="li === 0 && outSet.has(cellKey(w, n))"
+                  :class="li > 0 ? 'border-t border-dashed border-border pt-1.5' : ''"
+                  data-testid="cell-line"
+                />
+              </div>
               <span
                 v-else
                 class="flex h-full items-center justify-center text-fg-muted/50 group-hover:text-primary-600"
@@ -130,15 +135,20 @@ const ariaOf = (w: number, n: number) =>
               </span>
             </button>
             <div v-else class="h-full px-2 py-1.5" :data-testid="`cell-${w}-${n}`">
-              <TimetableCellContent
-                v-if="cells[cellKey(w, n)]"
-                :cell="cells[cellKey(w, n)]"
-                :issues="issuesMap[cellKey(w, n)]"
-                :out-of-range="outSet.has(cellKey(w, n))"
-              />
+              <div v-if="cells[cellKey(w, n)]?.length" class="space-y-1.5">
+                <TimetableCellContent
+                  v-for="(c, li) in cells[cellKey(w, n)]"
+                  :key="li"
+                  :cell="c"
+                  :issues="issuesForLesson(issuesMap[cellKey(w, n)], c)"
+                  :out-of-range="li === 0 && outSet.has(cellKey(w, n))"
+                  :class="li > 0 ? 'border-t border-dashed border-border pt-1.5' : ''"
+                  data-testid="cell-line"
+                />
+              </div>
             </div>
             <button
-              v-if="editable && cells[cellKey(w, n)]"
+              v-if="editable && cells[cellKey(w, n)]?.length"
               type="button"
               class="absolute right-0.5 top-0.5 hidden rounded p-0.5 text-fg-muted hover:bg-surface hover:text-danger group-hover:block group-focus-within:block"
               :aria-label="t('timetable.clearCell')"

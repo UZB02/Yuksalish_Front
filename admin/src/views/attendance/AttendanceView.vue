@@ -88,6 +88,13 @@ function chipLabel(chip: LessonChip): string {
   return chip.empty ? t('attendance.emptyLesson', { n: chip.n }) : String(chip.n)
 }
 
+async function changeSlotLesson(teacherId: string) {
+  if (teacherId === sheet.lesson.value?.teacherId && !sheet.lessonChoiceRequired.value) return
+  if (!(await confirmDiscard(t('attendance.unsaved.subjectText')))) return
+  if (sheet.hasUnsaved.value) sheet.discard()
+  await sheet.chooseLesson(teacherId)
+}
+
 const subjectOptions = computed(() =>
   sheet.subjects.value.map((s) => ({ value: s.id, label: s.name })),
 )
@@ -242,6 +249,49 @@ watch(classId, () => void sheet.init(initialDate(), initialLessonNo()))
           data-testid="lesson-dot"
         />
       </button>
+    </div>
+
+    <!-- Bir soatda bir nechta dars (parallel o'qituvchilar): qaysi dars uchun davomat olinayotganini tanlash -->
+    <div
+      v-if="sheet.mode.value === 'lesson' && sheet.slotLessons.value.length > 1"
+      class="space-y-1.5"
+      data-testid="slot-lessons"
+    >
+      <p
+        class="text-sm"
+        :class="sheet.lessonChoiceRequired.value ? 'font-medium text-warning' : 'text-fg-muted'"
+        data-testid="slot-lessons-hint"
+      >
+        {{
+          sheet.lessonChoiceRequired.value
+            ? t('attendance.chooseLessonRequired')
+            : t('attendance.chooseLesson')
+        }}
+      </p>
+      <div class="flex flex-wrap gap-2" role="group" :aria-label="t('attendance.chooseLesson')">
+        <button
+          v-for="l in sheet.slotLessons.value"
+          :key="l.teacherId"
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-sm font-medium transition-colors"
+          :class="[
+            sheet.lesson.value?.teacherId === l.teacherId && !sheet.lessonChoiceRequired.value
+              ? 'border-primary-600 bg-primary-50 text-primary-700'
+              : 'border-border bg-surface text-fg hover:bg-surface-muted',
+            l.cancelled ? 'line-through opacity-70' : '',
+          ]"
+          :aria-pressed="
+            sheet.lesson.value?.teacherId === l.teacherId && !sheet.lessonChoiceRequired.value
+          "
+          data-testid="slot-lesson"
+          @click="changeSlotLesson(l.teacherId)"
+        >
+          {{ l.subject?.name }} · {{ l.teacher?.fullName }}
+          <span v-if="l.mine" class="text-xs font-normal text-fg-muted">
+            ({{ t('attendance.myLesson') }})
+          </span>
+        </button>
+      </div>
     </div>
 
     <!-- Jadvaldan aniqlangan dars: fan faqat o'qish uchun chip; admin/sinf rahbari o'zgartira oladi -->

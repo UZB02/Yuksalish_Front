@@ -1,4 +1,4 @@
-import type { JournalAbsence, JournalCellData } from '@/api/journal.api'
+import type { JournalAbsence, JournalCellData, JournalSubjectOption } from '@/api/journal.api'
 
 /** Jurnal davrining eng ko'p kalendar kuni (backend bilan bir xil) */
 export const JOURNAL_MAX_DAYS = 93
@@ -19,6 +19,31 @@ export const ABSENCE_CLASS: Record<'N' | 'B', string> = {
 }
 
 export const pad = (n: number) => String(n).padStart(2, '0')
+
+/** Jurnal tanlovi: fan yoki (fanning bir nechta o'qituvchisi bo'lsa) "fan:o'qituvchi" juftligi */
+export const pairKey = (subjectId: string, teacherId = '') =>
+  teacherId ? `${subjectId}:${teacherId}` : subjectId
+export function splitPairKey(key: string): { subjectId: string; teacherId: string } {
+  const [subjectId = '', teacherId = ''] = key.split(':')
+  return { subjectId, teacherId }
+}
+
+/**
+ * Jurnal fan tanlovi: bitta o'qituvchili fan avvalgidek ("Ingliz tili"), bir nechta o'qituvchili fan
+ * har bir juftlik alohida ("Ingliz tili · Aliyeva", "Ingliz tili · G'aniyeva").
+ */
+export function subjectPairOptions(
+  subjects: JournalSubjectOption[],
+): { value: string; label: string }[] {
+  return subjects.flatMap((s) =>
+    (s.teachers?.length ?? 0) > 1
+      ? (s.teachers ?? []).map((tc) => ({
+          value: pairKey(s.id, tc.id),
+          label: `${s.name} · ${tc.fullName}`,
+        }))
+      : [{ value: s.id, label: s.name }],
+  )
+}
 
 /** "2026-10-05" -> 5 */
 export const dayOf = (date: string) => Number(date.slice(8, 10))

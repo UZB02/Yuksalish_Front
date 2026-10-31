@@ -40,7 +40,14 @@ import { PERMISSIONS } from '@/constants/permissions'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
-import { cellKey, daysUntil, isOldHistory, versionLabel, type CellValue } from '@/utils/timetable'
+import {
+  cellKey,
+  daysUntil,
+  entriesToCells,
+  isOldHistory,
+  versionLabel,
+  type CellValue,
+} from '@/utils/timetable'
 import {
   buildIssues,
   countIssues,
@@ -184,17 +191,9 @@ async function applyCopy() {
     // Boshqa sinfdan: uning joriy (bo'lmasa kelgusi) jadvali
     const versionId = kind === 'version' ? copySource.value : (row?.current ?? row?.upcoming)?.id
     if (!versionId) return
-    const cells: Record<string, CellValue> = {}
-    for (const e of (await timetableApi.version(versionId)).version.entries) {
-      if (e.outOfRange) continue
-      cells[cellKey(e.weekday, e.lessonNo)] = {
-        subjectId: e.subjectId,
-        teacherId: e.teacherId,
-        room: e.room,
-        subjectName: e.subject?.name,
-        teacherName: e.teacher?.fullName,
-      }
-    }
+    const cells = entriesToCells(
+      (await timetableApi.version(versionId)).version.entries.filter((e) => !e.outOfRange),
+    )
     ed.replaceCells(cells)
     toast.info(t('timetable.copied'))
   } catch (e) {
@@ -264,7 +263,7 @@ function openCell(weekday: number, lessonNo: number) {
       /* band belgilari ixtiyoriy: yuklanmasa jim o'tadi */
     })
 }
-function saveCell(value: CellValue) {
+function saveCell(value: CellValue[]) {
   if (!cellOpen.value) return
   ed.setCell(cellOpen.value.weekday, cellOpen.value.lessonNo, value)
   cellOpen.value = null
