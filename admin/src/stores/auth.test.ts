@@ -66,4 +66,24 @@ describe('auth store', () => {
     expect(auth.isAuthenticated).toBe(false)
     expect(auth.accessToken).toBeNull()
   })
+
+  it('logout server javobini cheksiz kutmaydi (Clear-Site-Data sekin bo`lsa ham)', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.mocked(authApi.logout).mockReturnValue(new Promise<void>(() => {}))
+      const auth = useAuthStore()
+      auth.setSession('abc', teacher)
+      let done = false
+      const pending = auth.logout().then(() => (done = true))
+      // Sessiya so'rov tugashini kutmasdan tozalanadi
+      expect(auth.isAuthenticated).toBe(false)
+      await vi.advanceTimersByTimeAsync(1499)
+      expect(done).toBe(false)
+      await vi.advanceTimersByTimeAsync(1)
+      await pending
+      expect(done).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

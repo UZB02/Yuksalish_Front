@@ -48,14 +48,25 @@ export const useAuthStore = defineStore('auth', () => {
     setSession(result.accessToken, result.user)
   }
 
-  async function logout() {
-    try {
-      await authApi.logout()
-    } catch {
+  /**
+   * Mahalliy sessiya DARHOL tozalanadi; server so'rovi ko'pi bilan `waitMs` kutiladi.
+   * Sabab: logout javobidagi `Clear-Site-Data: "cache"` ni ba'zi brauzerlar (o'rnatilgan
+   * PWA, Android Chrome) uzoq qayta ishlaydi va javobni ushlab turadi - login sahifasiga
+   * o'tish shuni kutib qolmasligi kerak. So'rov fonda yakunlanadi (cookie bekor qilinadi).
+   */
+  async function logout(waitMs = 1500) {
+    const request = authApi.logout().catch(() => {
       // Server xato bersa ham mahalliy sessiya tozalanadi.
-    } finally {
-      clearSession()
-    }
+    })
+    clearSession()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    await Promise.race([
+      request,
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, waitMs)
+      }),
+    ])
+    clearTimeout(timer)
   }
 
   /**
