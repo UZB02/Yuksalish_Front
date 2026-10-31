@@ -35,6 +35,12 @@ export function groupBySubject(list: ClassSubjectAssignment[] | undefined): Subj
 export const subjectTeachersLabel = (g: SubjectTeachers): string =>
   `${g.name} — ${g.teachers.map((t) => t.fullName).join(', ')}`
 
+/** "Abdullajonov Navro'zbek" -> "Abdullajonov N." (Familiya I.) */
+export function shortName(fullName: string): string {
+  const [last, first] = fullName.trim().split(/\s+/)
+  return first ? `${last} ${first.charAt(0).toUpperCase()}.` : (last ?? '')
+}
+
 /** Aynan bir xil (fan, o'qituvchi) juftligi takrorlanganmi (to'liq qatorlar bo'yicha) */
 export function hasDuplicatePair(rows: ClassSubjectInput[]): boolean {
   const seen = new Set<string>()
