@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, type Component } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -11,6 +12,7 @@ import PublicSettingsTab from './PublicSettingsTab.vue'
 import RatingSettingsTab from './RatingSettingsTab.vue'
 import ScoringSettingsTab from './ScoringSettingsTab.vue'
 import TimetableSettingsTab from './TimetableSettingsTab.vue'
+import TelegramSettingsTab from './TelegramSettingsTab.vue'
 
 interface SettingsTab {
   key: SettingsTabKey
@@ -26,6 +28,7 @@ const ALL: SettingsTab[] = [
   { key: 'timetable', labelKey: 'settings.tabs.timetable', component: TimetableSettingsTab },
   { key: 'branding', labelKey: 'settings.tabs.branding', component: BrandingSettingsTab },
   { key: 'schoolLogo', labelKey: 'settings.tabs.schoolLogo', component: SchoolLogoTab },
+  { key: 'telegram', labelKey: 'settings.tabs.telegram', component: TelegramSettingsTab },
 ]
 
 const { t } = useI18n()
@@ -39,7 +42,11 @@ const tabs = computed(() => {
   )
   return ALL.filter((x) => keys.includes(x.key))
 })
-const active = ref<SettingsTabKey>(tabs.value[0]?.key ?? 'scoring')
+const route = useRoute()
+const wanted = String(route.query.tab ?? '')
+const active = ref<SettingsTabKey>(
+  tabs.value.find((x) => x.key === wanted)?.key ?? tabs.value[0]?.key ?? 'scoring',
+)
 const current = computed(() => tabs.value.find((x) => x.key === active.value) ?? tabs.value[0])
 </script>
 

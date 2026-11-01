@@ -44,6 +44,7 @@ describe('visibleSettingsTabs', () => {
       'attendance',
       'timetable',
       'branding',
+      'telegram',
     ])
   })
   it("attendance.settings maktab admini faqat Davomat va Dars jadvali tablarini ko'radi", () => {

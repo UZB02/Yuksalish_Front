@@ -6,6 +6,7 @@ export type SettingsTabKey =
   | 'timetable'
   | 'branding'
   | 'schoolLogo'
+  | 'telegram'
 
 export const ALL_SETTINGS_TABS: SettingsTabKey[] = [
   'scoring',
@@ -14,6 +15,7 @@ export const ALL_SETTINGS_TABS: SettingsTabKey[] = [
   'attendance',
   'timetable',
   'branding',
+  'telegram',
 ]
 
 /**

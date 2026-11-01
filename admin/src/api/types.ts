@@ -8,6 +8,8 @@ export type ErrorCode =
   | 'CONFLICT'
   | 'RATE_LIMITED'
   | 'INTERNAL'
+  | 'BAD_GATEWAY'
+  | 'SERVICE_UNAVAILABLE'
   | 'NETWORK'
 
 export interface ApiMeta {
@@ -1399,4 +1401,30 @@ export interface MyTodayLessons {
   /** O'qituvchiga bugun amal qiladigan jadval versiyasi bormi */
   hasTimetable: boolean
   lessons: TodayLesson[]
+}
+
+// ---- Telegram bot ----
+export interface TelegramConfig {
+  configured: boolean
+  source: 'db' | 'env' | null
+  enabled: boolean
+  tokenLast4: string | null
+  botUsername: string | null
+  botName: string | null
+  status: 'running' | 'stopped' | 'error'
+  lastError: string | null
+  updatedAt: string | null
+}
+
+export interface TelegramMe {
+  available: boolean
+  botUsername: string | null
+  linked: boolean
+  username: string | null
+  linkedAt: string | null
+}
+
+export interface TelegramLinkInfo {
+  url: string
+  expiresAt: string
 }

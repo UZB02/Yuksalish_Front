@@ -75,6 +75,10 @@ const ACTIONS = [
   'teacher.photo_upload',
   'teacher.update',
   'teachers.import',
+  'telegram.config.delete',
+  'telegram.config.update',
+  'telegram.link',
+  'telegram.unlink',
   'timetable.override_created',
   'timetable.override_deleted',
   'timetable.version_activate',
@@ -99,6 +103,7 @@ const ENTITIES = [
   'student',
   'subject',
   'subject_grade',
+  'telegram',
   'timetable',
   'user',
 ]
@@ -112,8 +117,10 @@ const audit = uz.audit as unknown as {
 describe('audit tarjimalari to`liq', () => {
   it('har bir harakatning tarjimasi bor', () => {
     const missing = ACTIONS.filter((a) => {
-      const [g = '', v = ''] = a.split('.')
-      return !audit.actions[g]?.[v]
+      const label = a
+        .split('.')
+        .reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], audit.actions)
+      return typeof label !== 'string' || !label
     })
     expect(missing).toEqual([])
   })

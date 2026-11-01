@@ -240,6 +240,8 @@
       "CONFLICT": "Bunday ma'lumot allaqachon mavjud.",
       "RATE_LIMITED": "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.",
       "INTERNAL": "Serverda xatolik yuz berdi. Keyinroq urinib ko'ring.",
+      "BAD_GATEWAY": "Telegram bilan bog'lanib bo'lmadi. Birozdan so'ng qayta urinib ko'ring.",
+      "SERVICE_UNAVAILABLE": "Telegram bot hozircha sozlanmagan.",
       "NETWORK": "Server bilan aloqa yo'q. Internetni tekshiring."
     }
   },
@@ -454,6 +456,61 @@
     "confirmPassword": "Yangi parolni tasdiqlang",
     "save": "Parolni saqlash",
     "passwordChanged": "Parol muvaffaqiyatli o'zgartirildi"
+  },
+  "telegram": {
+    "title": "Telegram",
+    "card": {
+      "unavailable": "Telegram bot hali sozlanmagan",
+      "goSettings": "Sozlamalarda sozlash",
+      "description": "Dars jadvali va xabarnomalarni Telegram orqali oling.",
+      "link": "Telegramni ulash",
+      "linked": "Ulangan: {username}",
+      "linkedNoName": "Ulangan",
+      "unlink": "Uzish",
+      "unlinkTitle": "Telegramni uzish",
+      "unlinkMessage": "Telegram uzilgach, botdan xabar olmaysiz. Davom etasizmi?",
+      "unlinkDone": "Telegram uzildi",
+      "linkedToast": "Telegram ulandi"
+    },
+    "modal": {
+      "title": "Telegramni ulash",
+      "hint": "Tugmani bosing yoki telefoningiz bilan QR kodni skanerlang, so'ng botda \"Start\" tugmasini bosing.",
+      "open": "Telegramda ochish",
+      "qrAlt": "Telegram ulash QR kodi",
+      "expiresIn": "Havola amal qiladi: {time}",
+      "expired": "Havola muddati tugadi",
+      "renew": "Yangi havola",
+      "waiting": "Ulanish kutilmoqda..."
+    },
+    "settings": {
+      "status": "Holat",
+      "running": "Ishlayapti",
+      "stopped": "To'xtatilgan",
+      "error": "Xato",
+      "notConfigured": "Sozlanmagan",
+      "sourceEnv": "Token server .env faylidan olingan",
+      "tokenLabel": "Bot tokeni",
+      "tokenHint": "Token xavfsiz saqlanadi va qayta ko'rsatilmaydi",
+      "saveVerify": "Saqlash va tekshirish",
+      "tokenRequired": "Tokenni kiriting",
+      "connected": "✓ {username} ulandi",
+      "enabled": "Bot yoqilgan",
+      "enabledOn": "Bot yoqildi",
+      "enabledOff": "Bot o'chirildi",
+      "delete": "Tokenni o'chirish",
+      "deleteTitle": "Bot tokenini o'chirish",
+      "deleteMessage": "Token o'chiriladi va bot ishlashdan to'xtaydi. Davom etasizmi?",
+      "deleted": "Token o'chirildi",
+      "guideTitle": "Botni qanday yaratish",
+      "guide": [
+        "Telegramda {'@'}BotFather ni oching.",
+        "/newbot buyrug'ini yuboring.",
+        "Bot uchun nom kiriting (masalan: Yuksalish maktabi).",
+        "Username kiriting; u \"bot\" bilan tugashi shart (masalan: yuksalish_maktab_bot).",
+        "BotFather bergan tokenni nusxalang.",
+        "Tokenni yuqoridagi maydonga qo'yib, \"Saqlash va tekshirish\" tugmasini bosing."
+      ]
+    }
   },
   "academicYears": {
     "title": "O'quv yillari",
@@ -921,7 +978,8 @@
       "attendance": "Davomat",
       "timetable": "Dars jadvali",
       "branding": "Brending",
-      "schoolLogo": "Maktab logosi"
+      "schoolLogo": "Maktab logosi",
+      "telegram": "Telegram bot"
     },
     "fields": {
       "minScore": {
@@ -1675,7 +1733,8 @@
       "reports": "Hisobotlar",
       "grades": "Fan baholari",
       "subject": "Fanlar",
-      "timetable": "Dars jadvali"
+      "timetable": "Dars jadvali",
+      "telegram": "Telegram"
     },
     "entities": {
       "academic_year": "O'quv yili",
@@ -1693,9 +1752,18 @@
       "report": "Hisobot",
       "subject": "Fan",
       "subject_grade": "Fan bahosi",
-      "timetable": "Dars jadvali"
+      "timetable": "Dars jadvali",
+      "telegram": "Telegram"
     },
     "actions": {
+      "telegram": {
+        "config": {
+          "update": "Telegram bot sozlamasi o'zgartirildi",
+          "delete": "Telegram bot tokeni o'chirildi"
+        },
+        "link": "Telegram ulandi",
+        "unlink": "Telegram uzildi"
+      },
       "auth": {
         "login": "Tizimga kirdi",
         "locked": "Hisob bloklandi",

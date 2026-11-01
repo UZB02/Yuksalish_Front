@@ -15,6 +15,7 @@ import { useAuthStore } from '@/stores/auth'
 import { applyServerErrors, errorMessage } from '@/utils/errors'
 import { formatDateTime } from '@/utils/format'
 import { changePasswordSchema } from '@/validation/schemas'
+import TelegramCard from './TelegramCard.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -128,5 +129,7 @@ const onSubmit = handleSubmit(async (values) => {
         <BaseButton type="submit" :loading="submitting">{{ t('profile.save') }}</BaseButton>
       </form>
     </section>
+
+    <TelegramCard />
   </div>
 </template>
