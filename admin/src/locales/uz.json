@@ -1334,6 +1334,82 @@
       "strict": "Jadvaldan boshqa dars va fanga davomat olib bo'lmaydi (admin ham)."
     }
   },
+  "settingsTelegram": {
+    "connectionTitle": "Bot ulanishi",
+    "botConnected": "Bot ulangan",
+    "messagesTitle": "Xabarlar sozlamalari",
+    "messagesText": "Bot qaysi kunlari va soatlarda, kimga qanday xabar yuborishini belgilang. Vaqt Toshkent vaqti bilan.",
+    "workdaysAuto": "Avtomatik (davomat sozlamalaridagi ish haftasi)",
+    "workdaysAutoShort": "Avtomatik",
+    "workdaysManual": "Qo'lda",
+    "weeklyDayAuto": "Avtomatik (oxirgi ish kuni)",
+    "weekdaysFull": {
+      "1": "Dushanba",
+      "2": "Seshanba",
+      "3": "Chorshanba",
+      "4": "Payshanba",
+      "5": "Juma",
+      "6": "Shanba",
+      "7": "Yakshanba"
+    },
+    "fields": {
+      "workdays": {
+        "label": "Ish kunlari",
+        "hint": "Ertalabki jadval va hisobotlar faqat shu kunlari yuboriladi."
+      },
+      "notify": {
+        "label": "Xabar turlari",
+        "hint": "Qaysi xabarlar yuborilishini yoqing yoki o'chiring."
+      },
+      "morningTime": {
+        "label": "Ertalabki jadval vaqti",
+        "hint": "O'qituvchilarga bugungi dars jadvali shu vaqtda yuboriladi."
+      },
+      "dailyReportTime": {
+        "label": "Kunlik hisobot vaqti",
+        "hint": "Maktab ma'muriyatiga kunlik davomat hisoboti shu vaqtda yuboriladi."
+      },
+      "dailyReportAbsentNames": {
+        "label": "Kelmaganlarning ism-familiyasini ko'rsatish",
+        "hint": "Yoqilsa, kunlik hisobotda kelmagan o'quvchilar ismi bilan ko'rsatiladi."
+      },
+      "weeklyReportDay": {
+        "label": "Haftalik hisobot kuni",
+        "hint": "Avtomatik rejimda hisobot haftaning oxirgi ish kuni yuboriladi."
+      },
+      "weeklyReportTime": {
+        "label": "Haftalik hisobot vaqti",
+        "hint": "Maktab ma'muriyatiga haftalik hisobot shu vaqtda yuboriladi."
+      }
+    },
+    "notify": {
+      "morningSchedule": {
+        "label": "Ertalabki jadval",
+        "hint": "O'qituvchilarga"
+      },
+      "substitutions": {
+        "label": "Almashtirish xabarlari",
+        "hint": "Almashtirish tayinlangan o'qituvchilarga"
+      },
+      "timetableChanges": {
+        "label": "Jadval o'zgarishi xabarlari",
+        "hint": "Jadvali o'zgargan o'qituvchilarga"
+      },
+      "dailyReport": {
+        "label": "Kunlik hisobot",
+        "hint": "Maktab ma'muriyatiga"
+      },
+      "weeklyReport": {
+        "label": "Haftalik hisobot",
+        "hint": "Maktab ma'muriyatiga"
+      }
+    },
+    "errors": {
+      "time": "Vaqtni SS:DD ko'rinishida kiriting",
+      "workdays": "Kamida bitta ish kunini tanlang",
+      "weeklyDay": "Haftalik hisobot kuni ish kunlaridan biri bo'lishi kerak"
+    }
+  },
   "settingsAttendance": {
     "weekdays": {
       "1": "Du",

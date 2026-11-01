@@ -9,10 +9,11 @@ import type {
   ScoringSettings,
   ScoringSettingsResponse,
   SettingsResponse,
+  TelegramMessageSettings,
   TimetableAttendanceSettings,
 } from './types'
 
-export type SettingsKind = 'scoring' | 'rating' | 'public' | 'attendance' | 'timetable'
+export type SettingsKind = 'scoring' | 'rating' | 'public' | 'attendance' | 'timetable' | 'telegram'
 
 interface SettingsMap {
   scoring: ScoringSettings
@@ -20,6 +21,7 @@ interface SettingsMap {
   public: PublicSettings
   attendance: AttendanceSettings
   timetable: TimetableAttendanceSettings
+  telegram: TelegramMessageSettings
 }
 
 export const settingsApi = {

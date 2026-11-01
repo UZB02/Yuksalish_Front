@@ -20,7 +20,7 @@ export const ALL_SETTINGS_TABS: SettingsTabKey[] = [
 
 /**
  * Sozlamalar tablari: superadmin hammasini ko'radi; maktab admini faqat
- * `attendance.settings` ruxsati bilan va faqat "Davomat" hamda "Dars jadvali" tablarini.
+ * `attendance.settings` ruxsati bilan va "Davomat", "Dars jadvali" va "Telegram bot" (xabarlar sozlamalari) tablarini.
  */
 export function visibleSettingsTabs(
   isSuperadmin: boolean,
@@ -29,7 +29,7 @@ export function visibleSettingsTabs(
 ): SettingsTabKey[] {
   if (isSuperadmin) return [...ALL_SETTINGS_TABS]
   const tabs: SettingsTabKey[] = hasPermission('attendance.settings')
-    ? ['attendance', 'timetable']
+    ? ['attendance', 'timetable', 'telegram']
     : []
   // Maktab logosini faqat maktab admini o'zi boshqaradi (superadmin: Maktablar sahifasida)
   if (isSchoolAdmin) tabs.push('schoolLogo')

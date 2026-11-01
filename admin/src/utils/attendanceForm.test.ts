@@ -47,10 +47,11 @@ describe('visibleSettingsTabs', () => {
       'telegram',
     ])
   })
-  it("attendance.settings maktab admini faqat Davomat va Dars jadvali tablarini ko'radi", () => {
+  it("attendance.settings maktab admini faqat Davomat, Dars jadvali va Telegram tablarini ko'radi", () => {
     expect(visibleSettingsTabs(false, (p) => p === 'attendance.settings')).toEqual([
       'attendance',
       'timetable',
+      'telegram',
     ])
   })
   it('ruxsatsiz hech narsa', () => {

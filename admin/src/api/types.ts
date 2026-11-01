@@ -1416,6 +1416,27 @@ export interface TelegramConfig {
   updatedAt: string | null
 }
 
+export interface TelegramNotifyToggles {
+  morningSchedule: boolean
+  substitutions: boolean
+  timetableChanges: boolean
+  dailyReport: boolean
+  weeklyReport: boolean
+}
+
+/** Maktabning bot xabarlari sozlamalari (null = avtomatik) */
+export interface TelegramMessageSettings {
+  /** ISO 1..7; null = davomat sozlamalaridagi ish haftasi */
+  workdays: number[] | null
+  morningTime: string
+  dailyReportTime: string
+  /** ISO 1..7; null = oxirgi ish kuni */
+  weeklyReportDay: number | null
+  weeklyReportTime: string
+  notify: TelegramNotifyToggles
+  dailyReportAbsentNames: boolean
+}
+
 export interface TelegramMe {
   available: boolean
   botUsername: string | null

@@ -11,7 +11,7 @@ import Skeleton from '@/components/ui/Skeleton.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useSchoolContextStore } from '@/stores/school-context'
-import { errorMessage } from '@/utils/errors'
+import { applyServerErrors, errorMessage } from '@/utils/errors'
 import {
   diffValues,
   flagsFromOverride,
@@ -83,7 +83,12 @@ const globalSaved = r<T>({ ...props.defaults })
 const globalForm = r<T>({ ...props.defaults })
 const globalSaving = ref(false)
 const globalServerError = ref('')
-const globalErrors = computed(() => props.validate(globalForm.value))
+// Server `details[].path` xatolari (masalan values.morningTime) maydonga bog'lanadi
+const globalFieldErrors = ref<Record<string, string>>({})
+const globalErrors = computed(() => ({
+  ...props.validate(globalForm.value),
+  ...globalFieldErrors.value,
+}))
 const globalChanged = computed(() => diffValues(globalSaved.value, globalForm.value, props.keys))
 
 function applyGlobal(res: SettingsResponse<T>) {
@@ -106,6 +111,7 @@ async function loadGlobal() {
 async function persistGlobal(values: T | null) {
   globalSaving.value = true
   globalServerError.value = ''
+  globalFieldErrors.value = {}
   try {
     const res = (await settingsApi.save(props.kind as 'scoring', {
       scope: 'global',
@@ -115,6 +121,7 @@ async function persistGlobal(values: T | null) {
     return true
   } catch (e) {
     // Maktab override'lari bilan ziddiyat (400) - server xabari formada ko'rsatiladi.
+    if (applyServerErrors(e, (m) => (globalFieldErrors.value = m), props.keys)) return false
     if (isApiError(e) && e.code === 'VALIDATION_ERROR' && e.message)
       globalServerError.value = e.message
     else toast.error(errorMessage(e, t))
@@ -149,6 +156,10 @@ async function resetGlobal() {
 }
 
 function setGlobal(key: K, value: T[K]) {
+  if (key in globalFieldErrors.value) {
+    const { [key]: _drop, ...rest } = globalFieldErrors.value
+    globalFieldErrors.value = rest
+  }
   globalForm.value = { ...globalForm.value, [key]: value }
 }
 
@@ -167,7 +178,11 @@ const schoolName = () =>
   props.ownSchool
     ? t('settings.ownSchool')
     : (schoolOptions.value.find((s) => s.value === schoolId.value)?.label ?? '')
-const schoolErrors = computed(() => props.validate(schoolForm.value))
+const schoolFieldErrors = ref<Record<string, string>>({})
+const schoolErrors = computed(() => ({
+  ...props.validate(schoolForm.value),
+  ...schoolFieldErrors.value,
+}))
 const hasOverride = computed(() => schoolSavedOverride.value !== null)
 const savedMerged = computed(() => mergeValues(schoolGlobal.value, schoolSavedOverride.value))
 const pendingOverride = computed(() =>
@@ -188,6 +203,7 @@ async function loadSchool() {
   if (!schoolId.value) return
   schoolLoading.value = true
   schoolServerError.value = ''
+  schoolFieldErrors.value = {}
   try {
     const res = (await settingsApi.get(
       props.kind as 'scoring',
@@ -209,12 +225,17 @@ function toggleFlag(k: K, on: boolean) {
   schoolForm.value = resetFlagValue(schoolForm.value, schoolGlobal.value, k, on)
 }
 function setSchool(key: K, value: T[K]) {
+  if (key in schoolFieldErrors.value) {
+    const { [key]: _drop, ...rest } = schoolFieldErrors.value
+    schoolFieldErrors.value = rest
+  }
   schoolForm.value = { ...schoolForm.value, [key]: value }
 }
 
 async function persistSchool(values: Partial<T> | null) {
   schoolSaving.value = true
   schoolServerError.value = ''
+  schoolFieldErrors.value = {}
   try {
     await settingsApi.save(props.kind as 'scoring', {
       scope: 'school',
@@ -224,6 +245,7 @@ async function persistSchool(values: Partial<T> | null) {
     await loadSchool()
     return true
   } catch (e) {
+    if (applyServerErrors(e, (m) => (schoolFieldErrors.value = m), props.keys)) return false
     if (isApiError(e) && e.code === 'VALIDATION_ERROR' && e.message)
       schoolServerError.value = e.message
     else toast.error(errorMessage(e, t))
