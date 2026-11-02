@@ -4,9 +4,11 @@ import { useI18n } from 'vue-i18n'
 import { schoolsApi } from '@/api/schools.api'
 import type { School } from '@/api/types'
 import LogoUploader from '@/components/ui/LogoUploader.vue'
+import Skeleton from '@/components/ui/Skeleton.vue'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import { errorMessage } from '@/utils/errors'
+import SettingsCard from './SettingsCard.vue'
 
 /** Maktab admini o'z maktabi logosini boshqaradi */
 const { t } = useI18n()
@@ -33,14 +35,22 @@ async function remove() {
 </script>
 
 <template>
-  <div class="max-w-2xl space-y-3" data-testid="school-logo-tab">
-    <p class="text-sm text-fg-muted">{{ t('schoolLogo.description') }}</p>
-    <LogoUploader
-      v-if="school"
-      :src="school.logoUrl"
-      :upload="upload"
-      :remove="remove"
-      :name="school.name"
-    />
+  <div data-testid="school-logo-tab">
+    <SettingsCard>
+      <div class="space-y-3 py-4">
+        <p class="text-sm text-fg-muted">{{ t('schoolLogo.description') }}</p>
+        <LogoUploader
+          v-if="school"
+          :src="school.logoUrl"
+          :upload="upload"
+          :remove="remove"
+          :name="school.name"
+        />
+        <div v-else class="flex items-center gap-4" aria-busy="true">
+          <Skeleton class="h-20 w-20" />
+          <Skeleton class="h-9 w-40" />
+        </div>
+      </div>
+    </SettingsCard>
   </div>
 </template>

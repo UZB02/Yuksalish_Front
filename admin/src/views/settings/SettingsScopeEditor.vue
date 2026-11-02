@@ -4,14 +4,19 @@ import { useI18n } from 'vue-i18n'
 import { isApiError } from '@/api/errors'
 import { settingsApi, type SettingsKind } from '@/api/settings.api'
 import type { SettingsResponse } from '@/api/types'
+import { Building2 } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useDirtySource } from '@/composables/useDirtyRegistry'
 import { useToast } from '@/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { applyServerErrors, errorMessage } from '@/utils/errors'
+import SettingsCard from './SettingsCard.vue'
+import SettingsSaveBar from './SettingsSaveBar.vue'
 import {
   diffValues,
   flagsFromOverride,
@@ -59,6 +64,7 @@ const { t } = useI18n()
 const toast = useToast()
 const { confirm } = useConfirm()
 const schoolCtx = useSchoolContextStore()
+const auth = useAuthStore()
 
 const label = (k: string) => t(`${props.labelPrefix ?? 'settings.fields'}.${k}.label`)
 const overridable = computed(() => props.keys.filter((k) => !props.globalOnlyKeys?.includes(k)))
@@ -276,6 +282,62 @@ async function resetSchool() {
   if (ok && (await persistSchool(null))) toast.success(t('settings.resetDone'))
 }
 
+// ---- Qamrov (scope) almashtirgich va saqlanmagan o'zgarishlar ----
+const scope = ref<'global' | 'school'>(props.ownSchool ? 'school' : 'global')
+const selectKey = ref(0)
+const ownSchoolName = computed(
+  () =>
+    schoolCtx.schools.find((s) => s.id === auth.user?.schoolId)?.name ?? t('settings.ownSchool'),
+)
+const dirty = computed(() =>
+  scope.value === 'global'
+    ? globalChanged.value.length > 0
+    : !!schoolId.value && !schoolLoading.value && overrideChanged.value,
+)
+const canSave = computed(() =>
+  scope.value === 'global' ? Object.keys(globalErrors.value).length === 0 : !schoolHasErrors.value,
+)
+const saving = computed(() => (scope.value === 'global' ? globalSaving.value : schoolSaving.value))
+useDirtySource(() => dirty.value)
+
+function discard() {
+  if (scope.value === 'global') {
+    globalForm.value = { ...globalSaved.value }
+    globalFieldErrors.value = {}
+    globalServerError.value = ''
+  } else void loadSchool()
+}
+function save() {
+  return scope.value === 'global' ? saveGlobal() : saveSchool()
+}
+
+/** Saqlanmagan o'zgarish bo'lsa, davom etishdan oldin tasdiq so'raydi (rad etilsa false) */
+async function confirmLeave() {
+  if (!dirty.value) return true
+  const ok = await confirm({
+    title: t('settings.leave.title'),
+    message: t('settings.leave.text'),
+    confirmText: t('settings.leave.confirm'),
+    variant: 'danger',
+  })
+  if (ok) discard()
+  return ok
+}
+async function setScope(next: 'global' | 'school') {
+  if (next === scope.value || props.ownSchool) return
+  if (!(await confirmLeave())) return
+  scope.value = next
+  if (next === 'school' && !schoolId.value) schoolId.value = schoolCtx.schoolId ?? ''
+}
+async function pickSchool(id: string) {
+  if (id === schoolId.value) return
+  if (!(await confirmLeave())) {
+    selectKey.value++
+    return
+  }
+  schoolId.value = id
+}
+
 onMounted(async () => {
   if (props.ownSchool) {
     // Maktab admini: faqat o'z maktabi (global bo'lim va maktab tanlagich yo'q)
@@ -291,8 +353,14 @@ watch(schoolId, loadSchool)
 </script>
 
 <template>
-  <div v-if="loading" class="space-y-3">
-    <Skeleton v-for="n in 5" :key="n" class="h-16 w-full" />
+  <div v-if="loading" class="card divide-y divide-border px-5" aria-busy="true">
+    <div v-for="n in 5" :key="n" class="flex items-center justify-between gap-6 py-4">
+      <div class="w-1/2 space-y-2">
+        <Skeleton class="h-4 w-2/3" />
+        <Skeleton class="h-3 w-full" />
+      </div>
+      <Skeleton class="h-9 w-48" />
+    </div>
   </div>
   <div v-else-if="loadError" class="card">
     <EmptyState :title="t('errors.loadFailed')" :description="loadError">
@@ -300,120 +368,145 @@ watch(schoolId, loadSchool)
     </EmptyState>
   </div>
 
-  <div v-else class="space-y-6">
-    <section v-if="!ownSchool" class="card p-5">
-      <h2 class="text-base font-semibold text-fg">{{ t('settings.globalTitle') }}</h2>
-      <p class="mt-1 text-sm text-fg-muted">{{ t('settings.globalText') }}</p>
-      <div class="mt-2 grid gap-6" :class="$slots.preview ? 'lg:grid-cols-[1fr_22rem]' : ''">
-        <div>
-          <slot
-            name="fields"
-            scope="global"
-            :values="globalForm"
-            :errors="globalErrors"
-            :set="setGlobal"
-            :toggle-flag="() => undefined"
-          />
-          <slot name="global-extra" :values="globalForm" :set="setGlobal" />
+  <div v-else class="space-y-4 pb-24" data-testid="scope-editor">
+    <!-- Qamrov paneli -->
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="scope-bar">
+      <template v-if="!ownSchool">
+        <div
+          role="group"
+          :aria-label="t('settings.scope.label')"
+          class="inline-flex rounded-lg border border-border bg-surface-muted p-0.5"
+        >
+          <button
+            v-for="s in ['global', 'school'] as const"
+            :key="s"
+            type="button"
+            :aria-pressed="scope === s"
+            class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600"
+            :class="scope === s ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'"
+            :data-testid="`scope-${s}`"
+            @click="setScope(s)"
+          >
+            {{ t(`settings.scope.${s}`) }}
+            <span v-if="s === 'global'" class="hidden font-normal text-fg-muted sm:inline">
+              {{ t('settings.scope.globalHint') }}
+            </span>
+          </button>
         </div>
-        <div v-if="$slots.preview" class="lg:sticky lg:top-20 lg:self-start">
-          <slot name="preview" scope="global" :values="globalForm" />
-        </div>
+        <BaseSelect
+          v-if="scope === 'school'"
+          :key="selectKey"
+          :model-value="schoolId"
+          class="w-full sm:w-64"
+          :aria-label="t('settings.school')"
+          :placeholder="t('settings.selectSchool')"
+          :options="schoolOptions"
+          @update:model-value="pickSchool"
+        />
+      </template>
+      <span
+        v-else
+        class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-sm font-medium text-fg"
+        data-testid="own-school-badge"
+      >
+        <Building2 class="h-4 w-4 text-fg-muted" aria-hidden="true" />
+        {{ t('settings.scope.schoolOf', { name: ownSchoolName }) }}
+      </span>
+
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <BaseButton
+          v-if="scope === 'global'"
+          variant="ghost"
+          :disabled="globalSaving"
+          @click="resetGlobal"
+        >
+          {{ t('settings.defaults') }}
+        </BaseButton>
+        <BaseButton
+          v-else-if="schoolId && !schoolLoading && hasOverride"
+          variant="secondary"
+          :disabled="schoolSaving"
+          @click="resetSchool"
+        >
+          {{ t('settings.reset') }}
+        </BaseButton>
       </div>
+    </div>
+
+    <!-- Global -->
+    <template v-if="scope === 'global'">
       <p
         v-if="globalServerError"
-        class="mt-2 rounded-lg bg-danger-soft p-3 text-sm text-danger"
+        class="rounded-lg bg-danger-soft p-3 text-sm text-danger"
         role="alert"
       >
         {{ globalServerError }}
       </p>
-      <div class="mt-4 flex flex-wrap justify-end gap-2">
-        <BaseButton variant="ghost" :disabled="globalSaving" @click="resetGlobal">
-          {{ t('settings.defaults') }}
-        </BaseButton>
-        <BaseButton
-          variant="secondary"
-          :disabled="globalChanged.length === 0"
-          @click="globalForm = { ...globalSaved }"
-        >
-          {{ t('settings.undo') }}
-        </BaseButton>
-        <BaseButton
-          :loading="globalSaving"
-          :disabled="globalChanged.length === 0 || Object.keys(globalErrors).length > 0"
-          @click="saveGlobal"
-        >
-          {{ t('common.save') }}
-        </BaseButton>
-      </div>
-    </section>
-
-    <section class="card p-5">
-      <h2 class="text-base font-semibold text-fg">
-        {{ ownSchool ? t('settings.ownSchoolTitle') : t('settings.schoolTitle') }}
-      </h2>
-      <p class="mt-1 text-sm text-fg-muted">
-        {{ ownSchool ? t('settings.ownSchoolText') : t('settings.schoolText') }}
-      </p>
-      <div v-if="!ownSchool" class="mt-4 sm:max-w-sm">
-        <BaseSelect
-          v-model="schoolId"
-          :label="t('settings.school')"
-          :placeholder="t('settings.selectSchool')"
-          :options="schoolOptions"
+      <SettingsCard>
+        <slot
+          name="fields"
+          scope="global"
+          :values="globalForm"
+          :errors="globalErrors"
+          :set="setGlobal"
+          :toggle-flag="() => undefined"
         />
+      </SettingsCard>
+      <slot name="global-extra" :values="globalForm" :set="setGlobal" />
+      <div v-if="$slots.preview">
+        <slot name="preview" scope="global" :values="globalForm" />
       </div>
+    </template>
 
-      <template v-if="schoolId">
-        <Skeleton v-if="schoolLoading" class="mt-4 h-40 w-full" />
+    <!-- Maktab -->
+    <template v-else>
+      <p v-if="!schoolId" class="card p-5 text-sm text-fg-muted">
+        {{ t('settings.selectSchool') }}
+      </p>
+      <template v-else>
+        <div v-if="schoolLoading" class="card divide-y divide-border px-5" aria-busy="true">
+          <div v-for="n in 4" :key="n" class="flex items-center justify-between gap-6 py-4">
+            <Skeleton class="h-4 w-1/3" />
+            <Skeleton class="h-9 w-48" />
+          </div>
+        </div>
         <template v-else>
-          <p class="mt-3 text-sm" :class="hasOverride ? 'text-primary-700' : 'text-fg-muted'">
+          <p class="text-xs" :class="hasOverride ? 'text-primary-700' : 'text-fg-muted'">
             {{ hasOverride ? t('settings.hasOverride') : t('settings.noOverride') }}
           </p>
-          <div class="mt-2 grid gap-6" :class="$slots.preview ? 'lg:grid-cols-[1fr_22rem]' : ''">
-            <div>
-              <slot
-                name="fields"
-                scope="school"
-                :values="schoolForm"
-                :errors="schoolErrors"
-                :flags="flags"
-                :global-values="schoolGlobal"
-                :set="setSchool"
-                :toggle-flag="toggleFlag"
-              />
-              <slot name="school-extra" :school-id="schoolId" :values="schoolForm" />
-            </div>
-            <div v-if="$slots.preview" class="lg:sticky lg:top-20 lg:self-start">
-              <slot name="preview" scope="school" :values="schoolForm" :school-id="schoolId" />
-            </div>
-          </div>
           <p
             v-if="schoolServerError"
-            class="mt-2 rounded-lg bg-danger-soft p-3 text-sm text-danger"
+            class="rounded-lg bg-danger-soft p-3 text-sm text-danger"
             role="alert"
           >
             {{ schoolServerError }}
           </p>
-          <div class="mt-4 flex flex-wrap justify-end gap-2">
-            <BaseButton
-              v-if="hasOverride"
-              variant="secondary"
-              :disabled="schoolSaving"
-              @click="resetSchool"
-            >
-              {{ t('settings.reset') }}
-            </BaseButton>
-            <BaseButton
-              :loading="schoolSaving"
-              :disabled="!overrideChanged || schoolHasErrors"
-              @click="saveSchool"
-            >
-              {{ t('common.save') }}
-            </BaseButton>
+          <SettingsCard>
+            <slot
+              name="fields"
+              scope="school"
+              :values="schoolForm"
+              :errors="schoolErrors"
+              :flags="flags"
+              :global-values="schoolGlobal"
+              :set="setSchool"
+              :toggle-flag="toggleFlag"
+            />
+          </SettingsCard>
+          <slot name="school-extra" :school-id="schoolId" :values="schoolForm" />
+          <div v-if="$slots.preview">
+            <slot name="preview" scope="school" :values="schoolForm" :school-id="schoolId" />
           </div>
         </template>
       </template>
-    </section>
+    </template>
+
+    <SettingsSaveBar
+      :dirty="dirty"
+      :saving="saving"
+      :can-save="canSave"
+      @discard="discard"
+      @save="save"
+    />
   </div>
 </template>

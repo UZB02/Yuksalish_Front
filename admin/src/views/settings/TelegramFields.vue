@@ -150,6 +150,7 @@ const modeBtn = (active: boolean) =>
       <div v-else-if="k === 'notify'" class="space-y-3">
         <div v-for="n in NOTIFY_KEYS" :key="n">
           <BaseSwitch
+            class="sm:justify-end"
             :model-value="modelValue.notify[n]"
             :disabled="!enabled(k)"
             :label="t(`settingsTelegram.notify.${n}.label`)"
@@ -175,6 +176,7 @@ const modeBtn = (active: boolean) =>
 
       <BaseSwitch
         v-else-if="k === 'dailyReportAbsentNames'"
+        class="sm:justify-end"
         :model-value="modelValue.dailyReportAbsentNames"
         :disabled="!enabled(k)"
         :label="modelValue.dailyReportAbsentNames ? t('settings.yes') : t('settings.no')"

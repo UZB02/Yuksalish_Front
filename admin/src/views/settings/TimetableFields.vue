@@ -86,6 +86,7 @@ function set<K extends TimetableKey>(key: K, value: TimetableAttendanceSettings[
 
       <BaseSwitch
         v-else-if="k === 'homeroomCanTakeAnyLesson'"
+        class="sm:justify-end"
         :model-value="modelValue.homeroomCanTakeAnyLesson"
         :disabled="!enabled(k)"
         :label="modelValue.homeroomCanTakeAnyLesson ? t('settings.yes') : t('settings.no')"

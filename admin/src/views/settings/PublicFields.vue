@@ -88,6 +88,7 @@ const textOrNull = (raw: string) => (raw === '' ? null : raw)
     >
       <div v-if="isSwitch(k)">
         <BaseSwitch
+          class="sm:justify-end"
           :model-value="modelValue[k]"
           :disabled="!enabled(k)"
           :label="modelValue[k] ? t('settings.yes') : t('settings.no')"

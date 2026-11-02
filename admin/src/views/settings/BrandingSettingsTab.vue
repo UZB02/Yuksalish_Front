@@ -2,13 +2,16 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { brandingApi } from '@/api/branding.api'
-import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import LogoUploader from '@/components/ui/LogoUploader.vue'
+import { useDirtySource } from '@/composables/useDirtyRegistry'
 import { useToast } from '@/composables/useToast'
 import { useBrandingStore } from '@/stores/branding'
 import { errorMessage } from '@/utils/errors'
 import { resolvePhotoUrl } from '@/utils/photo'
+import SettingRow from './SettingRow.vue'
+import SettingsCard from './SettingsCard.vue'
+import SettingsSaveBar from './SettingsSaveBar.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -20,6 +23,19 @@ const saving = ref(false)
 const errors = ref<{ appName?: string; shortName?: string }>({})
 
 const icons = computed(() => branding.data?.icons ?? null)
+
+// Saqlanmagan o'zgarish: kiritilgan nomlar serverdagi (store) qiymatdan farq qiladimi
+const dirty = computed(
+  () =>
+    appName.value.trim() !== (branding.data?.appName ?? '') ||
+    shortName.value.trim() !== (branding.data?.shortName ?? ''),
+)
+useDirtySource(() => dirty.value)
+function discard() {
+  appName.value = branding.data?.appName ?? ''
+  shortName.value = branding.data?.shortName ?? ''
+  errors.value = {}
+}
 
 function validate() {
   const e: typeof errors.value = {}
@@ -58,41 +74,51 @@ async function remove() {
 </script>
 
 <template>
-  <div class="max-w-2xl space-y-6" data-testid="branding-tab">
-    <form class="space-y-4" novalidate @submit.prevent="save">
-      <BaseInput
-        v-model="appName"
-        :label="t('branding.appName')"
-        :error="errors.appName"
-        maxlength="60"
-        data-testid="branding-app-name"
-      />
-      <BaseInput
-        v-model="shortName"
-        :label="t('branding.shortName')"
-        :hint="t('branding.shortNameHint')"
-        :error="errors.shortName"
-        maxlength="20"
-        data-testid="branding-short-name"
-      />
-      <BaseButton type="submit" :loading="saving" data-testid="branding-save">
-        {{ t('common.save') }}
-      </BaseButton>
+  <div class="space-y-4 pb-24" data-testid="branding-tab">
+    <form novalidate @submit.prevent="save">
+      <SettingsCard>
+        <div class="divide-y divide-border">
+          <SettingRow :label="t('branding.appName')">
+            <BaseInput
+              v-model="appName"
+              :aria-label="t('branding.appName')"
+              :error="errors.appName"
+              maxlength="60"
+              data-testid="branding-app-name"
+            />
+          </SettingRow>
+          <SettingRow :label="t('branding.shortName')" :hint="t('branding.shortNameHint')">
+            <BaseInput
+              v-model="shortName"
+              :aria-label="t('branding.shortName')"
+              :error="errors.shortName"
+              maxlength="20"
+              data-testid="branding-short-name"
+            />
+          </SettingRow>
+        </div>
+      </SettingsCard>
+      <!-- Enter bilan yuborish uchun (ko'rinmas) -->
+      <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true" />
     </form>
 
-    <section>
-      <h3 class="mb-2 text-sm font-semibold text-fg">{{ t('branding.logo') }}</h3>
-      <LogoUploader
-        :src="branding.data?.logoUrl"
-        :upload="upload"
-        :remove="remove"
-        :name="appName"
-      />
-    </section>
+    <SettingsCard :title="t('branding.logo')">
+      <div class="py-4">
+        <LogoUploader
+          :src="branding.data?.logoUrl"
+          :upload="upload"
+          :remove="remove"
+          :name="appName"
+        />
+      </div>
+    </SettingsCard>
 
-    <section v-if="icons" data-testid="branding-icon-preview">
-      <h3 class="mb-2 text-sm font-semibold text-fg">{{ t('branding.iconPreview') }}</h3>
-      <div class="flex flex-wrap items-end gap-6">
+    <SettingsCard
+      v-if="icons"
+      :title="t('branding.iconPreview')"
+      data-testid="branding-icon-preview"
+    >
+      <div class="flex flex-wrap items-end gap-6 py-4">
         <figure class="text-center">
           <img
             :src="resolvePhotoUrl(icons.icon192) ?? ''"
@@ -114,8 +140,16 @@ async function remove() {
           </figcaption>
         </figure>
       </div>
-    </section>
+    </SettingsCard>
 
     <p class="rounded-lg bg-surface-muted p-3 text-sm text-fg-muted">{{ t('branding.note') }}</p>
+
+    <SettingsSaveBar
+      :dirty="dirty"
+      :saving="saving"
+      :can-save="true"
+      @discard="discard"
+      @save="save"
+    />
   </div>
 </template>

@@ -65,6 +65,7 @@ const globalText = (k: SettingKey) =>
       />
       <BaseSwitch
         v-else-if="k === 'requireBehaviorType'"
+        class="sm:justify-end"
         :model-value="modelValue.requireBehaviorType"
         :disabled="!enabled(k)"
         :label="modelValue.requireBehaviorType ? t('settings.yes') : t('settings.no')"
@@ -72,6 +73,7 @@ const globalText = (k: SettingKey) =>
       />
       <div v-else-if="k === 'commentRequiredBelow'" class="space-y-2">
         <BaseSwitch
+          class="sm:justify-end"
           :model-value="modelValue.commentRequiredBelow !== null"
           :disabled="!enabled(k)"
           :label="t('settings.thresholdEnabled')"

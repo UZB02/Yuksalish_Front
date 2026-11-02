@@ -13,6 +13,7 @@ import {
   validateTelegramSettings,
   type TelegramKey,
 } from '@/utils/telegramForm'
+import SettingsCard from './SettingsCard.vue'
 import SettingsScopeEditor from './SettingsScopeEditor.vue'
 import TelegramBotConnection from './TelegramBotConnection.vue'
 import TelegramFields from './TelegramFields.vue'
@@ -36,35 +37,37 @@ const showStatus = computed(() => !auth.isSuperadmin && !!me.value?.available)
 </script>
 
 <template>
-  <div class="max-w-3xl space-y-6" data-testid="telegram-tab">
-    <section v-if="auth.isSuperadmin" class="space-y-3">
-      <h2 class="text-base font-semibold text-fg">{{ t('settingsTelegram.connectionTitle') }}</h2>
-      <div class="max-w-2xl">
-        <TelegramBotConnection />
-      </div>
-    </section>
-    <section
+  <div class="space-y-6" data-testid="telegram-tab">
+    <SettingsCard
+      v-if="auth.isSuperadmin"
+      :title="t('settingsTelegram.connectionTitle')"
+      data-testid="telegram-connection-card"
+    >
+      <TelegramBotConnection />
+    </SettingsCard>
+    <SettingsCard
       v-else-if="showStatus"
-      class="card flex flex-wrap items-center gap-2 p-4"
+      :title="t('settingsTelegram.connectionTitle')"
       data-testid="telegram-readonly-status"
     >
-      <h2 class="text-sm font-semibold text-fg">{{ t('settingsTelegram.connectionTitle') }}</h2>
-      <BaseBadge tone="success">{{ t('settingsTelegram.botConnected') }}</BaseBadge>
-      <a
-        v-if="me?.botUsername"
-        :href="`https://t.me/${me.botUsername}`"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="text-sm font-medium text-primary-700 hover:underline"
-      >
-        @{{ me.botUsername }}
-      </a>
-    </section>
+      <div class="flex flex-wrap items-center gap-2 py-3.5">
+        <BaseBadge tone="success">{{ t('settingsTelegram.botConnected') }}</BaseBadge>
+        <a
+          v-if="me?.botUsername"
+          :href="`https://t.me/${me.botUsername}`"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-sm font-medium text-primary-700 hover:underline"
+        >
+          @{{ me.botUsername }}
+        </a>
+      </div>
+    </SettingsCard>
 
     <section class="space-y-3" data-testid="telegram-messages">
       <div>
-        <h2 class="text-base font-semibold text-fg">{{ t('settingsTelegram.messagesTitle') }}</h2>
-        <p class="mt-1 text-sm text-fg-muted">{{ t('settingsTelegram.messagesText') }}</p>
+        <h3 class="text-sm font-semibold text-fg">{{ t('settingsTelegram.messagesTitle') }}</h3>
+        <p class="mt-0.5 text-xs text-fg-muted">{{ t('settingsTelegram.messagesText') }}</p>
       </div>
       <SettingsScopeEditor
         kind="telegram"

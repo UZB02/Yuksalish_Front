@@ -12,6 +12,7 @@ import Skeleton from '@/components/ui/Skeleton.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { applyServerErrors, errorMessage } from '@/utils/errors'
+import SettingRow from './SettingRow.vue'
 
 const { t, tm, rt } = useI18n()
 const toast = useToast()
@@ -36,7 +37,9 @@ const statusLabel = computed(() => {
 const placeholder = computed(() =>
   config.value?.tokenLast4 ? `••••••${config.value.tokenLast4}` : '123456789:AA...',
 )
-const guide = computed(() => (tm('telegram.settings.guide') as unknown[]).map((m) => rt(m as never)))
+const guide = computed(() =>
+  (tm('telegram.settings.guide') as unknown[]).map((m) => rt(m as never)),
+)
 
 async function load() {
   try {
@@ -104,78 +107,97 @@ async function remove() {
 </script>
 
 <template>
-  <div class="space-y-6" data-testid="telegram-connection">
-    <Skeleton v-if="loading" class="h-40 w-full" />
-    <template v-else-if="config">
-      <section class="card space-y-3 p-5" data-testid="telegram-status">
-        <div class="flex flex-wrap items-center gap-2">
-          <h3 class="text-sm font-semibold text-fg">{{ t('telegram.settings.status') }}</h3>
-          <BaseBadge :tone="statusTone" data-testid="telegram-status-badge">
-            {{ statusLabel }}
-          </BaseBadge>
-          <a
-            v-if="config.botUsername"
-            :href="`https://t.me/${config.botUsername}`"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm font-medium text-primary-700 hover:underline"
-            data-testid="telegram-bot-link"
+  <div data-testid="telegram-connection">
+    <div v-if="loading" class="divide-y divide-border" aria-busy="true">
+      <div v-for="n in 2" :key="n" class="flex items-center justify-between gap-6 py-4">
+        <Skeleton class="h-4 w-1/3" />
+        <Skeleton class="h-9 w-48" />
+      </div>
+    </div>
+    <div v-else-if="config" class="divide-y divide-border">
+      <div
+        class="flex flex-wrap items-start justify-between gap-3 py-3.5"
+        data-testid="telegram-status"
+      >
+        <div class="min-w-0 space-y-1.5">
+          <div class="flex flex-wrap items-center gap-2">
+            <h3 class="text-sm font-medium text-fg">{{ t('telegram.settings.status') }}</h3>
+            <BaseBadge :tone="statusTone" data-testid="telegram-status-badge">
+              {{ statusLabel }}
+            </BaseBadge>
+            <a
+              v-if="config.botUsername"
+              :href="`https://t.me/${config.botUsername}`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-sm font-medium text-primary-700 hover:underline"
+              data-testid="telegram-bot-link"
+            >
+              @{{ config.botUsername }}
+            </a>
+          </div>
+          <p
+            v-if="config.status === 'error' && config.lastError"
+            class="break-words rounded-lg bg-danger-soft p-3 text-sm text-danger"
+            data-testid="telegram-last-error"
           >
-            @{{ config.botUsername }}
-          </a>
+            {{ config.lastError }}
+          </p>
+          <p
+            v-if="config.source === 'env'"
+            class="text-xs text-fg-muted"
+            data-testid="telegram-env"
+          >
+            {{ t('telegram.settings.sourceEnv') }}
+          </p>
         </div>
-        <p
-          v-if="config.status === 'error' && config.lastError"
-          class="break-words rounded-lg bg-danger-soft p-3 text-sm text-danger"
-          data-testid="telegram-last-error"
-        >
-          {{ config.lastError }}
-        </p>
-        <p v-if="config.source === 'env'" class="text-sm text-fg-muted" data-testid="telegram-env">
-          {{ t('telegram.settings.sourceEnv') }}
-        </p>
         <BaseSwitch
           v-if="config.configured"
+          class="sm:justify-end"
           :model-value="config.enabled"
           :label="t('telegram.settings.enabled')"
           :disabled="toggling"
           data-testid="telegram-enabled"
           @update:model-value="toggle"
         />
-      </section>
+      </div>
 
-      <form class="space-y-3" novalidate @submit.prevent="save">
-        <BaseInput
-          v-model="token"
-          type="password"
-          autocomplete="off"
-          spellcheck="false"
+      <form novalidate @submit.prevent="save">
+        <SettingRow
           :label="t('telegram.settings.tokenLabel')"
           :hint="t('telegram.settings.tokenHint')"
-          :placeholder="placeholder"
-          :error="tokenError"
-          data-testid="telegram-token"
-        />
-        <div class="flex flex-wrap gap-2">
-          <BaseButton type="submit" :loading="saving" data-testid="telegram-save">
-            {{ t('telegram.settings.saveVerify') }}
-          </BaseButton>
-          <BaseButton
-            v-if="config.configured && config.source === 'db'"
-            type="button"
-            variant="danger"
-            :loading="deleting"
-            data-testid="telegram-delete"
-            @click="remove"
-          >
-            {{ t('telegram.settings.delete') }}
-          </BaseButton>
-        </div>
+        >
+          <BaseInput
+            v-model="token"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            :aria-label="t('telegram.settings.tokenLabel')"
+            :placeholder="placeholder"
+            :error="tokenError"
+            data-testid="telegram-token"
+          />
+          <div class="mt-2 flex flex-wrap gap-2 sm:justify-end">
+            <BaseButton
+              v-if="config.configured && config.source === 'db'"
+              type="button"
+              variant="danger"
+              :loading="deleting"
+              data-testid="telegram-delete"
+              @click="remove"
+            >
+              {{ t('telegram.settings.delete') }}
+            </BaseButton>
+            <BaseButton type="submit" :loading="saving" data-testid="telegram-save">
+              {{ t('telegram.settings.saveVerify') }}
+            </BaseButton>
+          </div>
+        </SettingRow>
       </form>
 
-      <details class="card group p-4" data-testid="telegram-guide">
+      <details class="group py-3.5" data-testid="telegram-guide">
         <summary
-          class="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-fg"
+          class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-fg"
         >
           {{ t('telegram.settings.guideTitle') }}
           <ChevronDown class="h-4 w-4 transition-transform group-open:rotate-180" />
@@ -184,6 +206,6 @@ async function remove() {
           <li v-for="(step, i) in guide" :key="i">{{ step }}</li>
         </ol>
       </details>
-    </template>
+    </div>
   </div>
 </template>

@@ -15,6 +15,7 @@ import {
 } from '@/utils/publicForm'
 import { formatSetting } from '@/utils/settingsFormat'
 import PublicFields from './PublicFields.vue'
+import SettingsCard from './SettingsCard.vue'
 import SettingsScopeEditor from './SettingsScopeEditor.vue'
 
 const { t } = useI18n()
@@ -50,14 +51,15 @@ const schoolOf = (id: string) => schoolCtx.schools.find((s) => s.id === id)
     </template>
 
     <template #school-extra="{ schoolId, values }">
-      <div class="mt-4 rounded-xl border border-border p-4">
-        <p class="mb-2 text-sm font-medium text-fg">{{ t('settingsPublic.link.title') }}</p>
-        <PublicLink
-          v-if="schoolOf(schoolId)"
-          :slug="schoolOf(schoolId)!.slug"
-          :enabled="values.enabled"
-        />
-      </div>
+      <SettingsCard :title="t('settingsPublic.link.title')">
+        <div class="py-3.5">
+          <PublicLink
+            v-if="schoolOf(schoolId)"
+            :slug="schoolOf(schoolId)!.slug"
+            :enabled="values.enabled"
+          />
+        </div>
+      </SettingsCard>
     </template>
 
     <template #preview="{ values, scope, schoolId }">

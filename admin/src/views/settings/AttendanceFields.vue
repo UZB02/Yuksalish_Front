@@ -162,6 +162,7 @@ const PENALTIES = ['penaltyLate', 'penaltyAbsentExcused', 'penaltyAbsentUnexcuse
 
       <div v-else class="space-y-3" data-testid="rating-impact">
         <BaseSwitch
+          class="sm:justify-end"
           :model-value="modelValue.ratingImpact.enabled"
           :disabled="!enabled(k)"
           :label="modelValue.ratingImpact.enabled ? t('settings.yes') : t('settings.no')"

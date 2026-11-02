@@ -74,6 +74,20 @@ describe('Brending tabi', () => {
     expect(w.text()).toContain(uz.branding.note)
   })
 
+  it('saqlash paneli faqat nom ozgarganda chiqadi, bekor qilish qaytaradi', async () => {
+    useBrandingStore().set(base)
+    const w = mount(BrandingSettingsTab, { global: { plugins: [i18n] } })
+    expect(w.find('[data-testid="settings-save-bar"]').exists()).toBe(false)
+    await w.get('[data-testid="branding-app-name"]').setValue('Boshqa nom')
+    expect(w.find('[data-testid="settings-save-bar"]').exists()).toBe(true)
+    await w.get('[data-testid="settings-discard"]').trigger('click')
+    expect(w.find('[data-testid="settings-save-bar"]').exists()).toBe(false)
+    expect((w.get('[data-testid="branding-app-name"]').element as HTMLInputElement).value).toBe(
+      'Yuksalish EDU',
+    )
+    w.unmount()
+  })
+
   it('logo yuklash store ni yangilaydi va ikonka korinishini chiqaradi', async () => {
     useBrandingStore().set(base)
     api.uploadLogo.mockResolvedValue(withLogo)

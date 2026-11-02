@@ -981,6 +981,37 @@
       "schoolLogo": "Maktab logosi",
       "telegram": "Telegram bot"
     },
+    "navLabel": "Sozlamalar bo'limlari",
+    "groups": {
+      "grading": "Baholash",
+      "process": "O'quv jarayoni",
+      "publicSite": "Ochiq sayt",
+      "appearance": "Ko'rinish",
+      "integrations": "Integratsiyalar"
+    },
+    "sections": {
+      "scoring": "Ball chegaralari, izoh talabi va bahoni tahrirlash qoidalari.",
+      "rating": "Reyting davri, hisoblash usuli va teng ballarda tartiblash.",
+      "public": "Ochiq reyting sahifasida nimalar va qanday ko'rinishi.",
+      "attendance": "Davomat rejimi, ish kunlari va reytingga ta'siri.",
+      "timetable": "Dars jadvali bo'yicha davomat va almashtirish qoidalari.",
+      "branding": "Ilova nomi, logosi va ikonkalari.",
+      "schoolLogo": "Maktabingiz logosi hujjatlar va ochiq sahifada ko'rinadi.",
+      "telegram": "Bot ulanishi va xabarlar jadvali."
+    },
+    "scope": {
+      "label": "Qamrov",
+      "global": "Umumiy",
+      "globalHint": "(barcha maktablar)",
+      "school": "Maktab",
+      "schoolOf": "Maktab: {name}"
+    },
+    "unsaved": "Saqlanmagan o'zgarishlar bor",
+    "leave": {
+      "title": "Saqlanmagan o'zgarishlar",
+      "text": "O'zgarishlar saqlanmagan. Davom etsangiz, ular bekor qilinadi.",
+      "confirm": "O'zgarishlarni bekor qilish"
+    },
     "fields": {
       "minScore": {
         "label": "Minimal ball",
@@ -1125,7 +1156,11 @@
     "override": {
       "useOwn": "Maktab uchun alohida",
       "globalValue": "Global qiymat",
-      "schoolValue": "maktab qiymati"
+      "schoolValue": "maktab qiymati",
+      "schoolBadge": "Maktab qiymati",
+      "globalShort": "Umumiy",
+      "change": "O'zgartirish",
+      "revert": "Umumiyga qaytarish"
     },
     "globalTitle": "Global qiymatlar",
     "globalText": "Barcha maktablar uchun standart baholash qoidalari.",

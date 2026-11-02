@@ -61,13 +61,11 @@ const confirmYes = async () => {
   useConfirm().settle(true)
   await flushPromises()
 }
-/** n-chi "maydonlar" bo'limidagi (global=0, maktab=1) "Saqlash" tugmasi */
-const saveBtn = (w: ReturnType<typeof mount>, n: number) =>
-  w
-    .findAll('section.card')
-    .filter((s) => s.find('[data-testid="telegram-fields"]').exists())
-    [n].findAll('button')
-    .filter((b) => b.text() === uz.common.save)[0]!
+/** Saqlash paneli tugmasi */
+const saveBtn = (w: ReturnType<typeof mount>) => w.get('[data-testid="settings-save"]')
+/** n-chi qatorning "O'zgartirish" (override) tugmasi */
+const override = (w: ReturnType<typeof mount>, n: number) =>
+  w.findAll('[data-testid="row-override"]')[n]!
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -124,9 +122,9 @@ describe('TelegramSettingsTab: xabarlar sozlamalari', () => {
     expect(w.findAll('[data-testid="telegram-fields"]')).toHaveLength(1)
 
     // qatorlar: workdays(0), notify(1), ...
-    await w.findAll('input[type="checkbox"]')[1]!.setValue(true)
+    await override(w, 1).trigger('click')
     await w.get('[data-testid="notify-dailyReport"] button').trigger('click')
-    await saveBtn(w, 0).trigger('click')
+    await saveBtn(w).trigger('click')
     await confirmYes()
     expect(settingsApi.save).toHaveBeenCalledTimes(1)
     expect(vi.mocked(settingsApi.save).mock.calls[0]![1]).toEqual({
@@ -167,12 +165,12 @@ describe('TelegramSettingsTab: xabarlar sozlamalari', () => {
       override: null,
     } as never)
     const w = await mountTab()
-    expect(w.findAll('[data-testid="telegram-fields"]')).toHaveLength(2)
+    expect(w.findAll('[data-testid="telegram-fields"]')).toHaveLength(1)
     await w
       .findAll('[data-testid="telegram-fields"]')[0]!
       .get('[data-testid="time-morningTime"]')
       .setValue('06:45')
-    await saveBtn(w, 0).trigger('click')
+    await saveBtn(w).trigger('click')
     await confirmYes()
     expect(settingsApi.save).toHaveBeenCalledWith('telegram', {
       scope: 'global',
@@ -181,11 +179,13 @@ describe('TelegramSettingsTab: xabarlar sozlamalari', () => {
 
     vi.mocked(settingsApi.save).mockClear()
     await flushPromises() // global saqlangach maktab bolimi qayta yuklanadi
-    const schoolFields = w.findAll('[data-testid="telegram-fields"]')[1]!
+    await w.get('[data-testid="scope-school"]').trigger('click')
+    await flushPromises()
+    const schoolFields = w.get('[data-testid="telegram-fields"]')
     // qatorlar: workdays(0), notify(1), morningTime(2)
-    await schoolFields.findAll('input[type="checkbox"]')[2]!.setValue(true)
+    await override(w, 2).trigger('click')
     await schoolFields.get('[data-testid="time-morningTime"]').setValue('09:00')
-    await saveBtn(w, 1).trigger('click')
+    await saveBtn(w).trigger('click')
     await confirmYes()
     expect(settingsApi.save).toHaveBeenCalledWith('telegram', {
       scope: 'school',
@@ -199,7 +199,7 @@ describe('TelegramSettingsTab: xabarlar sozlamalari', () => {
     const w = await mountTab()
     const f = w.findAll('[data-testid="telegram-fields"]')[0]!
     await f.get('[data-testid="time-dailyReportTime"]').setValue('')
-    expect(saveBtn(w, 0).attributes('disabled')).toBeDefined()
+    expect(saveBtn(w).attributes('disabled')).toBeDefined()
     expect(f.text()).toContain(uz.settingsTelegram.errors.time)
   })
 
@@ -211,9 +211,9 @@ describe('TelegramSettingsTab: xabarlar sozlamalari', () => {
       ]),
     )
     const w = await mountTab()
-    await w.findAll('input[type="checkbox"]')[2]!.setValue(true)
+    await override(w, 2).trigger('click')
     await w.get('[data-testid="time-morningTime"]').setValue('08:00')
-    await saveBtn(w, 0).trigger('click')
+    await saveBtn(w).trigger('click')
     await confirmYes()
     expect(w.get('[data-testid="telegram-fields"]').text()).toContain('Server: vaqt notogri')
     // maydon ozgartirilganda xato yoqoladi
