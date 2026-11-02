@@ -327,7 +327,31 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
     return r.items
   }
 
+  /**
+   * Sinfga (fan, o'qituvchi) biriktiradi va ogohlantirishlarni qayta hisoblamasdan darhol yangilaydi:
+   * sozlamalardagi biriktirishlar almashadi, biriktirilgan juftliklarning `teacher_not_assigned` olib tashlanadi.
+   */
+  async function assignPairs(pairs: { subjectId: string; teacherId: string }[]) {
+    const r = await timetableApi.assignments(classId(), pairs)
+    const has = new Set(r.subjects.map((s) => `${s.subjectId}:${s.teacherId}`))
+    if (options.value) {
+      options.value = {
+        ...options.value,
+        classAssignments: r.subjects.map((s) => ({
+          subjectId: s.subjectId,
+          teacherId: s.teacherId,
+        })),
+      }
+    }
+    const keep = (w: TimetableWarning) =>
+      !(w.code === 'teacher_not_assigned' && has.has(`${w.subjectId}:${w.teacherId}`))
+    warnings.value = warnings.value.filter(keep)
+    baseWarnings.value = baseWarnings.value.filter(keep)
+    return r
+  }
+
   return {
+    assignPairs,
     loading,
     loadingVersion,
     saving,

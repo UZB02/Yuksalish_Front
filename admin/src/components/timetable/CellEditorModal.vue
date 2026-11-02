@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CircleX, Plus, Trash2, TriangleAlert } from 'lucide-vue-next'
+import { CircleX, Link2, Plus, Trash2, TriangleAlert } from 'lucide-vue-next'
 import type { BusyTeacher, TimetableOptions } from '@/api/timetable.api'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -19,6 +19,7 @@ import {
   busyClassesOf,
   issueContextFrom,
   previewCellWarnings,
+  isAssignable,
   type TimetableIssue,
 } from '@/utils/timetableIssues'
 
@@ -39,8 +40,15 @@ const props = defineProps<{
   issues?: TimetableIssue[]
   /** Shu vaqtda boshqa sinflarda band o'qituvchilar */
   busy?: BusyTeacher[]
+  /** Fanni sinfga biriktirish mumkin (timetable.manage) */
+  canAssign?: boolean
 }>()
-const emit = defineEmits<{ close: []; save: [value: CellValue[]]; clear: [] }>()
+const emit = defineEmits<{
+  close: []
+  save: [value: CellValue[]]
+  clear: []
+  assign: [issue: TimetableIssue]
+}>()
 const { t } = useI18n()
 
 interface Line {
@@ -218,6 +226,16 @@ const tid = (base: string, i: number) => (i === 0 ? base : `${base}-${i}`)
               >{{ i.title }}
             </p>
             <p class="text-fg">{{ i.text }}</p>
+            <button
+              v-if="canAssign && isAssignable(i)"
+              type="button"
+              class="mt-1 inline-flex items-center gap-1 font-medium text-primary-700 hover:underline"
+              data-testid="cell-issue-assign"
+              @click="emit('assign', i)"
+            >
+              <Link2 class="h-3.5 w-3.5" aria-hidden="true" />
+              {{ t('timetable.issues.assign') }}
+            </button>
           </div>
         </li>
       </ul>

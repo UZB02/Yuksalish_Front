@@ -5,13 +5,20 @@ import {
   CircleX,
   ExternalLink,
   Locate,
+  Link2,
   Pencil,
   TriangleAlert,
   X,
 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { useBodyLock } from '@/composables/useBodyLock'
-import { countIssues, type TimetableIssue } from '@/utils/timetableIssues'
+import {
+  assignablePairs,
+  countIssues,
+  isAssignable,
+  needsTeacher,
+  type TimetableIssue,
+} from '@/utils/timetableIssues'
 
 /**
  * "Muammolar" paneli (VS Code Problems kabi): o'ngdan chiquvchi panel, mobilda pastdan varaq.
@@ -24,11 +31,17 @@ const props = defineProps<{
   mobile?: boolean
   /** Katakni tahrirlash mumkinmi (qoralama/tuzatish rejimi) */
   canEdit?: boolean
+  /** Fanni sinfga biriktirish mumkinmi (timetable.manage, arxivlanmagan sinf) */
+  canAssign?: boolean
+  /** Biriktirish so'rovi ketmoqda */
+  assigning?: boolean
 }>()
 const emit = defineEmits<{
   close: []
   jump: [issue: TimetableIssue]
   edit: [issue: TimetableIssue]
+  assign: [issue: TimetableIssue]
+  assignAll: [issues: TimetableIssue[]]
 }>()
 const { t } = useI18n()
 
@@ -48,6 +61,7 @@ const groups = computed(() =>
     .map((sev) => ({ sev, items: shown.value.filter((i) => i.severity === sev) }))
     .filter((g) => g.items.length),
 )
+const assignableIn = (items: TimetableIssue[]) => items.filter(isAssignable)
 const tabs = computed(() => [
   { key: 'all' as const, label: t('timetable.issues.tabAll'), n: counts.value.total },
   { key: 'error' as const, label: t('timetable.issues.tabErrors'), n: counts.value.error },
@@ -198,6 +212,17 @@ function onKeydown(e: KeyboardEvent) {
                   )
                 }}
                 ({{ g.items.length }})
+                <button
+                  v-if="canAssign && assignableIn(g.items).length >= 2"
+                  type="button"
+                  class="ml-auto inline-flex items-center gap-1 rounded-md bg-primary-600 px-2 py-1 text-xs font-medium normal-case tracking-normal text-white hover:bg-primary-700 disabled:opacity-60"
+                  :disabled="assigning"
+                  data-testid="issue-assign-all"
+                  @click="emit('assignAll', assignableIn(g.items))"
+                >
+                  <Link2 class="h-3.5 w-3.5" aria-hidden="true" />
+                  {{ t('timetable.issues.assignAll', { n: assignablePairs(g.items).length }) }}
+                </button>
               </h3>
               <ul class="space-y-2">
                 <li
@@ -236,7 +261,25 @@ function onKeydown(e: KeyboardEvent) {
                       >
                         {{ i.className ? `${i.className} · ` : '' }}{{ i.cellLabel }}
                       </span>
-                      <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                      <p
+                        v-if="canEdit && needsTeacher(i)"
+                        class="mt-2 text-xs text-fg-muted"
+                        data-testid="issue-need-teacher"
+                      >
+                        {{ t('timetable.issues.assignNeedTeacher') }}
+                      </p>
+                      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <button
+                          v-if="canAssign && isAssignable(i)"
+                          type="button"
+                          class="inline-flex items-center gap-1 rounded-md bg-primary-600 px-2 py-1 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+                          :disabled="assigning"
+                          data-testid="issue-assign"
+                          @click="emit('assign', i)"
+                        >
+                          <Link2 class="h-3.5 w-3.5" aria-hidden="true" />
+                          {{ t('timetable.issues.assign') }}
+                        </button>
                         <button
                           type="button"
                           class="inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:underline"

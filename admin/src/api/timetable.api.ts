@@ -137,6 +137,11 @@ export interface TimetableOverview {
   classes: ClassOverviewRow[]
 }
 
+export interface AssignmentsResult {
+  added: { subjectId: string; teacherId: string }[]
+  subjects: { subjectId: string; teacherId: string }[]
+}
+
 export interface TimetableOptions {
   subjects: { id: string; name: string }[]
   teachers: { id: string; fullName: string }[]
@@ -272,6 +277,9 @@ export type CopyFrom = 'active' | string | { classId: string }
 export const timetableApi = {
   overview: () => getData<TimetableOverview>('/timetable/classes'),
   options: (classId?: string) => getData<TimetableOptions>('/timetable/options', { classId }),
+  /** Sinfga (fan, o'qituvchi) juftliklarini biriktirish (idempotent) */
+  assignments: (classId: string, pairs: { subjectId: string; teacherId: string }[]) =>
+    sendData<AssignmentsResult>('post', `/timetable/classes/${classId}/assignments`, { pairs }),
   versions: (classId: string) => getData<ClassVersions>(`/timetable/classes/${classId}/versions`),
   createVersion: (
     classId: string,

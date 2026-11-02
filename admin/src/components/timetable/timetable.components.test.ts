@@ -106,6 +106,40 @@ describe('TimetableIssuesDrawer', () => {
     w.unmount()
   })
 
+  it("biriktirish: ruxsat bo'lmasa tugma yo'q; o'qituvchisiz katakda faqat ko'rsatma", async () => {
+    const na = buildIssues(
+      [
+        W({ code: 'teacher_not_assigned', severity: 'warning', weekday: 1 }),
+        W({ code: 'teacher_not_assigned', severity: 'warning', weekday: 2, teacherId: '' }),
+      ],
+      i18n.global.t,
+    )
+    const mountWith = (canAssign: boolean) =>
+      mount(TimetableIssuesDrawer, {
+        props: { open: true, issues: na, canEdit: true, canAssign },
+        global: { plugins: [i18n], stubs: { RouterLink: true } },
+        attachTo: document.body,
+      })
+    let w = mountWith(false)
+    await flushPromises()
+    expect(document.body.querySelector('[data-testid="issue-assign"]')).toBeNull()
+    expect(document.body.querySelector('[data-testid="issue-assign-all"]')).toBeNull()
+    w.unmount()
+    w = mountWith(true)
+    await flushPromises()
+    expect(document.body.querySelectorAll('[data-testid="issue-assign"]')).toHaveLength(1)
+    // o'qituvchisiz karta: tugma yo'q, ko'rsatma va "Tahrirlash" bor
+    const noTeacher = document.body.querySelector('[data-testid="issue-2-1"]')!
+    expect(noTeacher.querySelector('[data-testid="issue-assign"]')).toBeNull()
+    expect(noTeacher.textContent).toContain("Avval katakka o'qituvchi tanlang")
+    expect(noTeacher.querySelector('[data-testid="issue-edit"]')).not.toBeNull()
+    // bitta amal qilinadigan ogohlantirish: ommaviy tugma yo'q
+    expect(document.body.querySelector('[data-testid="issue-assign-all"]')).toBeNull()
+    ;(document.body.querySelector('[data-testid="issue-assign"]') as HTMLElement).click()
+    expect(w.emitted('assign')?.[0]?.[0]).toMatchObject({ subjectId: 'math', teacherId: 't1' })
+    w.unmount()
+  })
+
   it("bo'sh holat: muammo yo'q", async () => {
     const w = mount(TimetableIssuesDrawer, {
       props: { open: true, issues: [] },

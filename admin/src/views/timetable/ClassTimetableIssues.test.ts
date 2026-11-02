@@ -8,6 +8,7 @@ import { selectOption } from '@/test-utils/selectOption'
 import { timetableApi, type ClassVersions, type TimetableVersion } from '@/api/timetable.api'
 import type { User } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
+import { useConfirm } from '@/composables/useConfirm'
 import ClassTimetableView from './ClassTimetableView.vue'
 
 vi.mock('@/api/timetable.api', () => ({
@@ -18,6 +19,7 @@ vi.mock('@/api/timetable.api', () => ({
     version: vi.fn(),
     busyTeachers: vi.fn(),
     saveDraft: vi.fn(),
+    assignments: vi.fn(),
   },
 }))
 const api = vi.mocked(timetableApi)
@@ -279,5 +281,108 @@ describe('ClassTimetableView: muammolar', () => {
       'Karimov chorshanba, 1-darsda 1-B sinfida ham dars beradi.',
     )
     expect(editor.textContent).toContain('band · 1-B')
+  })
+})
+
+describe('ClassTimetableView: sinfga biriktirish', () => {
+  const na = (weekday: number, subjectId: string) => ({ ...unassigned(), weekday, subjectId })
+  const openDrawer = async (w: VueWrapper) => {
+    await w.get('[data-testid="issue-summary"]').trigger('click')
+    await flushPromises()
+  }
+  /** Tasdiqlash dialogini (App.vue da turadi) qo'lda hal qiladi va matnini qaytaradi */
+  const answerConfirm = async (yes: boolean) => {
+    const { state, settle } = useConfirm()
+    const message = state.options.message ?? ''
+    settle(yes)
+    await flushPromises()
+    return message
+  }
+
+  it("bitta karta: tasdiq matni (mavjud o'qituvchi eslatmasi bilan), so'rov, ogohlantirish yo'qoladi", async () => {
+    api.version.mockResolvedValue({ version: draftVersion(), warnings: [unassigned()] })
+    api.assignments.mockResolvedValue({
+      added: [{ subjectId: 'eng', teacherId: 't1' }],
+      subjects: [
+        { subjectId: 'eng', teacherId: 't2' },
+        { subjectId: 'eng', teacherId: 't1' },
+      ],
+    })
+    const w = await mountDraft()
+    await openDrawer(w)
+    expect(body('[data-testid="issue-assign-all"]')).toBeNull() // bitta ogohlantirish
+    body('[data-testid="issue-2-1"] [data-testid="issue-assign"]')!.click()
+    const pending = answerConfirm(true)
+    const message = await pending
+    expect(message).toContain('Ingliz tili fani Aliyev bilan 5-A sinfiga biriktiriladi.')
+    expect(message).toContain(
+      "Bu fanga allaqachon Karimov biriktirilgan — Aliyev qo'shimcha o'qituvchi sifatida qo'shiladi.",
+    )
+    expect(api.assignments).toHaveBeenCalledWith('c1', [{ subjectId: 'eng', teacherId: 't1' }])
+    expect(body('[data-testid="issue-2-1"]')).toBeNull()
+    expect(w.find('[data-testid="issue-summary"]').exists()).toBe(false)
+  })
+
+  it('bekor qilinsa so`rov ketmaydi', async () => {
+    api.version.mockResolvedValue({ version: draftVersion(), warnings: [unassigned()] })
+    const w = await mountDraft()
+    await openDrawer(w)
+    body('[data-testid="issue-assign"]')!.click()
+    await answerConfirm(false)
+    expect(api.assignments).not.toHaveBeenCalled()
+    expect(body('[data-testid="issue-2-1"]')).not.toBeNull()
+  })
+
+  it("ommaviy: noyob juftliklar (bir juftlik ko'p kunda — bitta), bitta so'rov", async () => {
+    api.version.mockResolvedValue({
+      version: draftVersion(),
+      warnings: [na(1, 'math'), na(2, 'math'), na(3, 'math'), na(4, 'eng')],
+    })
+    api.assignments.mockResolvedValue({
+      added: [],
+      subjects: [
+        { subjectId: 'math', teacherId: 't1' },
+        { subjectId: 'eng', teacherId: 't1' },
+      ],
+    })
+    const w = await mountDraft()
+    await openDrawer(w)
+    const all = body('[data-testid="issue-assign-all"]')!
+    expect(all.textContent).toContain('Barchasini biriktirish (2)')
+    all.click()
+    const message = await answerConfirm(true)
+    expect(message).toContain('Matematika — Aliyev')
+    expect(message).toContain('Ingliz tili — Aliyev')
+    expect(api.assignments).toHaveBeenCalledTimes(1)
+    expect(api.assignments).toHaveBeenCalledWith('c1', [
+      { subjectId: 'math', teacherId: 't1' },
+      { subjectId: 'eng', teacherId: 't1' },
+    ])
+    expect(w.find('[data-testid="issue-summary"]').exists()).toBe(false)
+  })
+
+  it('bir juftlik 5 kunda: tugmada (1)', async () => {
+    api.version.mockResolvedValue({
+      version: draftVersion(),
+      warnings: [1, 2, 3, 4, 5].map((d) => na(d, 'math')),
+    })
+    const w = await mountDraft()
+    await openDrawer(w)
+    expect(body('[data-testid="issue-assign-all"]')!.textContent).toContain('(1)')
+  })
+
+  it('katak oynasidagi ogohlantirishdan ham biriktiriladi', async () => {
+    api.version.mockResolvedValue({ version: draftVersion(), warnings: [unassigned()] })
+    api.assignments.mockResolvedValue({
+      added: [],
+      subjects: [{ subjectId: 'eng', teacherId: 't1' }],
+    })
+    const w = await mountDraft()
+    await w.get('[data-testid="cell-2-1"]').trigger('click')
+    await flushPromises()
+    body('[data-testid="cell-issue-assign"]')!.click()
+    await answerConfirm(true)
+    expect(api.assignments).toHaveBeenCalledWith('c1', [{ subjectId: 'eng', teacherId: 't1' }])
+    expect(body('[data-testid="cell-issues"]')).toBeNull()
   })
 })

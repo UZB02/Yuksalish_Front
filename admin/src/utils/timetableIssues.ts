@@ -176,6 +176,28 @@ export function buildIssues(
   return out.sort((a, b) => bySeverity(a, b) || a.weekday - b.weekday || a.lessonNo - b.lessonNo)
 }
 
+/** "Sinfga biriktirish" mumkin bo'lgan muammo: o'qituvchi va fan aniq */
+export const isAssignable = (i: Pick<TimetableIssue, 'code' | 'teacherId' | 'subjectId'>) =>
+  i.code === 'teacher_not_assigned' && !!i.teacherId && !!i.subjectId
+
+/** "O'qituvchi tanlanmagan" holati: biriktirish emas, avval katakni to'ldirish kerak */
+export const needsTeacher = (i: Pick<TimetableIssue, 'code' | 'teacherId'>) =>
+  i.code === 'teacher_not_assigned' && !i.teacherId
+
+/** Muammolardagi takrorlanmas (fan, o'qituvchi) juftliklari (bir juftlik bir necha kunda bo'lishi mumkin) */
+export function assignablePairs(
+  issues: TimetableIssue[],
+): { subjectId: string; teacherId: string }[] {
+  const seen = new Map<string, { subjectId: string; teacherId: string }>()
+  for (const i of issues) {
+    if (!isAssignable(i)) continue
+    const k = `${i.subjectId}:${i.teacherId}`
+    if (!seen.has(k))
+      seen.set(k, { subjectId: i.subjectId as string, teacherId: i.teacherId as string })
+  }
+  return [...seen.values()]
+}
+
 export interface IssueCounts {
   error: number
   warning: number

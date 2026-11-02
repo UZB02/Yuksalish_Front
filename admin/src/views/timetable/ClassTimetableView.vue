@@ -51,6 +51,7 @@ import {
 import {
   buildIssues,
   countIssues,
+  assignablePairs,
   issueContextFrom,
   issuesByCell,
   type TimetableIssue,
@@ -239,6 +240,71 @@ function onIssueJump(i: TimetableIssue) {
 }
 function onIssueEdit(i: TimetableIssue) {
   openCell(i.weekday, i.lessonNo)
+}
+
+// ---------- Sinfga biriktirish ----------
+const canAssign = computed(() => canManage.value && !ed.archived.value && !!ed.options.value)
+const assigning = ref(false)
+const NL = '\n'
+const subjectNameOf = (id: string) =>
+  issueCtx.value.subjectName?.(id) ?? t('timetable.issues.subjectFallback')
+const teacherNameOf = (id: string) =>
+  issueCtx.value.teacherName?.(id) ?? t('timetable.issues.teacherFallback')
+
+async function assignPairs(pairs: { subjectId: string; teacherId: string }[]) {
+  if (!pairs.length || assigning.value) return
+  const cls = className.value
+  const lines = pairs.map((p) => {
+    const others = (ed.options.value?.classAssignments ?? [])
+      .filter((a) => a.subjectId === p.subjectId && a.teacherId !== p.teacherId)
+      .map((a) => teacherNameOf(a.teacherId))
+    return { p, others }
+  })
+  let message: string
+  if (lines.length === 1) {
+    const { p, others } = lines[0]!
+    message = t('timetable.issues.assignConfirmText', {
+      subject: subjectNameOf(p.subjectId),
+      teacher: teacherNameOf(p.teacherId),
+      cls,
+    })
+    if (others.length) {
+      message +=
+        NL +
+        t('timetable.issues.assignExistingHint', {
+          assigned: others.join(', '),
+          teacher: teacherNameOf(p.teacherId),
+        })
+    }
+  } else {
+    message = [
+      t('timetable.issues.assignAllConfirmText', { cls }),
+      ...lines.map(({ p }) => `• ${subjectNameOf(p.subjectId)} — ${teacherNameOf(p.teacherId)}`),
+    ].join(NL)
+  }
+  const ok = await confirm({
+    title: t('timetable.issues.assignConfirmTitle'),
+    message,
+    confirmText: t(
+      lines.length === 1 ? 'timetable.issues.assign' : 'timetable.issues.assignAllConfirm',
+    ),
+  })
+  if (!ok) return
+  assigning.value = true
+  try {
+    await ed.assignPairs(pairs)
+    toast.success(t('timetable.issues.assigned'))
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    assigning.value = false
+  }
+}
+function onIssueAssign(i: TimetableIssue) {
+  void assignPairs(assignablePairs([i]))
+}
+function onIssueAssignAll(list: TimetableIssue[]) {
+  void assignPairs(assignablePairs(list))
 }
 
 // ---------- Katak tahriri ----------
@@ -833,9 +899,13 @@ function beforeUnload(e: BeforeUnloadEvent) {
       :issues="issues"
       :mobile="mobile"
       :can-edit="ed.editable.value"
+      :can-assign="canAssign"
+      :assigning="assigning"
       @close="issuesOpen = false"
       @jump="onIssueJump"
       @edit="onIssueEdit"
+      @assign="onIssueAssign"
+      @assign-all="onIssueAssignAll"
     />
 
     <!-- Modallar -->
@@ -848,6 +918,8 @@ function beforeUnload(e: BeforeUnloadEvent) {
       :options="ed.options.value"
       :issues="issuesMap[cellKey(cellOpen.weekday, cellOpen.lessonNo)]"
       :busy="busy"
+      :can-assign="canAssign && !assigning"
+      @assign="onIssueAssign"
       @close="cellOpen = null"
       @save="saveCell"
       @clear="clearCell()"
