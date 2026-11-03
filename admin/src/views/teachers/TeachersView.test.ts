@@ -12,6 +12,11 @@ import TeachersView from './TeachersView.vue'
 vi.mock('@/api/teachers.api', () => ({
   teachersApi: { list: vi.fn(), update: vi.fn() },
 }))
+const routeState = vi.hoisted(() => ({ query: {} as Record<string, string>, replace: vi.fn() }))
+vi.mock('vue-router', () => ({
+  useRoute: () => routeState,
+  useRouter: () => ({ replace: routeState.replace }),
+}))
 vi.mock('@/composables/useConfirm', () => ({
   useConfirm: () => ({ confirm: vi.fn().mockResolvedValue(true) }),
 }))
@@ -89,7 +94,10 @@ function mountView(items: Teacher[]) {
 }
 
 describe('TeachersView', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    routeState.query = {}
+  })
 
   it('11 sinfli o`qituvchi: bitta ixcham fan chipi, ism va `login · telefon`', async () => {
     const w = await (async () => {
@@ -184,6 +192,52 @@ describe('TeachersView', () => {
     await nextTick() // so'rov hali tugamagan
     expect(w.findAll('[aria-hidden="true"].animate-pulse').length).toBeGreaterThan(0)
     await flushPromises()
+    w.unmount()
+  })
+
+  const lastParams = () => vi.mocked(teachersApi.list).mock.calls.at(-1)![0]!
+
+  it('standart holatda faqat faol oqituvchilar sorailadi (isActive=true)', async () => {
+    const w = mountView([busy])
+    await flushPromises()
+    expect(lastParams()).toMatchObject({ isActive: true })
+    expect(w.get('select').element.value).toBe('active')
+    expect(w.findAll('option').map((o) => o.text())).toEqual(['Faol', 'Nofaol', 'Hammasi'])
+    w.unmount()
+  })
+
+  it('filtrni almashtirish: Nofaol, Hammasi va URL query yangilanadi', async () => {
+    const w = mountView([busy])
+    await flushPromises()
+    await w.get('select').setValue('inactive')
+    await flushPromises()
+    expect(lastParams()).toMatchObject({ isActive: false })
+    expect(routeState.replace).toHaveBeenLastCalledWith({ query: { status: 'inactive' } })
+    await w.get('select').setValue('all')
+    await flushPromises()
+    expect(lastParams().isActive).toBeUndefined()
+    expect(routeState.replace).toHaveBeenLastCalledWith({ query: { status: 'all' } })
+    await w.get('select').setValue('active')
+    await flushPromises()
+    expect(lastParams()).toMatchObject({ isActive: true })
+    expect(routeState.replace).toHaveBeenLastCalledWith({ query: {} })
+    w.unmount()
+  })
+
+  it('URL dagi ?status=inactive dastlabki filtrni belgilaydi', async () => {
+    routeState.query = { status: 'inactive' }
+    const w = mountView([idle])
+    await flushPromises()
+    expect(lastParams()).toMatchObject({ isActive: false })
+    expect(w.get('select').element.value).toBe('inactive')
+    w.unmount()
+  })
+
+  it('URL dagi notogri status etiborsiz: standart faol', async () => {
+    routeState.query = { status: 'zzz' }
+    const w = mountView([busy])
+    await flushPromises()
+    expect(lastParams()).toMatchObject({ isActive: true })
     w.unmount()
   })
 })

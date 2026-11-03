@@ -46,6 +46,25 @@ describe('TeacherActionsMenu', () => {
     },
   )
 
+  it('canDelete=true: "Butunlay o`chirish" (xavfli) bor va delete hodisasini beradi', async () => {
+    w = mount(TeacherActionsMenu, {
+      props: { teacher, canDelete: true },
+      global: { plugins: [i18n] },
+      attachTo: document.body,
+    })
+    await w.get('button').trigger('click')
+    expect(item('delete').textContent).toContain("Butunlay o'chirish")
+    expect(item('delete').className).toContain('text-danger')
+    item('delete').click()
+    expect(w.emitted('delete')).toEqual([[teacher]])
+  })
+
+  it('canDelete berilmasa "Butunlay o`chirish" ko`rinmaydi (ruxsatsiz)', async () => {
+    w = mountIt(teacher)
+    await w.get('button').trigger('click')
+    expect(item('delete')).toBeNull()
+  })
+
   it('nofaol o`qituvchi: Faollashtirish, xavfli emas', async () => {
     w = mountIt({ ...teacher, isActive: false })
     await w.get('button').trigger('click')

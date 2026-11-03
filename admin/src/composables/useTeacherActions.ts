@@ -1,7 +1,8 @@
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { teachersApi } from '@/api/teachers.api'
-import type { Teacher } from '@/api/types'
+import type { Teacher, TeacherUsage } from '@/api/types'
+import { PERMISSIONS } from '@/constants/permissions'
 import { useAuthStore } from '@/stores/auth'
 import { errorMessage } from '@/utils/errors'
 import { useConfirm } from './useConfirm'
@@ -12,7 +13,11 @@ import { useToast } from './useToast'
  * O'qituvchi ustidagi amallar (tahrirlash, sinflar, ruxsatlar, parol, faollik) holati.
  * Ro'yxat va batafsil sahifada umumiy; `reload` har bir muvaffaqiyatli o'zgarishdan keyin chaqiriladi.
  */
-export function useTeacherActions(reload: () => unknown) {
+export function useTeacherActions(
+  reload: () => unknown,
+  /** Butunlay o'chirilgandan keyin (sahifadan chiqish uchun); berilmasa `reload` chaqiriladi */
+  onDeleted?: () => unknown,
+) {
   const { t } = useI18n()
   const toast = useToast()
   const { confirm } = useConfirm()
@@ -23,6 +28,8 @@ export function useTeacherActions(reload: () => unknown) {
   const allowedPermissions = computed(() =>
     auth.user?.role === 'school_admin' ? auth.user.permissions : null,
   )
+
+  const canDelete = computed(() => auth.hasPermission(PERMISSIONS.TEACHERS_MANAGE))
 
   const formOpen = ref(false)
   const editing = ref<Teacher | null>(null)
@@ -67,6 +74,62 @@ export function useTeacherActions(reload: () => unknown) {
     }
   }
 
+  function usageSummary(counts: TeacherUsage['counts']): string {
+    return (Object.keys(counts) as (keyof TeacherUsage['counts'])[])
+      .filter((k) => counts[k] > 0)
+      .map((k) => t(`teachers.usage.${k}`, { n: counts[k] }))
+      .join(', ')
+  }
+
+  /** Butunlay o'chirish: tarixi yo'q bo'lsa tasdiqlab o'chiradi, bo'lsa sabab va "Nofaol qilish" taklifi */
+  async function removeForever(tc: Teacher) {
+    if (!canDelete.value) return
+    let usage: TeacherUsage
+    try {
+      usage = await teachersApi.usage(tc.id)
+    } catch (e) {
+      toast.error(errorMessage(e, t))
+      return
+    }
+    if (!usage.deletable) {
+      const counts = usageSummary(usage.counts)
+      const suggest = tc.isActive
+      const ok = await confirm({
+        title: t('teachers.hasHistoryTitle'),
+        message: t(suggest ? 'teachers.hasHistoryText' : 'teachers.hasHistoryInactive', {
+          name: tc.fullName,
+          counts,
+        }),
+        confirmText: suggest ? t('common.deactivate') : t('common.close'),
+        cancelText: suggest ? t('common.close') : undefined,
+        variant: suggest ? 'danger' : 'primary',
+      })
+      if (!ok || !suggest) return
+      try {
+        await teachersApi.update(tc.id, { isActive: false })
+        toast.success(t('teachers.deactivated'))
+        await reload()
+      } catch (e) {
+        toast.error(errorMessage(e, t))
+      }
+      return
+    }
+    const ok = await confirm({
+      title: t('teachers.deleteTitle'),
+      message: t('teachers.deleteText', { name: tc.fullName }),
+      confirmText: t('teachers.deleteForever'),
+      variant: 'danger',
+    })
+    if (!ok) return
+    try {
+      await teachersApi.remove(tc.id)
+      toast.success(t('teachers.deleted'))
+      await (onDeleted ?? reload)()
+    } catch (e) {
+      toast.error(errorMessage(e, t))
+    }
+  }
+
   function closeAll() {
     formOpen.value = false
     classesTarget.value = null
@@ -91,6 +154,8 @@ export function useTeacherActions(reload: () => unknown) {
     submitPermissions,
     submitReset,
     toggleActive,
+    removeForever,
+    canDelete,
     closeAll,
     reload,
   })

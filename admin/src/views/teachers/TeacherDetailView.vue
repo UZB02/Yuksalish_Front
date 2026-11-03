@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   ArrowLeft,
@@ -32,6 +32,7 @@ import TeacherActionModals from './TeacherActionModals.vue'
 
 const { t, te } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const schoolCtx = useSchoolContextStore()
 const auth = useAuthStore()
 const canViewTimetable = computed(
@@ -58,7 +59,7 @@ async function load() {
   }
 }
 
-const actions = useTeacherActions(load)
+const actions = useTeacherActions(load, () => router.push({ name: 'teachers' }))
 
 onMounted(load)
 watch([() => route.params.id, () => schoolCtx.schoolId], load)
@@ -144,10 +145,12 @@ function permissionLabel(key: string): string {
           </BaseButton>
           <TeacherActionsMenu
             :teacher="teacher"
+            :can-delete="actions.canDelete"
             @classes="actions.openClasses"
             @permissions="actions.openPermissions"
             @reset="actions.openReset"
             @toggle="actions.toggleActive"
+            @delete="actions.removeForever"
           />
         </div>
       </template>

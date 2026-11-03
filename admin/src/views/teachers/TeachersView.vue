@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { FileUp, GraduationCap, Pencil, Plus, School as SchoolIcon, Search } from 'lucide-vue-next'
 import { teachersApi } from '@/api/teachers.api'
@@ -34,8 +35,17 @@ const auth = useAuthStore()
 const canManage = computed(() => auth.hasPermission(PERMISSIONS.TEACHERS_MANAGE))
 const importOpen = ref(false)
 
+type StatusFilter = 'all' | 'active' | 'inactive'
+const route = useRoute()
+const router = useRouter()
+const STATUSES: StatusFilter[] = ['active', 'inactive', 'all']
+const queryStatus = String(route.query.status ?? '')
+
 const search = ref('')
-const status = ref<'all' | 'active' | 'inactive'>('all')
+// Standart: faqat faol o'qituvchilar; tanlov URL'da (?status=inactive) saqlanadi
+const status = ref<StatusFilter>(
+  STATUSES.includes(queryStatus as StatusFilter) ? (queryStatus as StatusFilter) : 'active',
+)
 const debouncedSearch = useDebounce(search)
 
 // Superadmin maktab tanlamaguncha ro'yxat so'ralmaydi (X-School-Id majburiy).
@@ -61,9 +71,9 @@ const columns = computed<TableColumn[]>(() => [
 ])
 
 const statusOptions = computed(() => [
-  { value: 'all', label: t('common.all') },
-  { value: 'active', label: t('common.active') },
-  { value: 'inactive', label: t('common.inactive') },
+  { value: 'active', label: t('teachers.filter.active') },
+  { value: 'inactive', label: t('teachers.filter.inactive') },
+  { value: 'all', label: t('teachers.filter.all') },
 ])
 
 const subline = (tc: Teacher) => [tc.username, tc.phone].filter(Boolean).join(' · ')
@@ -73,6 +83,10 @@ function loadIfReady() {
 }
 
 onMounted(loadIfReady)
+watch(status, (v) => {
+  const { status: _prev, ...rest } = route.query
+  void router.replace({ query: v === 'active' ? rest : { ...rest, status: v } })
+})
 watch([debouncedSearch, status, () => schoolCtx.schoolId], loadIfReady)
 </script>
 
@@ -188,10 +202,12 @@ watch([debouncedSearch, status, () => schoolCtx.schoolId], loadIfReady)
                   </BaseButton>
                   <TeacherActionsMenu
                     :teacher="row"
+                    :can-delete="actions.canDelete"
                     @classes="actions.openClasses"
                     @permissions="actions.openPermissions"
                     @reset="actions.openReset"
                     @toggle="actions.toggleActive"
+                    @delete="actions.removeForever"
                   />
                 </div>
               </template>
@@ -261,10 +277,12 @@ watch([debouncedSearch, status, () => schoolCtx.schoolId], loadIfReady)
                   </BaseButton>
                   <TeacherActionsMenu
                     :teacher="row"
+                    :can-delete="actions.canDelete"
                     @classes="actions.openClasses"
                     @permissions="actions.openPermissions"
                     @reset="actions.openReset"
                     @toggle="actions.toggleActive"
+                    @delete="actions.removeForever"
                   />
                 </div>
                 <TeacherWorkload :teacher="row" :max="2" />

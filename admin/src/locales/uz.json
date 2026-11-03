@@ -358,6 +358,22 @@
     "deactivateText": "{name} tizimga kira olmaydi. Davom etasizmi?",
     "activated": "O'qituvchi faollashtirildi",
     "deactivated": "O'qituvchi nofaol qilindi",
+    "filter": { "active": "Faol", "inactive": "Nofaol", "all": "Hammasi" },
+    "deleteForever": "Butunlay o'chirish",
+    "deleteTitle": "O'qituvchini butunlay o'chirish",
+    "deleteText": "{name} butunlay o'chiriladi. Bu amalni qaytarib bo'lmaydi. Sinf va fan biriktirishlari ham olib tashlanadi.",
+    "deleted": "O'qituvchi o'chirildi",
+    "hasHistoryTitle": "O'qituvchini o'chirib bo'lmaydi",
+    "hasHistoryText": "{name} tarixi bor: {counts}. Uni faqat nofaol qilish mumkin.",
+    "hasHistoryInactive": "{name} tarixi bor: {counts}. U allaqachon nofaol.",
+    "usage": {
+      "scores": "{n} ta baho",
+      "subjectGrades": "{n} ta fan bahosi",
+      "attendance": "{n} ta davomat",
+      "timetableEntries": "{n} ta jadval darsi",
+      "lessonOverrides": "{n} ta dars o'zgarishi",
+      "auditActions": "{n} ta amal (audit)"
+    },
     "classes": "Sinflar",
     "assignClasses": "Sinflarni biriktirish",
     "classesSaved": "Sinflar biriktirildi",
@@ -1956,7 +1972,8 @@
         "permissions": "O'qituvchi ruxsatlarini o'zgartirdi",
         "password_reset": "O'qituvchi parolini tikladi",
         "photo_upload": "O'qituvchi rasmini yukladi",
-        "photo_delete": "O'qituvchi rasmini o'chirdi"
+        "photo_delete": "O'qituvchi rasmini o'chirdi",
+        "delete": "O'qituvchi o'chirildi"
       },
       "reports": {
         "export": "Hisobotni eksport qildi"

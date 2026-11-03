@@ -11,7 +11,10 @@ import TeacherDetailView from './TeacherDetailView.vue'
 vi.mock('@/api/teachers.api', () => ({
   teachersApi: { get: vi.fn(), update: vi.fn() },
 }))
-vi.mock('vue-router', () => ({ useRoute: () => ({ params: { id: 't1' } }) }))
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { id: 't1' } }),
+  useRouter: () => ({ push: vi.fn() }),
+}))
 
 const asg = (classId: string, className: string, subjectId: string, subjectName: string) => ({
   classId,

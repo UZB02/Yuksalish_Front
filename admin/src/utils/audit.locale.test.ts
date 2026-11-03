@@ -69,6 +69,7 @@ const ACTIONS = [
   'subject.update',
   'teacher.classes',
   'teacher.create',
+  'teacher.delete',
   'teacher.password_reset',
   'teacher.permissions',
   'teacher.photo_delete',

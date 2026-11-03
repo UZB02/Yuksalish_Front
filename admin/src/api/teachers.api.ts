@@ -4,6 +4,7 @@ import type {
   ApiSuccess,
   Paginated,
   Teacher,
+  TeacherUsage,
   TeacherImportPreview,
   TeacherImportResult,
   TeacherImportResultRow,
@@ -19,6 +20,8 @@ export const teachersApi = {
   create: (payload: TeacherCreatePayload) => sendData<Teacher>('post', '/teachers', payload),
   update: (id: string, payload: TeacherUpdatePayload) =>
     sendData<Teacher>('patch', `/teachers/${id}`, payload),
+  usage: (id: string) => getData<TeacherUsage>(`/teachers/${id}/usage`),
+  remove: (id: string) => deleteData<{ deleted: boolean }>(`/teachers/${id}`),
   setPhoto: (id: string, file: File) => putPhoto<Teacher>(`/teachers/${id}/photo`, file),
   removePhoto: (id: string) => deleteData<Teacher>(`/teachers/${id}/photo`),
   setPermissions: (id: string, permissions: string[]) =>

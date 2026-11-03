@@ -19,6 +19,10 @@ vi.mock('@/api/teachers.api', () => ({
     downloadImportTemplate: vi.fn(),
   },
 }))
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ query: {} }),
+  useRouter: () => ({ replace: vi.fn() }),
+}))
 vi.mock('@/composables/useConfirm', () => ({
   useConfirm: () => ({ confirm: vi.fn().mockResolvedValue(true) }),
 }))

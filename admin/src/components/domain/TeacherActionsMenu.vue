@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KeyRound, Layers, Power, SlidersHorizontal } from 'lucide-vue-next'
+import { KeyRound, Layers, Power, SlidersHorizontal, Trash2 } from 'lucide-vue-next'
 import type { Teacher } from '@/api/types'
 import DropdownMenu, { type DropdownItem } from '@/components/ui/DropdownMenu.vue'
 
-const props = defineProps<{ teacher: Teacher }>()
+const props = defineProps<{ teacher: Teacher; canDelete?: boolean }>()
 const emit = defineEmits<{
   classes: [teacher: Teacher]
   permissions: [teacher: Teacher]
   reset: [teacher: Teacher]
   toggle: [teacher: Teacher]
+  delete: [teacher: Teacher]
 }>()
 
 const { t } = useI18n()
@@ -26,6 +27,9 @@ const items = computed<DropdownItem[]>(() => [
     danger: props.teacher.isActive,
     separator: true,
   },
+  ...(props.canDelete
+    ? [{ key: 'delete', label: t('teachers.deleteForever'), icon: Trash2, danger: true }]
+    : []),
 ])
 
 function onSelect(key: string) {
@@ -33,6 +37,7 @@ function onSelect(key: string) {
   else if (key === 'permissions') emit('permissions', props.teacher)
   else if (key === 'reset') emit('reset', props.teacher)
   else if (key === 'toggle') emit('toggle', props.teacher)
+  else if (key === 'delete') emit('delete', props.teacher)
 }
 </script>
 

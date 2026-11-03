@@ -172,6 +172,19 @@ export interface SchoolAdminUpdatePayload {
   isActive?: boolean
 }
 
+/** O'qituvchi tarixi: o'chirish faqat hamma hisob 0 bo'lganda mumkin */
+export interface TeacherUsage {
+  deletable: boolean
+  counts: {
+    scores: number
+    subjectGrades: number
+    attendance: number
+    timetableEntries: number
+    lessonOverrides: number
+    auditActions: number
+  }
+}
+
 export interface TeacherListParams extends PageParams {
   isActive?: boolean
 }
