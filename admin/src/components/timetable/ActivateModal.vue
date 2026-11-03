@@ -13,7 +13,7 @@ import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { formatDate } from '@/utils/format'
-import { isPastDate } from '@/utils/timetable'
+import { addDaysIso, isPastDate, mondayOf } from '@/utils/timetable'
 import { buildIssues, type IssueContext } from '@/utils/timetableIssues'
 
 /**
@@ -25,6 +25,8 @@ const props = defineProps<{
   title: string
   defaultFrom: string
   today: string
+  /** Maktab ish kunlari (ISO, 1 = dushanba). Berilmasa dushanba hafta boshi hisoblanadi */
+  workingWeekdays?: number[]
   min?: string
   max?: string
   busy?: boolean
@@ -100,6 +102,23 @@ const others = computed(() => issues.value.filter((i) => i.severity !== 'error')
 const hasUnassigned = computed(() => warnings.value.some((w) => w.code === 'teacher_not_assigned'))
 const past = computed(() => isPastDate(from.value, props.today))
 
+/**
+ * Tanlangan sana haftaning birinchi ish kuni bo'lmasa, shu haftaning oldingi ish kunlari
+ * ushbu versiya bilan qoplanmaydi (tarix qayta yozilmaydi). Faollashtirishni to'smaydi.
+ */
+const midWeek = computed(() => {
+  if (!from.value) return null
+  const first = props.workingWeekdays?.length ? Math.min(...props.workingWeekdays) : 1
+  const weekday = new Date(`${from.value}T00:00:00Z`).getUTCDay() || 7
+  if (weekday <= first) return null
+  return { weekday, first, firstDate: addDaysIso(mondayOf(from.value), first - 1) }
+})
+const dayName = (n: number) => t(`journal.weekdayLong.${n}`).toLowerCase()
+const fixLabel = (n: number) => {
+  const label = t('timetable.activate.midWeekFix', { day: dayName(n) })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 const canSubmit = computed(() => {
   if (!from.value || props.busy || loadingWarnings.value) return false
   if (props.min && from.value < props.min) return false
@@ -139,6 +158,30 @@ const where = (i: { className?: string; cellLabel: string }) =>
         required
         data-testid="activate-from"
       />
+
+      <div
+        v-if="midWeek"
+        class="space-y-2 rounded-lg border border-warning/40 bg-warning-soft px-3 py-2"
+        data-testid="midweek-warning"
+      >
+        <p class="text-sm text-warning">
+          {{
+            t('timetable.activate.midWeekWarning', {
+              day: dayName(midWeek.weekday),
+              first: dayName(midWeek.first),
+              date: formatDate(midWeek.firstDate),
+            })
+          }}
+        </p>
+        <BaseButton
+          size="sm"
+          variant="secondary"
+          data-testid="midweek-fix"
+          @click="from = midWeek.firstDate"
+        >
+          {{ fixLabel(midWeek.first) }}
+        </BaseButton>
+      </div>
 
       <div
         v-if="past"

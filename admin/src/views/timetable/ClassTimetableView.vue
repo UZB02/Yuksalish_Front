@@ -931,6 +931,7 @@ function beforeUnload(e: BeforeUnloadEvent) {
       :title="t('timetable.activate.title', { name: className })"
       :default-from="ed.validFrom.value"
       :today="ed.today.value"
+      :working-weekdays="ed.info.value?.settings.workingWeekdays"
       :min="ed.info.value?.academicYear.startDate"
       :max="ed.info.value?.academicYear.endDate"
       :busy="activating"

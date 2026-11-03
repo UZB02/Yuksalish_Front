@@ -2336,6 +2336,8 @@
       "willReplace": "{date} dan boshlanadigan versiya almashtiriladi va amal qilmaydi",
       "bulkInfo": "{n} ta sinf qoralamasi bir sanadan faollashtiriladi.",
       "pastWarning": "Tanlangan sana o'tmishda. O'tmish sanadan faollashtirish audit logga yoziladi.",
+      "midWeekWarning": "Tanlangan sana — {day}. Shu haftaning {first} kuni ({date}) uchun bu jadval qo'llanmaydi.",
+      "midWeekFix": "{day}dan boshlash",
       "pastConfirm": "O'tmish sanadan faollashtirishni tasdiqlayman",
       "doubleBooked": "{n} ta o'qituvchi to'qnashuvi",
       "force": "To'qnashuvga qaramay majburan faollashtirish",
@@ -2359,6 +2361,8 @@
     "thisWeek": "Shu hafta",
     "weeklyCount": "Haftasiga {n} ta dars",
     "noLessonsDay": "Bu kuni dars yo'q",
+    "startedOn": "Jadval {date} dan kuchga kirgan",
+    "startsOn": "Jadval {date} dan kuchga kiradi",
     "noLessonsWeek": "Bu haftada darslar topilmadi. Jadval hali faollashtirilmagan bo'lishi mumkin.",
     "issues": {
       "severity": {

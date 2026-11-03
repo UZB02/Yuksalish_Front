@@ -426,6 +426,58 @@ describe('ActivateModal', () => {
   })
 })
 
+describe("ActivateModal: hafta o'rtasidan boshlash ogohlantirishi", () => {
+  const mountAt = (defaultFrom: string, extra = {}) =>
+    mount(ActivateModal, {
+      props: { open: true, title: 'T', defaultFrom, today: '2026-10-30', ...extra },
+      global,
+      attachTo: document.body,
+    })
+  const q = (id: string) => document.body.querySelector<HTMLElement>(`[data-testid="${id}"]`)
+
+  it("dushanba tanlansa ogohlantirish yo'q", async () => {
+    const w = mountAt('2026-11-02')
+    await flushPromises()
+    expect(q('midweek-warning')).toBeNull()
+    w.unmount()
+  })
+
+  it("seshanba: aniq matn, tugma sanani dushanbaga qaytaradi, faollashtirish to'silmaydi", async () => {
+    const w = mountAt('2026-11-03')
+    await flushPromises()
+    expect(q('midweek-warning')?.textContent).toContain(
+      "Tanlangan sana — seshanba. Shu haftaning dushanba kuni (02.11.2026) uchun bu jadval qo'llanmaydi.",
+    )
+    expect((q('activate-submit') as HTMLButtonElement).disabled).toBe(false)
+    expect(q('midweek-fix')?.textContent?.trim()).toBe('Dushanbadan boshlash')
+    q('midweek-fix')!.click()
+    await flushPromises()
+    expect(q('midweek-warning')).toBeNull()
+    q('activate-submit')!.click()
+    expect(w.emitted('submit')?.[0]?.[0]).toMatchObject({ validFrom: '2026-11-02' })
+    w.unmount()
+  })
+
+  it('yakshanba tanlansa ham (hafta dushanbada boshlanadi) ogohlantiradi', async () => {
+    const w = mountAt('2026-11-08')
+    await flushPromises()
+    expect(q('midweek-warning')?.textContent).toContain('02.11.2026')
+    w.unmount()
+  })
+
+  it('ish kunlari seshanbadan boshlansa: seshanba — birinchi kun (ogohlantirishsiz), chorshanba — ogohlantiradi', async () => {
+    const a = mountAt('2026-11-03', { workingWeekdays: [2, 3, 4, 5, 6] })
+    await flushPromises()
+    expect(q('midweek-warning')).toBeNull()
+    a.unmount()
+    const b = mountAt('2026-11-04', { workingWeekdays: [2, 3, 4, 5, 6] })
+    await flushPromises()
+    expect(q('midweek-warning')?.textContent).toContain('seshanba kuni (03.11.2026)')
+    expect(q('midweek-fix')?.textContent?.trim()).toBe('Seshanbadan boshlash')
+    b.unmount()
+  })
+})
+
 describe('TeacherWeekGrid', () => {
   const week: TeacherWeek = {
     teacher: { id: 't1', fullName: 'Aliyev' },
@@ -521,5 +573,62 @@ describe('TeacherWeekGrid: almashtirish belgilari', () => {
     const cancelled = w.get('[data-testid="week-cell-1-2"]')
     expect(cancelled.text()).toContain('Bekor')
     expect(cancelled.find('.line-through').exists()).toBe(true)
+  })
+})
+
+describe('TeacherWeekGrid: jadval kuchga kirmagan kunlar', () => {
+  const mk = (today: string): TeacherWeek => ({
+    teacher: { id: 't1', fullName: 'Aliyev' },
+    from: '2026-11-02',
+    to: '2026-11-08',
+    today,
+    settings: { workingWeekdays: [1, 2, 3], lessonsPerDay: 2 },
+    weeklyCount: 0,
+    days: [
+      { date: '2026-11-02', weekday: 1, lessons: [], timetableStartsOn: '2026-11-03' },
+      { date: '2026-11-03', weekday: 2, lessons: [], timetableStartsOn: null },
+      { date: '2026-11-04', weekday: 3, lessons: [] },
+    ],
+  })
+
+  it("o'tgan sana: kuchga kirgan, oddiy bo'sh kunlarda izoh yo'q", () => {
+    const w = mount(TeacherWeekGrid, { props: { week: mk('2026-11-05') }, global })
+    expect(w.get('[data-testid="week-start-note-1"]').text()).toBe(
+      'Jadval 03.11.2026 dan kuchga kirgan',
+    )
+    expect(w.get('[data-testid="week-start-note-m-1"]').text()).toContain('kuchga kirgan')
+    expect(w.find('[data-testid="week-start-note-2"]').exists()).toBe(false)
+    expect(w.find('[data-testid="week-start-note-3"]').exists()).toBe(false)
+    // mobilda oddiy bo'sh kun matni saqlanadi (2 ta: seshanba, chorshanba)
+    expect(w.text().split(uz.timetable.noLessonsDay).length - 1).toBe(2)
+  })
+
+  it('kelajak sana: "kuchga kiradi"', () => {
+    const w = mount(TeacherWeekGrid, { props: { week: mk('2026-11-02') }, global })
+    expect(w.get('[data-testid="week-start-note-1"]').text()).toBe(
+      'Jadval 03.11.2026 dan kuchga kiradi',
+    )
+  })
+
+  it('dars bor kunda izoh chiqmaydi', () => {
+    const week = mk('2026-11-05')
+    const base = {
+      classId: 'c1',
+      date: '2026-11-02',
+      weekday: 1,
+      lessonNo: 1,
+      subjectId: 'm',
+      teacherId: 't1',
+      room: null,
+      source: 'timetable' as const,
+      cancelled: false,
+      versionId: 'v',
+      class: { id: 'c1', name: '5-A', grade: 5 },
+      subject: { id: 'm', name: 'Mat' },
+      teacher: { id: 't1', fullName: 'Aliyev' },
+    }
+    week.days[0] = { ...week.days[0]!, lessons: [base] }
+    const w = mount(TeacherWeekGrid, { props: { week }, global })
+    expect(w.find('[data-testid="week-start-note-1"]').exists()).toBe(false)
   })
 })

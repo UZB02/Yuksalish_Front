@@ -177,7 +177,16 @@ export interface TeacherWeek {
   today: string
   settings: TimetableSettings
   weeklyCount: number
-  days: { date: string; weekday: number; lessons: TimetableLesson[] }[]
+  days: {
+    date: string
+    weekday: number
+    lessons: TimetableLesson[]
+    /**
+     * Dars yo'q kunda: jadval hali kuchga kirmagan bo'lsa, u kuchga kiradigan sana (YYYY-MM-DD).
+     * Eski javoblarda bo'lmasligi mumkin; oddiy kunlarda null.
+     */
+    timetableStartsOn?: string | null
+  }[]
 }
 
 export interface TimetableDay {

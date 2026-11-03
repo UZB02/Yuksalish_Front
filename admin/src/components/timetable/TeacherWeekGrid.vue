@@ -19,6 +19,13 @@ const rows = computed(() => {
 })
 const at = (date: string, n: number): TimetableLesson[] =>
   props.week.days.find((d) => d.date === date)?.lessons.filter((l) => l.lessonNo === n) ?? []
+/** Dars yo'q kunda jadval hali kuchga kirmagan bo'lsa — izoh matni (o'tgan/kelgusi shakli), aks holda null */
+const startNote = (d: TeacherWeek['days'][number]): string | null =>
+  !d.lessons.length && d.timetableStartsOn
+    ? t(d.timetableStartsOn > props.week.today ? 'timetable.startsOn' : 'timetable.startedOn', {
+        date: formatDate(d.timetableStartsOn),
+      })
+    : null
 const hasAny = computed(() => props.week.days.some((d) => d.lessons.length))
 </script>
 
@@ -58,6 +65,13 @@ const hasAny = computed(() => props.week.days.some((d) => d.lessons.length))
               :class="d.date === week.today ? 'bg-primary-50/60 dark:bg-primary-500/10' : ''"
               :data-testid="`week-cell-${d.weekday}-${n}`"
             >
+              <p
+                v-if="n === 1 && startNote(d)"
+                class="text-xs italic text-fg-muted"
+                :data-testid="`week-start-note-${d.weekday}`"
+              >
+                {{ startNote(d) }}
+              </p>
               <div v-for="(l, i) in at(d.date, n)" :key="i" class="min-w-0">
                 <div
                   class="truncate text-sm font-semibold text-fg"
@@ -94,7 +108,14 @@ const hasAny = computed(() => props.week.days.some((d) => d.lessons.length))
           <h3 class="text-sm font-semibold text-fg">{{ t(`journal.weekdayLong.${d.weekday}`) }}</h3>
           <span class="text-xs text-fg-muted">{{ formatDate(d.date) }}</span>
         </header>
-        <p v-if="!d.lessons.length" class="px-3 py-3 text-sm text-fg-muted">
+        <p
+          v-if="startNote(d)"
+          class="px-3 py-3 text-sm italic text-fg-muted"
+          :data-testid="`week-start-note-m-${d.weekday}`"
+        >
+          {{ startNote(d) }}
+        </p>
+        <p v-else-if="!d.lessons.length" class="px-3 py-3 text-sm text-fg-muted">
           {{ t('timetable.noLessonsDay') }}
         </p>
         <ul v-else class="divide-y divide-border">
