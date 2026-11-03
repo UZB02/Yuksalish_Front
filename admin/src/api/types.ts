@@ -159,6 +159,11 @@ export interface LoginPayload {
   password: string
 }
 
+export interface PasswordResetInfo {
+  available: boolean
+  botUsername: string | null
+}
+
 export interface AuthResult {
   accessToken: string
   user: User

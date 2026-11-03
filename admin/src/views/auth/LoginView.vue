@@ -83,6 +83,15 @@ const onSubmit = handleSubmit(async (values) => {
       <BaseButton type="submit" class="w-full" :loading="submitting">
         {{ t('auth.login') }}
       </BaseButton>
+      <p class="text-center text-sm">
+        <RouterLink
+          :to="{ name: 'forgot-password' }"
+          class="text-primary-600 hover:underline"
+          data-testid="forgot-link"
+        >
+          {{ t('auth.forgotLink') }}
+        </RouterLink>
+      </p>
     </form>
   </div>
 </template>

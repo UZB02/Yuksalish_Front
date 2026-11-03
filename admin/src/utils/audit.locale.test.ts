@@ -91,6 +91,7 @@ const ACTIONS = [
   'timetable.version_delete',
   'timetable.version_purged',
   'timetable.version_update',
+  'user.password_reset_self',
   'user.profile.update',
 ]
 const ENTITIES = [

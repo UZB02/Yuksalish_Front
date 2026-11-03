@@ -21,6 +21,19 @@ const router = createRouter({
       ],
     },
     {
+      path: '/forgot-password',
+      component: () => import('@/layouts/AuthLayout.vue'),
+      meta: { public: true, guestOnly: true },
+      children: [
+        {
+          path: '',
+          name: 'forgot-password',
+          component: () => import('@/views/auth/ForgotPasswordView.vue'),
+          meta: { public: true, guestOnly: true, titleKey: 'auth.forgot.title' },
+        },
+      ],
+    },
+    {
       // Ilova tarmoqsiz ochilganda: sessiya holati noma'lum, login'ga tashlamaymiz.
       path: '/offline',
       name: 'offline',

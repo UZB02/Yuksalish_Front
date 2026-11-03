@@ -198,7 +198,36 @@
     "password": "Parol",
     "login": "Kirish",
     "logout": "Chiqish",
-    "invalidCredentials": "Login yoki parol noto'g'ri"
+    "invalidCredentials": "Login yoki parol noto'g'ri",
+    "forgotLink": "Parolni unutdingizmi?",
+    "forgot": {
+      "title": "Parolni tiklash",
+      "back": "Orqaga",
+      "backToLogin": "Kirish sahifasiga qaytish",
+      "steps": {
+        "login": "Login",
+        "code": "Kod",
+        "password": "Yangi parol"
+      },
+      "stepsLabel": "Qadamlar",
+      "loginSubtitle": "Login kiriting, Telegram botga tasdiqlash kodi yuboramiz",
+      "sendCode": "Kod yuborish",
+      "sentInfo": "Agar hisobingiz Telegram botga ulangan bo'lsa, tasdiqlash kodi yuborildi. Hisob Telegramga ulanmagan bo'lsa, maktab administratoringizga murojaat qiling.",
+      "botLink": "Telegram bot:",
+      "codeLabel": "Tasdiqlash kodi",
+      "codeHint": "Botdan kelgan 6 xonali kod",
+      "codeInvalid": "6 xonali kodni kiriting",
+      "verify": "Tasdiqlash",
+      "resend": "Kodni qayta yuborish",
+      "resendIn": "Qayta yuborish: {seconds} s",
+      "resent": "Kod qayta yuborildi",
+      "passwordSubtitle": "Yangi parolni kiriting",
+      "newPassword": "Yangi parol",
+      "confirmPassword": "Yangi parolni tasdiqlang",
+      "save": "Parolni saqlash",
+      "success": "Parol yangilandi, yangi parol bilan kiring",
+      "sessionExpired": "Tiklash sessiyasi muddati tugadi. Qaytadan boshlang."
+    }
   },
   "validation": {
     "required": "Bu maydon to'ldirilishi shart",
@@ -1939,7 +1968,8 @@
       "user": {
         "profile": {
           "update": "Shaxsiy ma'lumotlarini o'zgartirdi"
-        }
+        },
+        "password_reset_self": "Parol Telegram orqali tiklandi"
       },
       "superadmin": {
         "create": "Superadmin qo'shdi",
