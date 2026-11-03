@@ -26,6 +26,7 @@ import {
   NotebookText,
   CalendarClock,
   CalendarDays,
+  Crown,
   UserRoundCheck,
 } from 'lucide-vue-next'
 import type { Role } from '@/api/types'
@@ -247,6 +248,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: UserRoundCheck,
     permission: PERMISSIONS.TIMETABLE_SUBSTITUTE,
   },
+  {
+    name: 'superadmins',
+    group: 'system',
+    labelKey: 'nav.superadmins',
+    icon: Crown,
+    roles: ['superadmin'],
+  },
 ]
 
 /**
@@ -279,4 +287,5 @@ export const NAV_DISPLAY_ORDER: string[] = [
   'school-admins',
   'settings',
   'audit-logs',
+  'superadmins',
 ]

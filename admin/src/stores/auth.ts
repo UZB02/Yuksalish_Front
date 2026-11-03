@@ -18,6 +18,8 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
   const role = computed<Role | null>(() => user.value?.role ?? null)
   const isSuperadmin = computed(() => user.value?.role === 'superadmin')
+  /** Asosiy superadmin: superadminlarni boshqara oladi */
+  const isOwner = computed(() => user.value?.role === 'superadmin' && !!user.value.isOwner)
 
   function setSession(token: string, nextUser: User) {
     accessToken.value = token
@@ -113,6 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     role,
     isSuperadmin,
+    isOwner,
     setSession,
     clearSession,
     hasRole,

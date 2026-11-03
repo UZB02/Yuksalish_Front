@@ -80,6 +80,9 @@ const ACTIONS = [
   'telegram.config.update',
   'telegram.link',
   'telegram.unlink',
+  'superadmin.create',
+  'superadmin.transfer',
+  'superadmin.update',
   'timetable.override_created',
   'timetable.override_deleted',
   'timetable.version_activate',
@@ -88,6 +91,7 @@ const ACTIONS = [
   'timetable.version_delete',
   'timetable.version_purged',
   'timetable.version_update',
+  'user.profile.update',
 ]
 const ENTITIES = [
   'academic_year',

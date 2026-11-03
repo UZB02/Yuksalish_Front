@@ -20,6 +20,7 @@ const PATHS: Record<string, string> = {
   'my-scores': '/my-scores',
   schools: '/schools',
   'school-admins': '/school-admins',
+  superadmins: '/superadmins',
   'academic-years': '/academic-years',
   classes: '/classes',
   scoring: '/scoring',
@@ -206,7 +207,7 @@ describe('AppSidebar guruhlash', () => {
       `${label('attendance')}: ${T.attendance}, ${T.attendanceHistory}`,
       `${label('results')}: ${T.ratings}, ${T.reports}`,
       `${label('reference')}: ${T.subjects}, ${T.behaviorTypes}, ${T.attendanceStatuses}`,
-      `${label('system')}: ${T.schools}, ${T.schoolAdmins}, ${T.settings}, ${T.audit}`,
+      `${label('system')}: ${T.schools}, ${T.schoolAdmins}, ${T.settings}, ${T.audit}, ${T.superadmins}`,
     ])
   })
 
@@ -385,6 +386,7 @@ describe('AppSidebar ixcham (rail) rejim', () => {
       T.schoolAdmins,
       T.settings,
       T.audit,
+      T.superadmins,
     ])
     for (const a of links) expect(a.attributes('title')).toBe(a.attributes('aria-label'))
     // dashboard + 6 guruh -> 6 ta ajratgich

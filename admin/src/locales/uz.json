@@ -85,6 +85,7 @@
     "substitutions": "Almashtirishlar",
     "schools": "Maktablar",
     "schoolAdmins": "Maktab adminlari",
+    "superadmins": "Superadminlar",
     "academicYears": "O'quv yillari",
     "classes": "Sinflar",
     "students": "O'quvchilar",
@@ -319,6 +320,37 @@
     "activated": "Maktab faollashtirildi",
     "deactivated": "Maktab nofaol qilindi"
   },
+  "superadmins": {
+    "title": "Superadminlar",
+    "description": "Tizim superadminlari va ularni boshqarish",
+    "readOnlyNote": "Superadminlarni faqat asosiy superadmin boshqaradi",
+    "add": "Superadmin qo'shish",
+    "owner": "Asosiy",
+    "you": "Siz",
+    "emptyTitle": "Superadminlar topilmadi",
+    "currentPassword": "Joriy parolingiz",
+    "currentPasswordHint": "Xavfsizlik uchun amalni o'z parolingiz bilan tasdiqlang",
+    "createTitle": "Superadmin qo'shish",
+    "created": "Superadmin qo'shildi",
+    "usernameTaken": "Bu login band. Boshqasini tanlang.",
+    "activateTitle": "Superadminni faollashtirish",
+    "activateText": "{name} qayta faollashtiriladi va tizimga kira oladi.",
+    "deactivateTitle": "Superadminni nofaol qilish",
+    "deactivateText": "{name} tizimga kira olmaydi va barcha sessiyalari tugatiladi.",
+    "activated": "Superadmin faollashtirildi",
+    "deactivated": "Superadmin nofaol qilindi",
+    "resetTitle": "Parolni tiklash",
+    "resetText": "{name} uchun yangi parol belgilanadi. Uning barcha sessiyalari tugatiladi.",
+    "resetDone": "Parol yangilandi",
+    "newPassword": "Yangi parol",
+    "confirmPassword": "Yangi parolni tasdiqlang",
+    "transfer": "Asosiylikni topshirish",
+    "transferTitle": "Asosiylikni topshirish",
+    "transferWarning": "{name} yangi asosiy superadmin bo'ladi. Siz asosiy superadmin huquqlarini yo'qotasiz: superadmin qo'sha, nofaol qila, parolini tiklay va asosiylikni topshira olmaysiz. Bu amalni faqat yangi asosiy superadmin qaytara oladi.",
+    "transferConfirm": "Topshirish",
+    "transferred": "Asosiylik topshirildi",
+    "actions": "{name} uchun amallar"
+  },
   "schoolAdmins": {
     "title": "Maktab adminlari",
     "description": "Maktab administratorlari va ularning ruxsatlari",
@@ -471,7 +503,19 @@
     "newPassword": "Yangi parol",
     "confirmPassword": "Yangi parolni tasdiqlang",
     "save": "Parolni saqlash",
-    "passwordChanged": "Parol muvaffaqiyatli o'zgartirildi"
+    "passwordChanged": "Parol muvaffaqiyatli o'zgartirildi",
+    "phone": "Telefon",
+    "ownerBadge": "Asosiy superadmin",
+    "editInfo": "Tahrirlash",
+    "saveInfo": "Saqlash",
+    "infoSaved": "Ma'lumotlar saqlandi",
+    "usernameHint": "Login o'zgartirilsa, keyingi kirishda yangi login bilan kirasiz",
+    "usernameChecking": "Tekshirilmoqda...",
+    "usernameAvailable": "Bu login bo'sh",
+    "usernameTaken": "Bu login band",
+    "usernameCheckFailed": "Loginni tekshirib bo'lmadi",
+    "currentPasswordForUsername": "Joriy parol (login o'zgartirish uchun)",
+    "currentPasswordRequired": "Login o'zgartirish uchun joriy parolni kiriting"
   },
   "telegram": {
     "title": "Telegram",
@@ -1857,6 +1901,7 @@
       "teacher": "O'qituvchilar",
       "user": "Foydalanuvchilar",
       "school_admin": "Maktab adminlari",
+      "superadmin": "Superadminlar",
       "reports": "Hisobotlar",
       "grades": "Fan baholari",
       "subject": "Fanlar",
@@ -1890,6 +1935,16 @@
         },
         "link": "Telegram ulandi",
         "unlink": "Telegram uzildi"
+      },
+      "user": {
+        "profile": {
+          "update": "Shaxsiy ma'lumotlarini o'zgartirdi"
+        }
+      },
+      "superadmin": {
+        "create": "Superadmin qo'shdi",
+        "update": "Superadminni o'zgartirdi",
+        "transfer": "Asosiylikni topshirdi"
       },
       "auth": {
         "login": "Tizimga kirdi",

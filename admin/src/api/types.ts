@@ -61,8 +61,44 @@ export interface User {
   /** Imzolangan rasm havolasi (yoki null) */
   photo?: string | null
   isActive: boolean
+  /** Asosiy superadmin (faqat superadmin uchun ma'noga ega) */
+  isOwner?: boolean
   lastLoginAt: string | null
   createdAt: string
+}
+
+/** O'z profilini tahrirlash (PATCH /auth/me). Login o'zgarsa currentPassword majburiy. */
+export interface UpdateProfilePayload {
+  fullName?: string
+  username?: string
+  /** '' yoki null - telefonni o'chirish */
+  phone?: string | null
+  currentPassword?: string
+}
+
+/** Superadminlar ro'yxati elementi (GET /superadmins) */
+export interface Superadmin {
+  id: string
+  fullName: string
+  username: string
+  isActive: boolean
+  isOwner: boolean
+  lastLoginAt: string | null
+  createdAt: string
+}
+
+export interface SuperadminCreatePayload {
+  fullName: string
+  username: string
+  password: string
+  currentPassword: string
+}
+
+export interface SuperadminUpdatePayload {
+  isActive?: boolean
+  password?: string
+  fullName?: string
+  currentPassword: string
 }
 
 export type SchoolAdmin = User

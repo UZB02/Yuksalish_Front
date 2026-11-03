@@ -136,6 +136,7 @@ describe('2-bosqich marshrutlari', () => {
       'journal',
       'timetable',
       'substitutions',
+      'superadmins',
     ])
     expect(names(ctx('teacher', ['students.view']))).toEqual([
       'my-classes',

@@ -1,6 +1,13 @@
 import { bareHttp, deleteData, getData, http, putPhoto, sendData } from './http'
 import { toApiError } from './errors'
-import type { ApiSuccess, AuthResult, ChangePasswordPayload, LoginPayload, User } from './types'
+import type {
+  ApiSuccess,
+  AuthResult,
+  ChangePasswordPayload,
+  LoginPayload,
+  UpdateProfilePayload,
+  User,
+} from './types'
 
 export const authApi = {
   async login(payload: LoginPayload): Promise<AuthResult> {
@@ -15,6 +22,9 @@ export const authApi = {
     await http.post('/auth/logout')
   },
   me: () => getData<User>('/auth/me'),
+  updateMe: (payload: UpdateProfilePayload) => sendData<User>('patch', '/auth/me', payload),
+  usernameAvailable: (username: string) =>
+    getData<{ username: string; available: boolean }>('/auth/username-available', { username }),
   setOwnPhoto: (file: File) => putPhoto<User>('/auth/me/photo', file),
   removeOwnPhoto: () => deleteData<User>('/auth/me/photo'),
   changePassword: (payload: ChangePasswordPayload) =>

@@ -62,6 +62,12 @@ const router = createRouter({
           meta: { roles: ['superadmin'], titleKey: 'nav.schoolAdmins' },
         },
         {
+          path: 'superadmins',
+          name: 'superadmins',
+          component: () => import('@/views/superadmins/SuperadminsView.vue'),
+          meta: { roles: ['superadmin'], titleKey: 'nav.superadmins' },
+        },
+        {
           path: 'academic-years',
           name: 'academic-years',
           component: () => import('@/views/academic-years/AcademicYearsView.vue'),

@@ -130,3 +130,53 @@ export function changePasswordSchema(t: Translate) {
       message: t('validation.passwordSame'),
     })
 }
+
+/** O'z profilini tahrirlash: login o'zgarsa joriy parol majburiy */
+export function profileEditSchema(t: Translate, originalUsername: () => string) {
+  return z
+    .object({
+      fullName: fullName(t),
+      username: username(t),
+      phone: phoneOptional(t),
+      currentPassword: z.string().optional().default(''),
+    })
+    .superRefine((v, ctx) => {
+      const changed = v.username.trim().toLowerCase() !== originalUsername().toLowerCase()
+      if (changed && !v.currentPassword) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['currentPassword'],
+          message: t('profile.currentPasswordRequired'),
+        })
+      }
+    })
+}
+
+/** Superadmin qo'shish: ma'lumotlar + egasining joriy paroli */
+export function superadminCreateSchema(t: Translate) {
+  return z.object({
+    fullName: fullName(t),
+    username: username(t),
+    password: password(t),
+    currentPassword: z.string().min(1, t('validation.required')),
+  })
+}
+
+/** Superadminni boshqarish amali: faqat egasining joriy paroli */
+export function currentPasswordSchema(t: Translate) {
+  return z.object({ currentPassword: z.string().min(1, t('validation.required')) })
+}
+
+/** Superadmin parolini tiklash: yangi parol + tasdiq + egasining joriy paroli */
+export function superadminResetSchema(t: Translate) {
+  return z
+    .object({
+      newPassword: password(t),
+      confirmPassword: z.string().min(1, t('validation.required')),
+      currentPassword: z.string().min(1, t('validation.required')),
+    })
+    .refine((v) => v.newPassword === v.confirmPassword, {
+      path: ['confirmPassword'],
+      message: t('validation.passwordMismatch'),
+    })
+}
