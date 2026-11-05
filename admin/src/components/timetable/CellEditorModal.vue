@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { CircleX, Link2, Plus, Trash2, TriangleAlert } from 'lucide-vue-next'
 import type { BusyTeacher, TimetableOptions } from '@/api/timetable.api'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
@@ -17,6 +18,7 @@ import {
 import {
   buildIssues,
   busyClassesOf,
+  unapprovedBusyClassesOf,
   issueContextFrom,
   previewCellWarnings,
   isAssignable,
@@ -42,6 +44,8 @@ const props = defineProps<{
   busy?: BusyTeacher[]
   /** Fanni sinfga biriktirish mumkin (timetable.manage) */
   canAssign?: boolean
+  /** Bir vaqtda o'tishga ruxsat bera oladi (faqat superadmin) */
+  canApproveOverlap?: boolean
 }>()
 const emit = defineEmits<{
   close: []
@@ -56,8 +60,16 @@ interface Line {
   teacherId: string
   room: string
   teacherTouched: boolean
+  /** Bir vaqtda o'tishga ruxsat (superadmin belgilaydi; fan/o'qituvchi o'zgarsa tushadi) */
+  overlapApproved: boolean
 }
-const blank = (): Line => ({ subjectId: '', teacherId: '', room: '', teacherTouched: false })
+const blank = (): Line => ({
+  subjectId: '',
+  teacherId: '',
+  room: '',
+  teacherTouched: false,
+  overlapApproved: false,
+})
 const lines = ref<Line[]>([blank()])
 
 watch(
@@ -71,6 +83,7 @@ watch(
           teacherId: v.teacherId,
           room: v.room ?? '',
           teacherTouched: true,
+          overlapApproved: !!v.overlapApproved,
         }))
       : [blank()]
   },
@@ -114,6 +127,8 @@ function onSubject(i: number, v: string) {
   const line = lines.value[i]
   if (!line) return
   line.subjectId = v
+  // Ruxsat dars (kun, soat, o'qituvchi, fan) ga bog'liq: fan o'zgarsa tushadi
+  line.overlapApproved = false
   // O'qituvchi qo'lda tanlanmagan bo'lsa, sinfga biriktirilgani avtomatik qo'yiladi
   if (!line.teacherTouched) line.teacherId = defaultTeacherFor(props.options, v) ?? ''
 }
@@ -122,6 +137,7 @@ function onTeacher(i: number, v: string) {
   if (!line) return
   line.teacherId = v
   line.teacherTouched = true
+  line.overlapApproved = false
 }
 
 /** Biriktirilgan juftlikdan dars qo'shish ("Ingliz tili · Aliyeva"); bo'sh oxirgi qator to'ldiriladi */
@@ -130,7 +146,7 @@ function addPair(key: string) {
   if (!subjectId || !teacherId) return
   if (lines.value.some((l) => l.teacherId === teacherId)) return
   const last = lines.value[lines.value.length - 1]
-  const fill = { subjectId, teacherId, teacherTouched: true }
+  const fill = { subjectId, teacherId, teacherTouched: true, overlapApproved: false }
   if (last && !last.subjectId && !last.teacherId) Object.assign(last, fill)
   else lines.value.push({ ...blank(), ...fill })
 }
@@ -153,6 +169,9 @@ const duplicateTeacher = computed(() => {
 const canSave = computed(
   () => lines.value.every((l) => !!l.subjectId && !!l.teacherId) && !duplicateTeacher.value,
 )
+/** Shu o'qituvchining shu katakdagi saqlangan darsida ruxsat bor edi */
+const hadApproval = (l: Line) =>
+  (props.value ?? []).some((v) => v.teacherId === l.teacherId && !!v.overlapApproved)
 function save() {
   if (!canSave.value) return
   emit(
@@ -161,6 +180,12 @@ function save() {
       subjectId: l.subjectId,
       teacherId: l.teacherId,
       room: l.room.trim() || null,
+      // Belgilangan -> true; saqlangan ruxsat olib tashlangan -> false; aks holda yuborilmaydi
+      ...(l.overlapApproved
+        ? { overlapApproved: true }
+        : hadApproval(l)
+          ? { overlapApproved: false }
+          : {}),
       subjectName: subjectItems.value.find((i) => i.value === l.subjectId)?.label,
       teacherName: teacherItemsFor(l).find((i) => i.value === l.teacherId)?.name,
     })),
@@ -174,7 +199,10 @@ const liveIssues = computed<TimetableIssue[]>(() => {
   const out = new Map<string, TimetableIssue>()
   for (const l of lines.value) {
     const unchanged = (props.value ?? []).some(
-      (v) => v.subjectId === l.subjectId && v.teacherId === l.teacherId,
+      (v) =>
+        v.subjectId === l.subjectId &&
+        v.teacherId === l.teacherId &&
+        !!v.overlapApproved === l.overlapApproved,
     )
     const list = unchanged
       ? (props.issues ?? []).filter((i) => !i.teacherId || i.teacherId === l.teacherId)
@@ -186,6 +214,7 @@ const liveIssues = computed<TimetableIssue[]>(() => {
             teacherId: l.teacherId,
             options: props.options,
             busy: props.busy ?? [],
+            approved: l.overlapApproved,
           }),
           t,
           ctx.value,
@@ -194,6 +223,13 @@ const liveIssues = computed<TimetableIssue[]>(() => {
   }
   return [...out.values()]
 })
+/** Ruxsat talab qiladigan sinflar (o'qituvchi band va ikkinchi tomonda ruxsat yo'q) */
+const needsApproval = (l: Line) =>
+  l.teacherId ? unapprovedBusyClassesOf(props.busy ?? [], l.teacherId) : []
+/** Ruxsat bloki ko'rinadimi: ruxsat kerak yoki allaqachon berilgan (olib tashlash uchun) */
+const showOverlap = (l: Line) => needsApproval(l).length > 0 || l.overlapApproved
+const teacherNameOf = (l: Line) =>
+  teacherItemsFor(l).find((i) => i.value === l.teacherId)?.name ?? ''
 const title = computed(() =>
   t('timetable.cellTitle', { day: t(`journal.weekdayLong.${props.weekday}`), no: props.lessonNo }),
 )
@@ -283,6 +319,39 @@ const tid = (base: string, i: number) => (i === 0 ? base : `${base}-${i}`)
           :data-testid="tid('cell-teacher', i)"
           @update:model-value="onTeacher(i, $event)"
         />
+        <div
+          v-if="showOverlap(line)"
+          class="rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm"
+          :data-testid="tid('cell-overlap-box', i)"
+        >
+          <p v-if="needsApproval(line).length" class="text-fg">
+            {{
+              t('timetable.overlap.busyIn', {
+                teacher: teacherNameOf(line) || t('timetable.issues.teacherFallback'),
+                classes: needsApproval(line).join(', '),
+              })
+            }}
+          </p>
+          <BaseCheckbox
+            v-if="canApproveOverlap"
+            v-model="line.overlapApproved"
+            class="mt-2"
+            :label="t('timetable.overlap.allow')"
+            :description="t('timetable.overlap.allowHint')"
+            :data-testid="tid('cell-overlap-allow', i)"
+          />
+          <p
+            v-else
+            class="mt-1 text-xs text-fg-muted"
+            :data-testid="tid('cell-overlap-superadmin-only', i)"
+          >
+            {{
+              line.overlapApproved
+                ? t('timetable.overlap.allowed')
+                : t('timetable.overlap.onlySuperadmin')
+            }}
+          </p>
+        </div>
         <div class="flex items-end gap-2">
           <BaseInput
             v-model="line.room"

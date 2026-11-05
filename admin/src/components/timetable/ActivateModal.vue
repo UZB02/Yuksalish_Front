@@ -98,7 +98,7 @@ watch(from, () => {
 
 const issues = computed(() => buildIssues(warnings.value, t, props.issueContext))
 const errors = computed(() => issues.value.filter((i) => i.severity === 'error'))
-const others = computed(() => issues.value.filter((i) => i.severity !== 'error'))
+const others = computed(() => issues.value.filter((i) => i.severity === 'warning'))
 const hasUnassigned = computed(() => warnings.value.some((w) => w.code === 'teacher_not_assigned'))
 const past = computed(() => isPastDate(from.value, props.today))
 

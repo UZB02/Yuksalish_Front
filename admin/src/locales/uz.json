@@ -2084,6 +2084,8 @@
         "version_delete": "Dars jadvali versiyasini o'chirdi",
         "version_correct": "Faol dars jadvalini tuzatdi",
         "version_purged": "Eskirgan dars jadvali versiyalari avtomatik o'chirildi",
+        "overlap_approve": "Bir vaqtda dars o'tishga ruxsat berdi",
+        "overlap_revoke": "Bir vaqtda dars o'tish ruxsatini bekor qildi",
         "override_created": "Darsni almashtirdi (o'rinbosar, bekor, ko'chirish yoki qo'shimcha dars)",
         "override_deleted": "Dars almashtirishini bekor qildi"
       },
@@ -2120,6 +2122,8 @@
       "version_delete": "versiyani o'chirdi",
       "version_correct": "faol versiyani tuzatdi",
       "version_purged": "eskirgan versiyalarni avtomatik o'chirdi",
+      "overlap_approve": "bir vaqtda o'tishga ruxsat berdi",
+      "overlap_revoke": "bir vaqtda o'tish ruxsatini bekor qildi",
       "override_created": "darsni almashtirdi",
       "override_deleted": "almashtirishni bekor qildi"
     }
@@ -2311,6 +2315,29 @@
     "removeLessonDisabled": "Faqat butunlay bo'sh oxirgi dars olib tashlanadi",
     "maxLessonsReached": "Bir kunda eng ko'pi bilan {n} ta dars",
     "cellTitle": "{day}, {no}-dars",
+    "overlap": {
+      "busyIn": "{teacher} shu vaqtda {classes} sinflarida dars beradi.",
+      "allow": "Bir vaqtda o'tishga ruxsat beraman",
+      "allowHint": "O'qituvchi bir vaqtda bir necha sinfda dars o'tadi (masalan, sinflar birlashtirilgan). Mas'uliyat sizda.",
+      "allowed": "Bir vaqtda o'tishga ruxsat berilgan.",
+      "onlySuperadmin": "Bir vaqtda dars qo'yishga faqat superadmin ruxsat bera oladi.",
+      "approve": "Ruxsat berish",
+      "approveAll": "Barchasiga ruxsat berish ({n})",
+      "confirmAllTitle": "{n} ta darsga bir vaqtda o'tish ruxsati",
+      "confirmAllText": "Quyidagi {n} ta dars boshqa sinflar bilan bir vaqtda o'tadi. Ruxsat bersangiz, ular xato hisoblanmaydi va majburan faollashtirish talab qilinmaydi. Bunga mas'uliyat sizda.",
+      "approvedN": "{n} ta darsga ruxsat berildi",
+      "revoke": "Ruxsatni bekor qilish",
+      "confirmTitle": "Bir vaqtda o'tishga ruxsat",
+      "confirmText": "{teacher} {day}, {no}-darsda {cls} sinfida ham dars beradi. Ruxsat bersangiz, bu dars xato hisoblanmaydi va majburan faollashtirish talab qilinmaydi. Bunga mas'uliyat sizda.",
+      "revokeTitle": "Ruxsatni bekor qilish",
+      "revokeText": "{teacher} {day}, {no}-darsda {cls} sinfi bilan bir vaqtda o'tishi yana xato sifatida ko'rsatiladi.",
+      "approved": "Ruxsat berildi",
+      "revoked": "Ruxsat bekor qilindi",
+      "saveFirst": "Avval o'zgarishlarni saqlang yoki bekor qiling",
+      "badge": "Bir vaqtda o'tish ruxsat etilgan",
+      "badgeBy": "Bir vaqtda o'tish ruxsat etilgan — {approver}, {date}",
+      "summary": "Ruxsat etilgan: {n}"
+    },
     "subject": "Fan",
     "teacher": "O'qituvchi",
     "chooseSubject": "Fanni tanlang",
@@ -2367,10 +2394,12 @@
     "issues": {
       "severity": {
         "error": "Xato",
-        "warning": "Ogohlantirish"
+        "warning": "Ogohlantirish",
+        "info": "Ruxsat berilgan"
       },
       "title": {
         "teacher_double_booked": "O'qituvchi band",
+        "teacher_overlap_approved": "Bir vaqtda o'tish ruxsat etilgan",
         "teacher_not_assigned": "Fan sinfga biriktirilmagan",
         "other_teacher": "Boshqa o'qituvchi biriktirilgan",
         "subject_inactive": "Fan nofaol",
@@ -2379,6 +2408,7 @@
       },
       "text": {
         "teacher_double_booked": "{teacher} {day}, {no}-darsda {cls} sinfida ham dars beradi.",
+        "teacher_overlap_approved": "Ruxsat berilgan: {teacher} {day}, {no}-darsda {cls} sinfi bilan birga dars beradi.",
         "multiVersion": "Bu sinfning {n} ta versiyasida to'qnashadi.",
         "teacher_not_assigned": "{subject} fani bu sinfga yoki shu o'qituvchiga biriktirilmagan.",
         "other_teacher": "{subject} fani bu sinfda boshqa o'qituvchiga biriktirilgan (biriktirilgan: {assigned}, jadvalda: {teacher}).",
@@ -2409,8 +2439,12 @@
       "tabAll": "Hammasi",
       "tabErrors": "Xatolar",
       "tabWarnings": "Ogohlantirishlar",
+      "tabApproved": "Ruxsatlar",
       "groupErrors": "Xatolar",
       "groupWarnings": "Ogohlantirishlar",
+      "groupApproved": "Ruxsat berilgan",
+      "approvedBy": "Ruxsat bergan: {name}",
+      "approvedOther": "Ruxsat {cls} sinfi jadvalida berilgan ({name})",
       "empty": "Muammo topilmadi",
       "emptyFiltered": "Bu bo'limda muammo yo'q",
       "goToCell": "Katakka o'tish",

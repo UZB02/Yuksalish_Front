@@ -8,7 +8,7 @@ import { cellKey } from './timetable'
 
 type Translate = (key: string, named?: Record<string, unknown>) => string
 
-export type IssueSeverity = 'error' | 'warning'
+export type IssueSeverity = 'error' | 'warning' | 'info'
 
 /** Muammo matnlarini boyitish uchun nomlar (bo'lmasa umumiy matn ishlatiladi) */
 export interface IssueContext {
@@ -68,6 +68,8 @@ export interface TimetableIssue {
   otherClass?: { id: string; name: string }
   /** Ommaviy faollashtirishda: ogohlantirish qaysi sinfniki */
   className?: string
+  /** teacher_overlap_approved: ruxsat kim va qaysi yozuvga bergan */
+  approval?: TimetableWarning['approval']
 }
 
 export const issueKey = (w: TimetableWarning) =>
@@ -77,6 +79,7 @@ export const issueKey = (w: TimetableWarning) =>
 
 const KNOWN: string[] = [
   'teacher_double_booked',
+  'teacher_overlap_approved',
   'teacher_not_assigned',
   'subject_inactive',
   'teacher_inactive',
@@ -109,6 +112,14 @@ export function formatIssue(
       cls: w.other?.className ?? '?',
     })
     if (n > 1) text += ` ${t('timetable.issues.text.multiVersion', { n })}`
+  } else if (w.code === 'teacher_overlap_approved') {
+    title = t('timetable.issues.title.teacher_overlap_approved')
+    text = t('timetable.issues.text.teacher_overlap_approved', {
+      day,
+      no: w.lessonNo,
+      teacher: teacherText,
+      cls: w.other?.className ?? '?',
+    })
   } else if (w.code === 'teacher_not_assigned') {
     const assigned = ctx.assignedTeacherName?.(w.subjectId)
     if (assigned) {
@@ -150,11 +161,12 @@ export function formatIssue(
     subjectId: w.subjectId,
     otherClass: w.other ? { id: w.other.classId, name: w.other.className } : undefined,
     className: w.className,
+    approval: w.approval,
   }
 }
 
-const bySeverity = (a: TimetableIssue, b: TimetableIssue) =>
-  Number(a.severity !== 'error') - Number(b.severity !== 'error')
+const RANK: Record<IssueSeverity, number> = { error: 0, warning: 1, info: 2 }
+const bySeverity = (a: TimetableIssue, b: TimetableIssue) => RANK[a.severity] - RANK[b.severity]
 
 /**
  * Ogohlantirishlardan muammolar ro'yxati: takrorlar olib tashlanadi,
@@ -201,11 +213,15 @@ export function assignablePairs(
 export interface IssueCounts {
   error: number
   warning: number
+  /** Ruxsat berilgan bir vaqtda o'tishlar (ma'lumot uchun; total ga kirmaydi) */
+  info: number
+  /** Xato + ogohlantirish */
   total: number
 }
 export function countIssues(issues: { severity: IssueSeverity }[]): IssueCounts {
   const error = issues.filter((i) => i.severity === 'error').length
-  return { error, warning: issues.length - error, total: issues.length }
+  const warning = issues.filter((i) => i.severity === 'warning').length
+  return { error, warning, info: issues.length - error - warning, total: error + warning }
 }
 
 export function issuesByCell(issues: TimetableIssue[]): Record<string, TimetableIssue[]> {
@@ -234,6 +250,15 @@ export function busyClassesOf(busy: BusyTeacher[], teacherId: string): string[] 
   return [...new Set(busy.filter((b) => b.teacherId === teacherId).map((b) => b.className))]
 }
 
+/** Ruxsat talab qiladigan sinflar: o'qituvchi band va boshqa sinfdagi yozuvda ruxsat yo'q */
+export function unapprovedBusyClassesOf(busy: BusyTeacher[], teacherId: string): string[] {
+  return [
+    ...new Set(
+      busy.filter((b) => b.teacherId === teacherId && !b.approved).map((b) => b.className),
+    ),
+  ]
+}
+
 /**
  * Tahrirlash oynasida jonli ko'rinish: tanlangan fan/o'qituvchi bo'yicha mijoz tomonida
  * hisoblangan ogohlantirishlar (to'qnashuv — band o'qituvchilar ro'yxatidan, biriktirish — sozlamalardan).
@@ -245,6 +270,8 @@ export function previewCellWarnings(input: {
   teacherId: string
   options: Pick<TimetableOptions, 'classAssignments'>
   busy: BusyTeacher[]
+  /** Shu darsga bir vaqtda o'tish ruxsati berilgan (tahrirlash oynasida belgilangan yoki saqlangan) */
+  approved?: boolean
 }): TimetableWarning[] {
   const { weekday, lessonNo, subjectId, teacherId } = input
   if (!subjectId || !teacherId) return []
@@ -254,10 +281,12 @@ export function previewCellWarnings(input: {
   for (const b of input.busy) {
     if (b.teacherId !== teacherId || seen.has(b.classId)) continue
     seen.add(b.classId)
+    // Juftlik ruxsat bilan qoplangan (shu dars yoki boshqa sinfdagi yozuv): xato emas, info
+    const covered = !!input.approved || !!b.approved
     out.push({
       ...base,
-      code: 'teacher_double_booked',
-      severity: 'error',
+      code: covered ? 'teacher_overlap_approved' : 'teacher_double_booked',
+      severity: covered ? 'info' : 'error',
       message: '',
       other: {
         classId: b.classId,

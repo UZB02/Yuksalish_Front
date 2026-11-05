@@ -22,6 +22,14 @@ export interface CellValue {
   /** Ko'rsatish uchun (serverdan kelgan nomlar; inactive fan/o'qituvchi uchun ham) */
   subjectName?: string
   teacherName?: string
+  /**
+   * Bir vaqtda o'tishga superadmin ruxsati: true — bor; false — olib tashlanadi (aniq so'rov);
+   * yo'q — o'zgartirilmaydi. Saqlashda serverga yuboriladi.
+   */
+  overlapApproved?: boolean
+  /** Ruxsat bergan va qachon (ko'rsatish uchun; serverdan kelgan) */
+  overlapApprovedBy?: string | null
+  overlapApprovedAt?: string | null
 }
 /**
  * Katak -> shu vaqtdagi darslar. Bir katakda bir nechta dars bo'lishi mumkin (parallel o'qituvchilar);
@@ -43,6 +51,13 @@ export function entriesToCells(entries: TimetableEntry[]): CellMap {
       room: e.room ?? null,
       subjectName: e.subject?.name,
       teacherName: e.teacher?.fullName,
+      ...(e.overlapApproval
+        ? {
+            overlapApproved: true,
+            overlapApprovedBy: e.overlapApproval.approvedBy?.fullName ?? null,
+            overlapApprovedAt: e.overlapApproval.approvedAt,
+          }
+        : {}),
     })
   }
   return out
@@ -58,6 +73,8 @@ export function cellsToPayload(cells: CellMap): EntryPayload[] {
         subjectId: v.subjectId,
         teacherId: v.teacherId,
         room: v.room?.trim() ? v.room.trim() : null,
+        // true — ruxsat; false — ruxsatni olib tashlash; yo'q — o'zgartirmaslik (server mavjudini saqlaydi)
+        ...(v.overlapApproved === undefined ? {} : { overlapApproved: v.overlapApproved }),
       }))
     })
     .sort((a, b) => a.weekday - b.weekday || a.lessonNo - b.lessonNo)
@@ -100,9 +117,13 @@ export function warningsByCell(warnings: TimetableWarning[]): Record<string, Tim
 }
 
 export type CellSeverity = 'error' | 'warning' | null
-export function severityOf(ws: { severity: 'error' | 'warning' }[] | undefined): CellSeverity {
+/** Katak holati: faqat xato/ogohlantirish (info — ruxsat berilgan bir vaqtda o'tish — hisobga olinmaydi) */
+export function severityOf(
+  ws: { severity: 'error' | 'warning' | 'info' }[] | undefined,
+): CellSeverity {
   if (!ws?.length) return null
-  return ws.some((w) => w.severity === 'error') ? 'error' : 'warning'
+  if (ws.some((w) => w.severity === 'error')) return 'error'
+  return ws.some((w) => w.severity === 'warning') ? 'warning' : null
 }
 
 export interface OptionGroup {

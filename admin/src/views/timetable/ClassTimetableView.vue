@@ -3,7 +3,15 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, CircleCheck, CirclePlus, CircleX, Pencil, TriangleAlert } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  CircleCheck,
+  CirclePlus,
+  CircleX,
+  Link2,
+  Pencil,
+  TriangleAlert,
+} from 'lucide-vue-next'
 import { isApiError } from '@/api/errors'
 import {
   timetableApi,
@@ -240,6 +248,75 @@ function onIssueJump(i: TimetableIssue) {
 }
 function onIssueEdit(i: TimetableIssue) {
   openCell(i.weekday, i.lessonNo)
+}
+
+// ---------- Bir vaqtda o'tishga ruxsat (faqat superadmin) ----------
+const approving = ref(false)
+async function changeOverlap(i: TimetableIssue, approve: boolean) {
+  if (approving.value || !i.teacherId || !isSuperadmin()) return
+  if (ed.dirty.value) {
+    toast.error(t('timetable.overlap.saveFirst'))
+    return
+  }
+  const params = {
+    teacher: issueCtx.value.teacherName?.(i.teacherId) ?? t('timetable.issues.teacherFallback'),
+    cls: i.otherClass?.name ?? '?',
+    day: t(`journal.weekdayLong.${i.weekday}`).toLowerCase(),
+    no: i.lessonNo,
+  }
+  const ok = await confirm({
+    title: t(approve ? 'timetable.overlap.confirmTitle' : 'timetable.overlap.revokeTitle'),
+    message: t(approve ? 'timetable.overlap.confirmText' : 'timetable.overlap.revokeText', params),
+    confirmText: t(approve ? 'timetable.overlap.approve' : 'timetable.overlap.revoke'),
+    variant: approve ? 'primary' : 'danger',
+  })
+  if (!ok) return
+  approving.value = true
+  try {
+    await ed.setOverlapApproval(
+      { weekday: i.weekday, lessonNo: i.lessonNo, teacherId: i.teacherId },
+      approve,
+    )
+    toast.success(t(approve ? 'timetable.overlap.approved' : 'timetable.overlap.revoked'))
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    approving.value = false
+  }
+}
+
+async function approveAllOverlaps(list: TimetableIssue[]) {
+  if (approving.value || !isSuperadmin() || !list.length) return
+  if (ed.dirty.value) {
+    toast.error(t('timetable.overlap.saveFirst'))
+    return
+  }
+  const slots = list.map((i) => ({
+    weekday: i.weekday,
+    lessonNo: i.lessonNo,
+    teacherId: i.teacherId as string,
+  }))
+  const lines = list.map(
+    (i) =>
+      `• ${t(`timetable.issues.dayShort.${i.weekday}`)}, ${t('timetable.issues.lessonNo', { no: i.lessonNo })} — ${
+        issueCtx.value.teacherName?.(i.teacherId as string) ?? t('timetable.issues.teacherFallback')
+      } (${i.otherClass?.name ?? '?'})`,
+  )
+  const ok = await confirm({
+    title: t('timetable.overlap.confirmAllTitle', { n: list.length }),
+    message: [t('timetable.overlap.confirmAllText', { n: list.length }), ...lines].join(NL),
+    confirmText: t('timetable.overlap.approveAll', { n: list.length }),
+  })
+  if (!ok) return
+  approving.value = true
+  try {
+    const r = await ed.approveOverlaps(slots)
+    toast.success(t('timetable.overlap.approvedN', { n: r?.approved ?? 0 }))
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    approving.value = false
+  }
 }
 
 // ---------- Sinfga biriktirish ----------
@@ -711,6 +788,16 @@ function beforeUnload(e: BeforeUnloadEvent) {
           <CircleCheck class="h-4 w-4" aria-hidden="true" />
           {{ t('timetable.issues.none') }}
         </span>
+        <button
+          v-if="issueCounts.info"
+          type="button"
+          class="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm text-fg-muted hover:bg-surface-muted"
+          data-testid="overlap-summary"
+          @click="issuesOpen = true"
+        >
+          <Link2 class="h-4 w-4" aria-hidden="true" />
+          {{ t('timetable.overlap.summary', { n: issueCounts.info }) }}
+        </button>
         <BaseBadge v-if="v.forced" tone="danger">{{ t('timetable.forced') }}</BaseBadge>
         <div v-if="ed.mode.value === 'draft'" class="ml-auto flex flex-wrap items-center gap-3">
           <p
@@ -901,6 +988,12 @@ function beforeUnload(e: BeforeUnloadEvent) {
       :can-edit="ed.editable.value"
       :can-assign="canAssign"
       :assigning="assigning"
+      :is-superadmin="isSuperadmin()"
+      :approving="approving"
+      :approval-locked="ed.dirty.value"
+      @approve-overlap="changeOverlap($event, true)"
+      @revoke-overlap="changeOverlap($event, false)"
+      @approve-all-overlaps="approveAllOverlaps"
       @close="issuesOpen = false"
       @jump="onIssueJump"
       @edit="onIssueEdit"
@@ -919,6 +1012,7 @@ function beforeUnload(e: BeforeUnloadEvent) {
       :issues="issuesMap[cellKey(cellOpen.weekday, cellOpen.lessonNo)]"
       :busy="busy"
       :can-assign="canAssign && !assigning"
+      :can-approve-overlap="isSuperadmin()"
       @assign="onIssueAssign"
       @close="cellOpen = null"
       @save="saveCell"

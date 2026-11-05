@@ -6,6 +6,7 @@ export type TimetableStatus = 'draft' | 'active' | 'superseded' | 'replaced'
 export type TimetablePhase = 'draft' | 'past' | 'current' | 'future' | 'replaced'
 export type WarningCode =
   | 'teacher_double_booked'
+  | 'teacher_overlap_approved'
   | 'teacher_not_assigned'
   | 'subject_inactive'
   | 'teacher_inactive'
@@ -21,6 +22,11 @@ export interface TimetableEntry {
   subject?: { id: string; name: string } | null
   teacher?: { id: string; fullName: string } | null
   outOfRange?: boolean
+  /** Bir vaqtda (boshqa sinfda) dars o'tishga superadmin ruxsati */
+  overlapApproval?: {
+    approvedBy: { id: string; fullName: string | null } | null
+    approvedAt: string
+  } | null
 }
 
 export interface EntryPayload {
@@ -29,6 +35,8 @@ export interface EntryPayload {
   subjectId: string
   teacherId: string
   room: string | null
+  /** true — ruxsat berish/saqlash, false — olib tashlash (serverda faqat superadmin uchun amal qiladi) */
+  overlapApproved?: boolean
 }
 
 export interface TimetableVersionSummary {
@@ -59,7 +67,8 @@ export interface TimetableVersion extends TimetableVersionSummary {
 
 export interface TimetableWarning {
   code: WarningCode
-  severity: 'error' | 'warning'
+  /** info — ruxsat berilgan bir vaqtda o'tish: ma'lumot uchun, to'sqinlik qilmaydi */
+  severity: 'error' | 'warning' | 'info'
   weekday: number
   lessonNo: number
   subjectId: string
@@ -74,6 +83,13 @@ export interface TimetableWarning {
     /** Shu sinfning to'qnashayotgan versiyalari (eski serverda bo'lmasligi mumkin) */
     versions?: { versionId: string; validFrom: string; validTo: string | null }[]
   }
+  /** teacher_overlap_approved: ruxsat kim tomonidan va qaysi yozuvga berilgan */
+  approval?: {
+    side: 'self' | 'other' | 'both'
+    approvedBy: string
+    approvedByName: string | null
+    approvedAt: string
+  }
   /** Ommaviy faollashtirish oldindan ko'rishida: ogohlantirish qaysi sinfniki */
   classId?: string
   className?: string
@@ -83,6 +99,15 @@ export interface BusyTeacher {
   teacherId: string
   classId: string
   className: string
+  /** Boshqa sinfdagi shu yozuvga bir vaqtda o'tish ruxsati berilgan (eski serverda bo'lmasligi mumkin) */
+  approved?: boolean
+}
+
+/** Jadvaldagi dars: hafta kuni + dars raqami + o'qituvchi */
+export interface EntrySlot {
+  weekday: number
+  lessonNo: number
+  teacherId: string
 }
 
 /** Faollashtirilsa almashtiriladigan (amal qilmay qoladigan) versiya */
@@ -332,6 +357,23 @@ export const timetableApi = {
       syncAssignments?: boolean
     },
   ) => sendData<VersionWithWarnings>('post', `/timetable/versions/${id}/correct`, body),
+  /** Bir vaqtda o'tishga ruxsat berish/olib tashlash (faqat superadmin; faol versiyada ham) */
+  approveOverlap: (id: string, s: EntrySlot) =>
+    sendData<VersionWithWarnings>(
+      'post',
+      `/timetable/versions/${id}/entries/${s.weekday}/${s.lessonNo}/${s.teacherId}/overlap-approval`,
+    ),
+  /** Ommaviy ruxsat: band bo'lgan yozuvlarga bitta so'rovda (server qayta tekshiradi) */
+  approveOverlaps: (id: string, entries: EntrySlot[]) =>
+    sendData<VersionWithWarnings & { approved: number; skipped: number }>(
+      'post',
+      `/timetable/versions/${id}/overlap-approvals`,
+      { entries },
+    ),
+  revokeOverlap: (id: string, s: EntrySlot) =>
+    deleteData<VersionWithWarnings>(
+      `/timetable/versions/${id}/entries/${s.weekday}/${s.lessonNo}/${s.teacherId}/overlap-approval`,
+    ),
   teacherWeek: (teacherId: string, date?: string) =>
     getData<TeacherWeek>(`/timetable/teachers/${teacherId}/week`, { date }),
   myWeek: (date?: string) => getData<TeacherWeek>('/timetable/me/week', { date }),

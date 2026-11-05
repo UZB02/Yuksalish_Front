@@ -83,6 +83,8 @@ const ACTIONS = [
   'superadmin.create',
   'superadmin.transfer',
   'superadmin.update',
+  'timetable.overlap_approve',
+  'timetable.overlap_revoke',
   'timetable.override_created',
   'timetable.override_deleted',
   'timetable.version_activate',

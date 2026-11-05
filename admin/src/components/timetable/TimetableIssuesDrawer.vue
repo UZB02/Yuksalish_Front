@@ -6,6 +6,7 @@ import {
   ExternalLink,
   Locate,
   Link2,
+  Unlink,
   Pencil,
   TriangleAlert,
   X,
@@ -35,6 +36,12 @@ const props = defineProps<{
   canAssign?: boolean
   /** Biriktirish so'rovi ketmoqda */
   assigning?: boolean
+  /** Bir vaqtda o'tishga ruxsat berish/bekor qilish (faqat superadmin) */
+  isSuperadmin?: boolean
+  /** Ruxsat so'rovi ketmoqda */
+  approving?: boolean
+  /** Saqlanmagan o'zgarishlar bor: ruxsat berish/bekor qilish versiyani qayta yuklaydi */
+  approvalLocked?: boolean
 }>()
 const emit = defineEmits<{
   close: []
@@ -42,10 +49,13 @@ const emit = defineEmits<{
   edit: [issue: TimetableIssue]
   assign: [issue: TimetableIssue]
   assignAll: [issues: TimetableIssue[]]
+  approveOverlap: [issue: TimetableIssue]
+  approveAllOverlaps: [issues: TimetableIssue[]]
+  revokeOverlap: [issue: TimetableIssue]
 }>()
 const { t } = useI18n()
 
-type Filter = 'all' | 'error' | 'warning'
+type Filter = 'all' | 'error' | 'warning' | 'info'
 const filter = ref<Filter>('all')
 const titleId = useId()
 const panel = ref<HTMLElement | null>(null)
@@ -57,7 +67,7 @@ const shown = computed(() =>
   filter.value === 'all' ? props.issues : props.issues.filter((i) => i.severity === filter.value),
 )
 const groups = computed(() =>
-  (['error', 'warning'] as const)
+  (['error', 'warning', 'info'] as const)
     .map((sev) => ({ sev, items: shown.value.filter((i) => i.severity === sev) }))
     .filter((g) => g.items.length),
 )
@@ -66,7 +76,21 @@ const tabs = computed(() => [
   { key: 'all' as const, label: t('timetable.issues.tabAll'), n: counts.value.total },
   { key: 'error' as const, label: t('timetable.issues.tabErrors'), n: counts.value.error },
   { key: 'warning' as const, label: t('timetable.issues.tabWarnings'), n: counts.value.warning },
+  ...(counts.value.info
+    ? [{ key: 'info' as const, label: t('timetable.issues.tabApproved'), n: counts.value.info }]
+    : []),
 ])
+const groupLabel = {
+  error: 'groupErrors',
+  warning: 'groupWarnings',
+  info: 'groupApproved',
+} as const
+const canApprove = (i: TimetableIssue) => i.code === 'teacher_double_booked'
+const approvableIn = (items: TimetableIssue[]) =>
+  items.filter((i) => canApprove(i) && !!i.teacherId)
+/** Ruxsatni shu yozuvning o'zida bekor qilish mumkin (ruxsat faqat ikkinchi sinf yozuvida bo'lsa — yo'q) */
+const canRevoke = (i: TimetableIssue) =>
+  i.code === 'teacher_overlap_approved' && i.approval?.side !== 'other'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -200,18 +224,31 @@ function onKeydown(e: KeyboardEvent) {
             >
               <h3
                 class="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide"
-                :class="g.sev === 'error' ? 'text-danger' : 'text-warning'"
+                :class="
+                  g.sev === 'error'
+                    ? 'text-danger'
+                    : g.sev === 'warning'
+                      ? 'text-warning'
+                      : 'text-fg-muted'
+                "
               >
                 <CircleX v-if="g.sev === 'error'" class="h-4 w-4" aria-hidden="true" />
-                <TriangleAlert v-else class="h-4 w-4" aria-hidden="true" />
-                {{
-                  t(
-                    g.sev === 'error'
-                      ? 'timetable.issues.groupErrors'
-                      : 'timetable.issues.groupWarnings',
-                  )
-                }}
+                <TriangleAlert v-else-if="g.sev === 'warning'" class="h-4 w-4" aria-hidden="true" />
+                <Link2 v-else class="h-4 w-4" aria-hidden="true" />
+                {{ t(`timetable.issues.${groupLabel[g.sev]}`) }}
                 ({{ g.items.length }})
+                <button
+                  v-if="isSuperadmin && g.sev === 'error' && approvableIn(g.items).length >= 1"
+                  type="button"
+                  class="ml-auto inline-flex items-center gap-1 rounded-md bg-primary-600 px-2 py-1 text-xs font-medium normal-case tracking-normal text-white hover:bg-primary-700 disabled:opacity-60"
+                  :disabled="approving || approvalLocked"
+                  :title="approvalLocked ? t('timetable.overlap.saveFirst') : undefined"
+                  data-testid="issue-approve-all"
+                  @click="emit('approveAllOverlaps', approvableIn(g.items))"
+                >
+                  <Link2 class="h-3.5 w-3.5" aria-hidden="true" />
+                  {{ t('timetable.overlap.approveAll', { n: approvableIn(g.items).length }) }}
+                </button>
                 <button
                   v-if="canAssign && assignableIn(g.items).length >= 2"
                   type="button"
@@ -234,7 +271,13 @@ function onKeydown(e: KeyboardEvent) {
                 >
                   <span
                     class="absolute inset-y-0 left-0 w-[3px]"
-                    :class="i.severity === 'error' ? 'bg-danger' : 'bg-warning'"
+                    :class="
+                      i.severity === 'error'
+                        ? 'bg-danger'
+                        : i.severity === 'warning'
+                          ? 'bg-warning'
+                          : 'bg-fg-muted'
+                    "
                     aria-hidden="true"
                   />
                   <div class="flex items-start gap-2">
@@ -244,8 +287,13 @@ function onKeydown(e: KeyboardEvent) {
                       aria-hidden="true"
                     />
                     <TriangleAlert
-                      v-else
+                      v-else-if="i.severity === 'warning'"
                       class="mt-0.5 h-4 w-4 shrink-0 text-warning"
+                      aria-hidden="true"
+                    />
+                    <Link2
+                      v-else
+                      class="mt-0.5 h-4 w-4 shrink-0 text-fg-muted"
                       aria-hidden="true"
                     />
                     <div class="min-w-0 flex-1">
@@ -256,6 +304,30 @@ function onKeydown(e: KeyboardEvent) {
                         {{ i.title }}
                       </p>
                       <p class="mt-0.5 text-sm text-fg-muted">{{ i.text }}</p>
+                      <p
+                        v-if="i.approval"
+                        class="mt-0.5 text-xs text-fg-muted"
+                        data-testid="issue-approval-by"
+                      >
+                        {{
+                          t(
+                            i.approval.side === 'other'
+                              ? 'timetable.issues.approvedOther'
+                              : 'timetable.issues.approvedBy',
+                            {
+                              name: i.approval.approvedByName ?? '?',
+                              cls: i.otherClass?.name ?? '?',
+                            },
+                          )
+                        }}
+                      </p>
+                      <p
+                        v-if="canApprove(i) && !isSuperadmin"
+                        class="mt-1 text-xs text-fg-muted"
+                        data-testid="issue-superadmin-only"
+                      >
+                        {{ t('timetable.overlap.onlySuperadmin') }}
+                      </p>
                       <span
                         class="mt-2 inline-block max-w-full truncate rounded-md bg-surface-muted px-2 py-0.5 text-xs font-medium text-fg"
                       >
@@ -279,6 +351,30 @@ function onKeydown(e: KeyboardEvent) {
                         >
                           <Link2 class="h-3.5 w-3.5" aria-hidden="true" />
                           {{ t('timetable.issues.assign') }}
+                        </button>
+                        <button
+                          v-if="canApprove(i) && isSuperadmin"
+                          type="button"
+                          class="inline-flex items-center gap-1 rounded-md bg-primary-600 px-2 py-1 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+                          :disabled="approving || approvalLocked"
+                          :title="approvalLocked ? t('timetable.overlap.saveFirst') : undefined"
+                          data-testid="issue-approve"
+                          @click="emit('approveOverlap', i)"
+                        >
+                          <Link2 class="h-3.5 w-3.5" aria-hidden="true" />
+                          {{ t('timetable.overlap.approve') }}
+                        </button>
+                        <button
+                          v-if="canRevoke(i) && isSuperadmin"
+                          type="button"
+                          class="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-sm font-medium text-fg hover:bg-surface-muted disabled:opacity-60"
+                          :disabled="approving || approvalLocked"
+                          :title="approvalLocked ? t('timetable.overlap.saveFirst') : undefined"
+                          data-testid="issue-revoke"
+                          @click="emit('revokeOverlap', i)"
+                        >
+                          <Unlink class="h-3.5 w-3.5" aria-hidden="true" />
+                          {{ t('timetable.overlap.revoke') }}
                         </button>
                         <button
                           type="button"

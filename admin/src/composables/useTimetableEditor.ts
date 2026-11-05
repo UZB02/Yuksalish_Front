@@ -6,6 +6,7 @@ import {
   type BusyTeacher,
   type ClassVersions,
   type CopyFrom,
+  type EntrySlot,
   type TimetableOptions,
   type TimetableVersion,
   type TimetableWarning,
@@ -328,6 +329,34 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
   }
 
   /**
+   * Bir vaqtda o'tish ruxsatini beradi/olib tashlaydi (faqat superadmin; faol versiyada ham ishlaydi).
+   * Server javobi bilan versiya va ogohlantirishlar yangilanadi; saqlanmagan o'zgarishlar bo'lsa
+   * ular yo'qolmasligi uchun chaqiruvchi avval `dirty` ni tekshiradi.
+   */
+  async function setOverlapApproval(slot: EntrySlot, approve: boolean) {
+    const v = version.value
+    if (!v) return null
+    const r = approve
+      ? await timetableApi.approveOverlap(v.id, slot)
+      : await timetableApi.revokeOverlap(v.id, slot)
+    const wasCorrecting = correcting.value
+    applyVersion(r.version, r.warnings)
+    correcting.value = wasCorrecting
+    return r
+  }
+
+  /** Bir nechta yozuvga bir so'rovda ruxsat beradi (superadmin); versiya bir marta yangilanadi */
+  async function approveOverlaps(slots: EntrySlot[]) {
+    const v = version.value
+    if (!v || !slots.length) return null
+    const r = await timetableApi.approveOverlaps(v.id, slots)
+    const wasCorrecting = correcting.value
+    applyVersion(r.version, r.warnings)
+    correcting.value = wasCorrecting
+    return r
+  }
+
+  /**
    * Sinfga (fan, o'qituvchi) biriktiradi va ogohlantirishlarni qayta hisoblamasdan darhol yangilaydi:
    * sozlamalardagi biriktirishlar almashadi, biriktirilgan juftliklarning `teacher_not_assigned` olib tashlanadi.
    */
@@ -352,6 +381,8 @@ export function useTimetableEditor(classId: () => string, canManage: () => boole
 
   return {
     assignPairs,
+    setOverlapApproval,
+    approveOverlaps,
     loading,
     loadingVersion,
     saving,

@@ -112,7 +112,7 @@ describe('buildIssues', () => {
       'error:3:2',
       'warning:1:1',
     ])
-    expect(countIssues(list)).toEqual({ error: 3, warning: 1, total: 4 })
+    expect(countIssues(list)).toEqual({ error: 3, warning: 1, info: 0, total: 4 })
   })
 
   it('katak bo`yicha guruhlash, aria xulosa va tooltip', () => {
