@@ -1498,7 +1498,7 @@
       },
       "dailyReportTime": {
         "label": "Kunlik hisobot vaqti",
-        "hint": "Maktab ma'muriyatiga kunlik davomat hisoboti shu vaqtda yuboriladi."
+        "hint": "Maktab ma'muriyatiga va tanlagan superadminlarga kunlik davomat hisoboti shu vaqtda yuboriladi."
       },
       "dailyReportAbsentNames": {
         "label": "Kelmaganlarning ism-familiyasini ko'rsatish",
@@ -1510,7 +1510,7 @@
       },
       "weeklyReportTime": {
         "label": "Haftalik hisobot vaqti",
-        "hint": "Maktab ma'muriyatiga haftalik hisobot shu vaqtda yuboriladi."
+        "hint": "Maktab ma'muriyatiga va tanlagan superadminlarga haftalik hisobot shu vaqtda yuboriladi."
       }
     },
     "notify": {
@@ -1528,11 +1528,11 @@
       },
       "dailyReport": {
         "label": "Kunlik hisobot",
-        "hint": "Maktab ma'muriyatiga"
+        "hint": "Maktab ma'muriyatiga va tanlagan superadminlarga"
       },
       "weeklyReport": {
         "label": "Haftalik hisobot",
-        "hint": "Maktab ma'muriyatiga"
+        "hint": "Maktab ma'muriyatiga va tanlagan superadminlarga"
       }
     },
     "errors": {
