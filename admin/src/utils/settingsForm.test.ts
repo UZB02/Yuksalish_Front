@@ -18,6 +18,7 @@ const global: ScoringSettings = {
   editWindowHours: 24,
   backdateDays: 3,
   dailyAggregation: 'average',
+  autoFillScoreFromBehaviorType: false,
 }
 
 describe('validateScoringSettings', () => {

@@ -1,4 +1,4 @@
-import type { BehaviorKind, ScoringSettings } from '@/api/types'
+import type { BehaviorKind, BehaviorType, ScoringSettings } from '@/api/types'
 
 export const COMMENT_MAX = 500
 
@@ -10,6 +10,7 @@ export const DEFAULT_SCORING: ScoringSettings = {
   editWindowHours: 24,
   backdateDays: 3,
   dailyAggregation: 'average',
+  autoFillScoreFromBehaviorType: false,
 }
 
 /** Baholash qatori qoralamasi (forma qiymatlari). */
@@ -61,6 +62,25 @@ export const draftsEqual = (a: RowDraft, b: RowDraft) =>
   a.value.trim() === b.value.trim() &&
   a.behaviorTypeId === b.behaviorTypeId &&
   a.comment.trim() === b.comment.trim()
+
+/**
+ * Xulq turi tanlanganda ball avtomatik to'ldirilsinmi? Yangi ball qatorini yoki null (o'zgarmaydi).
+ * Shartlar: sozlama yoqilgan, turda standart ball bor va u [min..max] ichida; joriy ball bo'sh
+ * yoki avval avtomatik qo'yilgan (o'qituvchi qo'lda kiritgan ball hech qachon almashtirilmaydi).
+ */
+export function resolveAutoScore(p: {
+  settings: Pick<ScoringSettings, 'autoFillScoreFromBehaviorType' | 'minScore' | 'maxScore'>
+  type: Pick<BehaviorType, 'defaultScore'> | null | undefined
+  currentValue: string
+  autoFilled: boolean
+}): string | null {
+  if (!p.settings.autoFillScoreFromBehaviorType) return null
+  const def = p.type?.defaultScore
+  if (def === null || def === undefined) return null
+  if (def < p.settings.minScore || def > p.settings.maxScore) return null
+  if (p.currentValue.trim() !== '' && !p.autoFilled) return null
+  return String(def)
+}
 
 // ---- Sanalar (Asia/Tashkent) ----
 const pad = (n: number) => String(n).padStart(2, '0')

@@ -45,6 +45,7 @@ const { errors, defineField, handleSubmit, resetForm, setErrors, setFieldValue }
     order: '0',
     minScore: '',
     maxScore: '',
+    defaultScore: '',
     schoolId: '',
   },
 })
@@ -54,6 +55,7 @@ const [color] = defineField('color')
 const [order, orderAttrs] = defineField('order')
 const [minScore, minAttrs] = defineField('minScore')
 const [maxScore, maxAttrs] = defineField('maxScore')
+const [defaultScore, defaultAttrs] = defineField('defaultScore')
 const [schoolId, schoolAttrs] = defineField('schoolId')
 
 watch(
@@ -69,6 +71,7 @@ watch(
         order: String(b?.order ?? 0),
         minScore: b?.minScore != null ? String(b.minScore) : '',
         maxScore: b?.maxScore != null ? String(b.maxScore) : '',
+        defaultScore: b?.defaultScore != null ? String(b.defaultScore) : '',
         schoolId: b?.schoolId ?? props.defaultSchoolId ?? '',
       },
     })
@@ -95,7 +98,16 @@ const kindOptions = computed(() =>
 )
 const schoolOptions = computed(() => props.schools.map((s) => ({ value: s.id, label: s.name })))
 
-const FIELDS = ['name', 'kind', 'color', 'order', 'minScore', 'maxScore', 'schoolId'] as const
+const FIELDS = [
+  'name',
+  'kind',
+  'color',
+  'order',
+  'minScore',
+  'maxScore',
+  'defaultScore',
+  'schoolId',
+] as const
 
 const onSubmit = handleSubmit(async (v) => {
   submitting.value = true
@@ -106,6 +118,7 @@ const onSubmit = handleSubmit(async (v) => {
     order: Number(v.order),
     minScore: v.minScore === '' ? null : Number(v.minScore),
     maxScore: v.maxScore === '' ? null : Number(v.maxScore),
+    defaultScore: v.defaultScore === '' ? null : Number(v.defaultScore),
   }
   try {
     if (props.item) await behaviorTypesApi.update(props.item.id, payload)
@@ -186,6 +199,18 @@ const onSubmit = handleSubmit(async (v) => {
           :error="errors.maxScore"
         />
       </div>
+
+      <BaseInput
+        v-model="defaultScore"
+        v-bind="defaultAttrs"
+        type="number"
+        inputmode="numeric"
+        min="0"
+        max="100"
+        :label="t('behaviorTypes.defaultScore')"
+        :hint="t('behaviorTypes.defaultScoreHint')"
+        :error="errors.defaultScore"
+      />
 
       <BaseSelect
         v-if="!isEdit"

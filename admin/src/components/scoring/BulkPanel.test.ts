@@ -13,6 +13,7 @@ const settings: ScoringSettings = {
   editWindowHours: 24,
   backdateDays: 3,
   dailyAggregation: 'average',
+  autoFillScoreFromBehaviorType: false,
 }
 const types: BehaviorType[] = [
   {
@@ -24,6 +25,7 @@ const types: BehaviorType[] = [
     order: 1,
     minScore: null,
     maxScore: null,
+    defaultScore: null,
     isActive: true,
     createdAt: '',
   },

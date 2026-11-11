@@ -151,6 +151,7 @@ export function behaviorTypeSchema(t: Translate) {
         .refine((v) => /^\d+$/.test(v), t('validation.integer')),
       minScore: optionalInt(t),
       maxScore: optionalInt(t),
+      defaultScore: optionalInt(t),
       schoolId: z.string().optional().default(''),
     })
     .refine(
@@ -158,6 +159,20 @@ export function behaviorTypeSchema(t: Translate) {
       {
         path: ['maxScore'],
         message: t('validation.rangeOrder'),
+      },
+    )
+    .refine((v) => v.defaultScore === '' || Number(v.defaultScore) <= 100, {
+      path: ['defaultScore'],
+      message: t('behaviorTypes.defaultScoreRange'),
+    })
+    .refine(
+      (v) =>
+        v.defaultScore === '' ||
+        ((v.minScore === '' || Number(v.defaultScore) >= Number(v.minScore)) &&
+          (v.maxScore === '' || Number(v.defaultScore) <= Number(v.maxScore))),
+      {
+        path: ['defaultScore'],
+        message: t('behaviorTypes.defaultScoreRange'),
       },
     )
 }

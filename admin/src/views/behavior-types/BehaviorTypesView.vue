@@ -46,6 +46,7 @@ const columns = computed<TableColumn[]>(() => [
   { key: 'name', label: t('behaviorTypes.name') },
   { key: 'kind', label: t('behaviorTypes.kind'), class: 'hidden sm:table-cell' },
   { key: 'range', label: t('behaviorTypes.range'), class: 'hidden md:table-cell' },
+  { key: 'defaultScore', label: t('behaviorTypes.defaultScore'), class: 'hidden md:table-cell' },
   { key: 'scope', label: t('behaviorTypes.scope'), class: 'hidden lg:table-cell' },
   { key: 'order', label: t('behaviorTypes.order'), class: 'hidden md:table-cell' },
   { key: 'isActive', label: t('common.status') },
@@ -136,6 +137,12 @@ async function toggle(b: BehaviorType) {
             {{ row.minScore ?? '...' }} - {{ row.maxScore ?? '...' }}
           </span>
           <span v-else class="text-fg-muted">-</span>
+        </template>
+        <template #cell-defaultScore="{ row }">
+          <span v-if="row.defaultScore !== null && row.defaultScore !== undefined">
+            {{ row.defaultScore }}
+          </span>
+          <span v-else class="text-fg-muted">—</span>
         </template>
         <template #cell-scope="{ row }">{{ schoolName(row.schoolId) }}</template>
         <template #cell-order="{ row }">{{ row.order }}</template>

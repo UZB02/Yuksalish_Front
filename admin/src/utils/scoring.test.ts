@@ -3,6 +3,7 @@ import {
   dateBounds,
   isDateAllowed,
   pruneSelection,
+  resolveAutoScore,
   quickScores,
   shiftDate,
   todayTashkent,
@@ -20,6 +21,7 @@ const base: ScoringSettings = {
   editWindowHours: 24,
   backdateDays: 3,
   dailyAggregation: 'average',
+  autoFillScoreFromBehaviorType: false,
 }
 const d = (over: Partial<RowDraft> = {}): RowDraft => ({
   value: '80',
@@ -113,5 +115,61 @@ describe('pruneSelection (ommaviy panel tanlovi)', () => {
     const selected = new Set(['a'])
     expect(pruneSelection(selected, ['a', 'b'])).toBe(0)
     expect(selected.has('a')).toBe(true)
+  })
+})
+
+describe('resolveAutoScore', () => {
+  const on = { ...base, autoFillScoreFromBehaviorType: true }
+  const type = { defaultScore: 90 }
+
+  it("bo'sh ball -> standart ball", () => {
+    expect(resolveAutoScore({ settings: on, type, currentValue: '', autoFilled: false })).toBe('90')
+    expect(resolveAutoScore({ settings: on, type, currentValue: '  ', autoFilled: false })).toBe(
+      '90',
+    )
+  })
+
+  it("avtomatik qo'yilgan ball almashtiriladi, qo'lda kiritilgani almashtirilmaydi", () => {
+    expect(resolveAutoScore({ settings: on, type, currentValue: '70', autoFilled: true })).toBe(
+      '90',
+    )
+    expect(
+      resolveAutoScore({ settings: on, type, currentValue: '70', autoFilled: false }),
+    ).toBeNull()
+  })
+
+  it("sozlama o'chiq bo'lsa o'zgarmaydi", () => {
+    expect(
+      resolveAutoScore({ settings: base, type, currentValue: '', autoFilled: false }),
+    ).toBeNull()
+  })
+
+  it("tur yo'q yoki standart ball null bo'lsa o'zgarmaydi", () => {
+    expect(
+      resolveAutoScore({ settings: on, type: null, currentValue: '', autoFilled: false }),
+    ).toBeNull()
+    expect(
+      resolveAutoScore({
+        settings: on,
+        type: { defaultScore: null },
+        currentValue: '',
+        autoFilled: false,
+      }),
+    ).toBeNull()
+  })
+
+  it("standart ball 0 to'ldiriladi; sozlama diapazonidan tashqari bo'lsa to'ldirilmaydi", () => {
+    expect(
+      resolveAutoScore({
+        settings: on,
+        type: { defaultScore: 0 },
+        currentValue: '',
+        autoFilled: false,
+      }),
+    ).toBe('0')
+    const narrow = { ...on, minScore: 50, maxScore: 80 }
+    expect(
+      resolveAutoScore({ settings: narrow, type, currentValue: '', autoFilled: false }),
+    ).toBeNull()
   })
 })

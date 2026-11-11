@@ -64,12 +64,12 @@ const globalText = (k: SettingKey) =>
         @update:model-value="set(k, num($event))"
       />
       <BaseSwitch
-        v-else-if="k === 'requireBehaviorType'"
+        v-else-if="k === 'requireBehaviorType' || k === 'autoFillScoreFromBehaviorType'"
         class="sm:justify-end"
-        :model-value="modelValue.requireBehaviorType"
+        :model-value="modelValue[k]"
         :disabled="!enabled(k)"
-        :label="modelValue.requireBehaviorType ? t('settings.yes') : t('settings.no')"
-        @update:model-value="set('requireBehaviorType', $event)"
+        :label="modelValue[k] ? t('settings.yes') : t('settings.no')"
+        @update:model-value="set(k, $event)"
       />
       <div v-else-if="k === 'commentRequiredBelow'" class="space-y-2">
         <BaseSwitch

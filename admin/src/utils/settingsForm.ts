@@ -9,6 +9,7 @@ export const SETTING_KEYS: SettingKey[] = [
   'editWindowHours',
   'backdateDays',
   'dailyAggregation',
+  'autoFillScoreFromBehaviorType',
 ]
 
 export type SettingErrors = Partial<Record<SettingKey, string>>

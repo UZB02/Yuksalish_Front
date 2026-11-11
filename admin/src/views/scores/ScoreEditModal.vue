@@ -15,6 +15,7 @@ import {
   COMMENT_MAX,
   hasErrors,
   isCommentRequired,
+  resolveAutoScore,
   quickScores,
   validateDraft,
   type RowDraft,
@@ -32,6 +33,8 @@ const { t } = useI18n()
 const toast = useToast()
 const draft = ref<RowDraft>({ value: '', behaviorTypeId: null, comment: '' })
 const submitted = ref(false)
+// Ball xulq turidan avtomatik qo'yilganmi (saqlangan ball — qo'lda hisoblanadi)
+const autoFilled = ref(false)
 const submitting = ref(false)
 const serverErrors = ref<Record<string, string>>({})
 
@@ -44,6 +47,7 @@ watch(
       behaviorTypeId: props.score.behaviorTypeId,
       comment: props.score.comment ?? '',
     }
+    autoFilled.value = false
     submitted.value = false
     serverErrors.value = {}
   },
@@ -61,6 +65,26 @@ const msg = (key?: string) =>
         limit: COMMENT_MAX,
       })
     : ''
+
+function onScore(v: string) {
+  draft.value.value = v
+  autoFilled.value = false
+}
+
+function onBehavior(id: string | null) {
+  draft.value.behaviorTypeId = id
+  if (!id) return
+  const v = resolveAutoScore({
+    settings: props.settings,
+    type: props.types.find((x) => x.id === id),
+    currentValue: draft.value.value,
+    autoFilled: autoFilled.value,
+  })
+  if (v !== null) {
+    draft.value.value = v
+    autoFilled.value = true
+  }
+}
 
 async function save() {
   submitted.value = true
@@ -100,11 +124,12 @@ async function save() {
       <div>
         <p class="mb-1.5 text-sm font-medium text-fg">{{ t('scoring.score') }}</p>
         <ScoreSlider
-          v-model="draft.value"
+          :model-value="draft.value"
           :min="settings.minScore"
           :max="settings.maxScore"
           :quick="quick"
           :invalid="!!msg(errors.value)"
+          @update:model-value="onScore"
         />
         <p v-if="msg(errors.value)" class="mt-1 text-xs text-danger" role="alert">
           {{ msg(errors.value) }}
@@ -116,9 +141,10 @@ async function save() {
       <div>
         <p class="mb-1.5 text-sm font-medium text-fg">{{ t('scoring.behaviorType') }}</p>
         <BehaviorChips
-          v-model="draft.behaviorTypeId"
+          :model-value="draft.behaviorTypeId"
           :types="types"
           :invalid="!!msg(errors.behavior)"
+          @update:model-value="onBehavior"
         />
         <p v-if="msg(errors.behavior)" class="mt-1 text-xs text-danger" role="alert">
           {{ msg(errors.behavior) }}

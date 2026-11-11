@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { scoresApi } from '@/api/scores.api'
-import type { ScoringSettings, ScoringSheet, ScoringSheetStudent } from '@/api/types'
+import type { BehaviorType, ScoringSettings, ScoringSheet, ScoringSheetStudent } from '@/api/types'
 import { useScoringSheet } from './useScoringSheet'
 
 vi.mock('@/api/scores.api', () => ({ scoresApi: { sheet: vi.fn(), bulk: vi.fn() } }))
@@ -13,6 +13,7 @@ const settings: ScoringSettings = {
   editWindowHours: 24,
   backdateDays: 3,
   dailyAggregation: 'average',
+  autoFillScoreFromBehaviorType: false,
 }
 
 function student(id: string, over: Partial<ScoringSheetStudent> = {}): ScoringSheetStudent {
@@ -46,9 +47,16 @@ function sheetOf(students: ScoringSheetStudent[], s = settings): ScoringSheet {
   return { class: { id: 'c1', name: '7-A' }, date: '2026-10-16', settings: s, students }
 }
 
+const tp = (id: string, defaultScore: number | null): BehaviorType =>
+  ({ id, name: id, kind: 'positive', color: '#16a34a', defaultScore }) as BehaviorType
+const TYPES = [tp('b1', 95), tp('b2', 60), tp('b0', null)]
+
 async function setup(students: ScoringSheetStudent[], s = settings) {
   vi.mocked(scoresApi.sheet).mockResolvedValue(sheetOf(students, s))
-  const sh = useScoringSheet(() => 'c1')
+  const sh = useScoringSheet(
+    () => 'c1',
+    () => TYPES,
+  )
   await sh.load()
   return sh
 }
@@ -172,5 +180,64 @@ describe('useScoringSheet', () => {
     sh.discard()
     expect(sh.hasUnsaved.value).toBe(false)
     expect(sh.rows.value[0]!.draft.value).toBe('90')
+  })
+
+  describe("xulq turidan ball avtomatik to'ldirish", () => {
+    const ON = { ...settings, autoFillScoreFromBehaviorType: true }
+
+    it("bo'sh ball to'ldiriladi, keyin tur almashsa yangilanadi (avtomatik), qo'lda o'zgartirilsa — yo'q", async () => {
+      const sh = await setup([student('1')], ON)
+      sh.patch('1', { behaviorTypeId: 'b1' })
+      expect(sh.rows.value[0]!.draft.value).toBe('95')
+      sh.patch('1', { behaviorTypeId: 'b2' })
+      expect(sh.rows.value[0]!.draft.value).toBe('60')
+      sh.patch('1', { value: '77' })
+      sh.patch('1', { behaviorTypeId: 'b1' })
+      expect(sh.rows.value[0]!.draft.value).toBe('77')
+    })
+
+    it("tanlovni bekor qilish yoki standart ballsiz tur — ballni o'zgartirmaydi", async () => {
+      const sh = await setup([student('1')], ON)
+      sh.patch('1', { behaviorTypeId: 'b1' })
+      sh.patch('1', { behaviorTypeId: null })
+      expect(sh.rows.value[0]!.draft.value).toBe('95')
+      sh.patch('1', { behaviorTypeId: 'b0' })
+      expect(sh.rows.value[0]!.draft.value).toBe('95')
+    })
+
+    it("serverdan yuklangan saqlangan ball qo'lda hisoblanadi (almashtirilmaydi)", async () => {
+      const sh = await setup([scored('1', 80)], ON)
+      sh.patch('1', { behaviorTypeId: 'b2' })
+      expect(sh.rows.value[0]!.draft.value).toBe('80')
+    })
+
+    it("qo'lda yozilgan ball keyin bo'shatilsa yana to'ldiriladi", async () => {
+      const sh = await setup([student('1')], ON)
+      sh.patch('1', { value: '50' })
+      sh.patch('1', { value: '' })
+      sh.patch('1', { behaviorTypeId: 'b1' })
+      expect(sh.rows.value[0]!.draft.value).toBe('95')
+    })
+
+    it("sozlama o'chiq bo'lsa hech narsa o'zgarmaydi", async () => {
+      const sh = await setup([student('1')])
+      sh.patch('1', { behaviorTypeId: 'b1' })
+      expect(sh.rows.value[0]!.draft.value).toBe('')
+    })
+
+    it("bulk: aniq ball bo'lmasa har qator qoidasi; aniq ball berilsa u qo'llanadi", async () => {
+      const sh = await setup([student('1'), student('2'), student('3'), scored('4', 70)], ON)
+      sh.patch('2', { value: '55' }) // qo'lda
+      for (const id of ['1', '2', '4']) sh.toggleSelect(id, true)
+      sh.applyToSelected({ behaviorTypeId: 'b1' })
+      const v = (id: string) => sh.rows.value.find((r) => r.studentId === id)!.draft.value
+      expect(v('1')).toBe('95')
+      expect(v('2')).toBe('55')
+      expect(v('3')).toBe('')
+      expect(v('4')).toBe('70')
+      sh.applyToSelected({ behaviorTypeId: 'b2', value: '88' })
+      expect(v('1')).toBe('88')
+      expect(v('4')).toBe('88')
+    })
   })
 })

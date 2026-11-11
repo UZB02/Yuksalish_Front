@@ -1037,6 +1037,9 @@
     "minScore": "Tavsiya etilgan min ball",
     "maxScore": "Tavsiya etilgan max ball",
     "rangeHint": "Ixtiyoriy",
+    "defaultScore": "Standart ball",
+    "defaultScoreHint": "Ixtiyoriy (0–100). Sozlamada yoqilsa, tur tanlanganda ball shu qiymat bilan to'ldiriladi",
+    "defaultScoreRange": "Standart ball 0–100 oralig'ida va min/max ball ichida bo'lishi kerak",
     "range": "Ball oralig'i",
     "scope": "Ko'lami",
     "global": "Global (barcha maktablar)",
@@ -1129,6 +1132,10 @@
       "dailyAggregation": {
         "label": "Kunlik ball usuli",
         "hint": "Bir kunda bir nechta o'qituvchi baholasa, kunlik ball qanday olinadi"
+      },
+      "autoFillScoreFromBehaviorType": {
+        "label": "Xulq turi tanlanganda ballni avtomatik to'ldirish",
+        "hint": "Xulq turlari sahifasida turga biriktirilgan ball baholash varag'ida avtomatik qo'yiladi. O'qituvchi uni o'zgartira oladi. Reyting hisobiga ta'sir qilmaydi."
       },
       "periodType": {
         "label": "Reyting davri",

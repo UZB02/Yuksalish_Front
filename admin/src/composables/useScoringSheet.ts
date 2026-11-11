@@ -1,10 +1,11 @@
 import { computed, ref } from 'vue'
 import { scoresApi } from '@/api/scores.api'
-import type { BulkScoreItem, ScoringSettings, ScoringSheetStudent } from '@/api/types'
+import type { BehaviorType, BulkScoreItem, ScoringSettings, ScoringSheetStudent } from '@/api/types'
 import {
   DEFAULT_SCORING,
   draftsEqual,
   hasErrors,
+  resolveAutoScore,
   todayTashkent,
   validateDraft,
   type DraftErrors,
@@ -23,6 +24,8 @@ export interface SheetRow extends BulkRow<RowDraft> {
   scoreId: string | null
   dayScore: number | null
   scoresCount: number
+  /** Ball xulq turidan avtomatik qo'yilgan (qo'lda o'zgartirilmagan). Serverdan kelganlar — false */
+  autoFilled: boolean
 }
 
 const emptyDraft = (): RowDraft => ({ value: '', behaviorTypeId: null, comment: '' })
@@ -44,6 +47,7 @@ function toRow(s: ScoringSheetStudent): SheetRow {
     editable: s.myScore ? s.myScore.editable : true,
     dayScore: s.dayScore,
     scoresCount: s.scoresCount,
+    autoFilled: false,
     baseline: { ...d },
     draft: { ...d },
     serverError: null,
@@ -55,7 +59,10 @@ function toRow(s: ScoringSheetStudent): SheetRow {
  * faqat o'zgargan qatorlarni bulk yuborish va failed qatorlarni qayta ishlash.
  * Umumiy mexanika `useBulkRows` da (davomat varag'i bilan bir xil).
  */
-export function useScoringSheet(getClassId: () => string) {
+export function useScoringSheet(
+  getClassId: () => string,
+  getTypes: () => BehaviorType[] = () => [],
+) {
   const date = ref(todayTashkent())
   const className = ref('')
   const settings = ref<ScoringSettings>({ ...DEFAULT_SCORING })
@@ -89,6 +96,43 @@ export function useScoringSheet(getClassId: () => string) {
     } finally {
       if (current === requestId) loading.value = false
     }
+  }
+
+  /**
+   * Qatorni yangilaydi. Sozlama yoqilgan bo'lsa va xulq turi tanlansa, ball bo'sh yoki avtomatik
+   * qo'yilgan bo'lgandagina turning standart balli qo'yiladi; ball qo'lda o'zgartirilsa — qo'lda.
+   */
+  function patch(key: string, change: Partial<RowDraft>) {
+    const row = rows.value.find((r) => r.studentId === key)
+    if (!row || !row.editable) return
+    const next = { ...change }
+    let auto = row.autoFilled
+    if (change.value !== undefined) {
+      auto = false
+    } else if (change.behaviorTypeId) {
+      const v = resolveAutoScore({
+        settings: settings.value,
+        type: getTypes().find((t) => t.id === change.behaviorTypeId),
+        currentValue: row.draft.value,
+        autoFilled: row.autoFilled,
+      })
+      if (v !== null) {
+        next.value = v
+        auto = true
+      }
+    }
+    core.patch(key, next)
+    row.autoFilled = auto
+  }
+
+  /** Tanlangan qatorlarga: aniq ball berilmagan bo'lsa xulq turi qoidasi har qator uchun alohida. */
+  function applyToSelected(change: Partial<RowDraft>) {
+    for (const r of rows.value) if (selected.has(r.studentId)) patch(r.studentId, change)
+  }
+
+  function discard() {
+    core.discard()
+    for (const r of rows.value) r.autoFilled = false
   }
 
   const errorsOf = (r: SheetRow): DraftErrors => validateDraft(r.draft, settings.value)
@@ -153,12 +197,12 @@ export function useScoringSheet(getClassId: () => string) {
     buildItems,
     scoredCount,
     total,
-    patch: core.patch,
-    applyToSelected: core.applyToSelected,
+    patch,
+    applyToSelected,
     toggleSelect: core.toggleSelect,
     selectAll: core.selectAll,
     save,
-    discard: core.discard,
+    discard,
   }
 }
 

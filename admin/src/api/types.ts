@@ -456,6 +456,8 @@ export interface BehaviorType {
   order: number
   minScore: number | null
   maxScore: number | null
+  /** Baholash varag'ida avtomatik to'ldiriladigan ball (null = yo'q) */
+  defaultScore: number | null
   isActive: boolean
   createdAt: string
 }
@@ -472,6 +474,7 @@ export interface BehaviorTypePayload {
   order: number
   minScore?: number | null
   maxScore?: number | null
+  defaultScore?: number | null
 }
 
 export interface BehaviorTypeCreatePayload extends BehaviorTypePayload {
@@ -635,6 +638,8 @@ export interface ScoringSettings {
   editWindowHours: number
   backdateDays: number
   dailyAggregation: DailyAggregation
+  /** Xulq turi tanlanganda turning standart balli varaqda avtomatik qo'yiladi */
+  autoFillScoreFromBehaviorType: boolean
 }
 
 export interface ScoringSettingsResponse {

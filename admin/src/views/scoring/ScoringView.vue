@@ -25,8 +25,11 @@ const toast = useToast()
 const { confirm } = useConfirm()
 
 const classId = computed(() => String(route.params.id))
-const sheet = useScoringSheet(() => classId.value)
 const types = ref<BehaviorType[]>([])
+const sheet = useScoringSheet(
+  () => classId.value,
+  () => types.value,
+)
 const search = ref('')
 const onlyUnscored = ref(false)
 const today = ref(todayTashkent())
