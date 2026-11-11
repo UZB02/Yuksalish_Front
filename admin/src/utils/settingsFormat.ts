@@ -7,6 +7,12 @@ type Translate = (key: string, params?: Record<string, unknown>) => string
  * Enum qiymatlar `settings.options.<key>.<value>` orqali tarjima qilinadi.
  */
 export function formatSetting(t: Translate, key: string, value: unknown): string {
+  if (key === 'resultsDate') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value ?? ''))
+    return m
+      ? t('settingsRating.results.dateN', { date: `${m[3]}.${m[2]}.${m[1]}` })
+      : t('settingsRating.results.lastDayOfPeriod')
+  }
   if (value === null || value === undefined || value === '') {
     if (key === 'commentRequiredBelow') return t('settings.off')
     if (key === 'topStudents') return t('settings.options.topStudents.all')
@@ -38,6 +44,14 @@ export function formatSetting(t: Translate, key: string, value: unknown): string
   if (key === 'weights' && typeof value === 'object') {
     const w = value as { conduct: number; subjects: number }
     return t('settingsRating.weightsSummary', { conduct: w.conduct, subjects: w.subjects })
+  }
+  if (key === 'resultsMonthDay' && typeof value === 'number') {
+    return value === 0
+      ? t('settingsRating.results.lastDay')
+      : t('settingsRating.results.monthDayN', { n: value })
+  }
+  if (key === 'resultsWeekday' && typeof value === 'number') {
+    return t(`settingsTelegram.weekdaysFull.${value}`)
   }
   if (typeof value === 'boolean') return value ? t('settings.yes') : t('settings.no')
   if (Array.isArray(value)) {

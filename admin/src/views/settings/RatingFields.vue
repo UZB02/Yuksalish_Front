@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { RatingMethod, RatingPeriodType, RatingSettings, RefreshMode } from '@/api/types'
 import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseSwitch from '@/components/ui/BaseSwitch.vue'
 import TieBreakEditor from '@/components/settings/TieBreakEditor.vue'
 import RatingWeightsEditor from '@/components/settings/RatingWeightsEditor.vue'
 import { RATING_KEYS, type RatingErrors, type RatingKey } from '@/utils/ratingForm'
+import { isDateOutsideCustom, previewAnnounce } from '@/utils/ratingResults'
 import { formatSetting } from '@/utils/settingsFormat'
 import SettingRow from './SettingRow.vue'
 
@@ -26,7 +30,44 @@ const MODES: RefreshMode[] = ['realtime', 'nightly']
 
 // periodType override bo'lsa, custom sanalar ham birga boshqariladi.
 const enabled = (k: RatingKey) => !props.flags || props.flags[k]
-const rowKeys = RATING_KEYS.filter((k) => k !== 'customFrom' && k !== 'customTo')
+const RESULT_KEYS: RatingKey[] = [
+  'resultsEnabled',
+  'resultsWeekday',
+  'resultsMonthDay',
+  'resultsDate',
+  'resultsTime',
+]
+const rowKeys = RATING_KEYS.filter(
+  (k) => k !== 'customFrom' && k !== 'customTo' && !RESULT_KEYS.includes(k),
+)
+// E'lon kuni boshqaruvi davr turiga qarab (formada davr almashsa darhol o'zgaradi)
+const dayKeyOf = (p: RatingPeriodType): RatingKey =>
+  p === 'week' ? 'resultsWeekday' : p === 'month' ? 'resultsMonthDay' : 'resultsDate'
+const resultRows = computed(() =>
+  RESULT_KEYS.filter(
+    (k) =>
+      !['resultsWeekday', 'resultsMonthDay', 'resultsDate'].includes(k) ||
+      k === dayKeyOf(props.modelValue.periodType),
+  ),
+)
+const preview = computed(() => {
+  const d = new Date()
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return previewAnnounce(props.modelValue, today)
+})
+const dateOutside = computed(() => isDateOutsideCustom(props.modelValue))
+const monthDayOptions = [
+  { value: '0', label: t('settingsRating.results.lastDay') },
+  ...Array.from({ length: 31 }, (_, i) => ({
+    value: String(i + 1),
+    label: t('settingsRating.results.monthDayN', { n: i + 1 }),
+  })),
+]
+const weekdayOptions = [1, 2, 3, 4, 5, 6, 7].map((d) => ({
+  value: String(d),
+  label: t(`settingsTelegram.weekdaysFull.${d}`),
+}))
+const resultHint = (k: RatingKey) => t(`settings.fields.${k}.hint`)
 
 function set<K extends RatingKey>(key: K, value: RatingSettings[K]) {
   emit('update:modelValue', { ...props.modelValue, [key]: value })
@@ -166,6 +207,105 @@ function toggle(k: RatingKey, on: boolean) {
           {{ t(`settings.options.refreshMode.${m}`) }}
         </label>
       </div>
+    </SettingRow>
+
+    <!-- Yakuniy natija e'loni -->
+    <div class="py-3.5" data-testid="results-group">
+      <p class="text-sm font-semibold text-fg">{{ t('settingsRating.results.group') }}</p>
+      <p class="mt-0.5 text-xs leading-5 text-fg-muted">
+        {{ t('settingsRating.results.groupHint') }}
+      </p>
+      <p class="mt-0.5 text-xs leading-5 text-fg-muted">
+        {{ t('settingsRating.results.note') }}
+      </p>
+      <p
+        v-if="modelValue.resultsEnabled && preview"
+        class="mt-1 text-xs font-medium text-fg"
+        data-testid="results-preview"
+      >
+        {{ t('settingsRating.results.preview', { value: preview }) }}
+      </p>
+    </div>
+    <SettingRow
+      v-for="k in resultRows"
+      :key="k"
+      :label="t(`settings.fields.${k}.label`)"
+      :hint="resultHint(k)"
+      :flag="flagOf(k)"
+      :global-text="globalText(k)"
+      @toggle="toggle(k, $event)"
+    >
+      <BaseSwitch
+        v-if="k === 'resultsEnabled'"
+        :model-value="modelValue.resultsEnabled"
+        :disabled="!enabled(k)"
+        :label="t('settings.fields.resultsEnabled.label')"
+        data-testid="results-enabled"
+        @update:model-value="set('resultsEnabled', $event)"
+      />
+      <BaseSelect
+        v-else-if="k === 'resultsWeekday'"
+        :model-value="String(modelValue.resultsWeekday)"
+        :options="weekdayOptions"
+        :disabled="!enabled(k) || !modelValue.resultsEnabled"
+        :aria-label="t('settings.fields.resultsWeekday.label')"
+        :error="errors.resultsWeekday"
+        data-testid="results-weekday"
+        @update:model-value="set('resultsWeekday', Number($event))"
+      />
+      <BaseSelect
+        v-else-if="k === 'resultsMonthDay'"
+        :model-value="String(modelValue.resultsMonthDay)"
+        :options="monthDayOptions"
+        :disabled="!enabled(k) || !modelValue.resultsEnabled"
+        :aria-label="t('settings.fields.resultsMonthDay.label')"
+        :error="errors.resultsMonthDay"
+        data-testid="results-monthday"
+        @update:model-value="set('resultsMonthDay', Number($event))"
+      />
+      <div v-else-if="k === 'resultsDate'" class="space-y-1">
+        <div class="flex items-end gap-2">
+          <BaseInput
+            class="min-w-0 flex-1"
+            :model-value="modelValue.resultsDate ?? ''"
+            type="date"
+            :min="
+              modelValue.periodType === 'custom' ? (modelValue.customFrom ?? undefined) : undefined
+            "
+            :max="
+              modelValue.periodType === 'custom' ? (modelValue.customTo ?? undefined) : undefined
+            "
+            :disabled="!enabled(k) || !modelValue.resultsEnabled"
+            :aria-label="t('settings.fields.resultsDate.label')"
+            :error="errors.resultsDate"
+            data-testid="results-date"
+            @update:model-value="set('resultsDate', $event || null)"
+          />
+          <button
+            v-if="modelValue.resultsDate"
+            type="button"
+            class="mb-1 shrink-0 text-xs text-primary-700 hover:underline disabled:opacity-60"
+            :disabled="!enabled(k) || !modelValue.resultsEnabled"
+            data-testid="results-date-clear"
+            @click="set('resultsDate', null)"
+          >
+            {{ t('settingsRating.results.clearDate') }}
+          </button>
+        </div>
+        <p v-if="dateOutside" class="text-xs text-warning" data-testid="results-date-warning">
+          {{ t('settingsRating.results.dateOutside') }}
+        </p>
+      </div>
+      <BaseInput
+        v-else
+        :model-value="modelValue.resultsTime"
+        type="time"
+        :disabled="!enabled(k) || !modelValue.resultsEnabled"
+        :aria-label="t('settings.fields.resultsTime.label')"
+        :error="errors.resultsTime"
+        data-testid="results-time"
+        @update:model-value="set('resultsTime', $event)"
+      />
     </SettingRow>
   </div>
 </template>

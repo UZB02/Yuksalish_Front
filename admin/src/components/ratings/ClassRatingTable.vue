@@ -6,7 +6,7 @@ import BaseTable, { type TableColumn } from '@/components/ui/BaseTable.vue'
 import RankBadge from './RankBadge.vue'
 import RankChange from './RankChange.vue'
 
-const props = defineProps<{ items: ClassRatingItem[]; loading?: boolean }>()
+const props = defineProps<{ items: ClassRatingItem[]; loading?: boolean; archive?: boolean }>()
 const emit = defineEmits<{ open: [classId: string] }>()
 const { t } = useI18n()
 
@@ -17,8 +17,14 @@ const columns = computed<TableColumn[]>(() => [
   { key: 'rank', label: t('ratings.rank') },
   { key: 'className', label: t('students.class') },
   { key: 'score', label: t('scoring.score') },
-  { key: 'rated', label: t('ratings.rated'), class: 'hidden sm:table-cell' },
-  { key: 'change', label: t('ratings.changeCol'), class: 'hidden sm:table-cell' },
+  {
+    key: 'rated',
+    label: props.archive ? t('ratings.ratedOnly') : t('ratings.rated'),
+    class: 'hidden sm:table-cell',
+  },
+  ...(props.archive
+    ? []
+    : [{ key: 'change', label: t('ratings.changeCol'), class: 'hidden sm:table-cell' }]),
 ])
 </script>
 
@@ -43,7 +49,10 @@ const columns = computed<TableColumn[]>(() => [
     <template #cell-score="{ row }">
       <span class="text-base font-semibold text-fg">{{ row.score }}</span>
     </template>
-    <template #cell-rated="{ row }">{{ row.ratedStudents }} / {{ row.totalStudents }}</template>
+    <template #cell-rated="{ row }">
+      <template v-if="archive">{{ row.ratedStudents }}</template>
+      <template v-else>{{ row.ratedStudents }} / {{ row.totalStudents }}</template>
+    </template>
     <template #cell-change="{ row }"><RankChange :change="row.rankChange" /></template>
   </BaseTable>
 </template>

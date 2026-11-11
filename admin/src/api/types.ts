@@ -801,6 +801,16 @@ export interface RatingSettings {
   refreshMode: RefreshMode
   /** Reyting tarkibi: xulq va fan baholari ulushlari (yig'indisi 100) */
   weights: RatingWeights
+  /** Davr yakuniy natijasini e'lon qilish (standart: o'chiq) */
+  resultsEnabled: boolean
+  /** Faqat haftalik davr uchun: ISO 1=Du..7=Ya */
+  resultsWeekday: number
+  /** "HH:mm" */
+  resultsTime: string
+  /** Oylik davr: 1–31, 0 = oyning oxirgi kuni */
+  resultsMonthDay: number
+  /** Chorak / o'quv yili / erkin davr: e'lon sanasi (YYYY-MM-DD); null yoki davrdan tashqarida = oxirgi kun */
+  resultsDate: string | null
 }
 
 export interface RatingWeights {
@@ -869,6 +879,54 @@ export interface ClassRatingItem {
   score: number
   ratedStudents: number
   totalStudents: number
+}
+
+/** E'lon qilingan (muzlatilgan) davr natijasi: ro'yxat elementi */
+export interface RatingResultMeta {
+  id: string
+  periodType: RatingPeriodType
+  periodKey: string
+  label: string
+  from: string
+  /** Muzlatilgan oraliq oxiri (e'lon kuni) */
+  to: string
+  periodTo: string
+  announcedAt: string
+  manual: boolean
+  studentsCount: number
+  classesCount: number
+}
+
+export interface RatingResultStudent {
+  studentId: string
+  fullName: string
+  classId: string
+  className: string | null
+  grade: number | null
+  score: number
+  rank: number
+  daysCount: number
+  scoresCount: number
+}
+
+export interface RatingResultClass {
+  classId: string
+  name: string
+  grade: number
+  score: number
+  rank: number
+  ratedStudents: number
+}
+
+export interface RatingResultDetail extends RatingResultMeta {
+  settings: {
+    method: string
+    weights: RatingWeights
+    minScoresCount: number
+    tieBreak: TieBreakKey[]
+  }
+  students: RatingResultStudent[]
+  classes: RatingResultClass[]
 }
 
 export interface SchoolRatingItem {
@@ -1481,6 +1539,7 @@ export interface TelegramNotifyToggles {
   timetableChanges: boolean
   dailyReport: boolean
   weeklyReport: boolean
+  ratingResults: boolean
 }
 
 /** Maktabning bot xabarlari sozlamalari (null = avtomatik) */

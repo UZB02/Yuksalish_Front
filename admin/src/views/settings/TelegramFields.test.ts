@@ -83,6 +83,7 @@ describe('TelegramFields', () => {
       timetableChanges: true,
       dailyReport: false,
       weeklyReport: false,
+      ratingResults: true,
     })
   })
 

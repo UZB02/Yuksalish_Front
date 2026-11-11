@@ -1157,6 +1157,26 @@
         "label": "Yangilanish rejimi",
         "hint": "Reyting qachon qayta hisoblanadi"
       },
+      "resultsEnabled": {
+        "label": "Yakuniy natijani e'lon qilish",
+        "hint": "Yoqilsa, davr yakunlanganda g'oliblar e'lon qilinadi (ochiq sayt, Telegram, arxiv)"
+      },
+      "resultsWeekday": {
+        "label": "E'lon kuni",
+        "hint": "Haftalik davr uchun: haftaning qaysi kunida natija e'lon qilinadi"
+      },
+      "resultsMonthDay": {
+        "label": "E'lon kuni",
+        "hint": "Oyda bunday kun bo'lmasa, oxirgi kuni e'lon qilinadi"
+      },
+      "resultsDate": {
+        "label": "E'lon sanasi",
+        "hint": "Sana joriy davr ichida bo'lishi kerak. Belgilanmasa yoki davrdan tashqarida bo'lsa, davrning oxirgi kuni e'lon qilinadi."
+      },
+      "resultsTime": {
+        "label": "E'lon vaqti",
+        "hint": "Natija muzlatiladigan vaqt (Toshkent vaqti)"
+      },
       "enabled": {
         "label": "Ochiq reyting yoqilgan",
         "hint": "Maktab reytingi ochiq sahifada ko'rinadimi"
@@ -1341,7 +1361,23 @@
     "errors": {
       "minDays": "Kamida 1 kun bo'lishi kerak (butun son)",
       "weightsInt": "Ulushlar 0 dan 100 gacha butun son bo'lishi kerak",
-      "weightsSum": "Ulushlar yig'indisi 100 bo'lishi kerak"
+      "weightsSum": "Ulushlar yig'indisi 100 bo'lishi kerak",
+      "time": "Vaqtni SS:DD ko'rinishida kiriting (00:00–23:59)",
+      "weekday": "Hafta kunini tanlang",
+      "monthDay": "Oy kuni 0 dan 31 gacha bo'lishi kerak",
+      "date": "Sanani to'g'ri kiriting (KK.OO.YYYY)"
+    },
+    "results": {
+      "group": "Yakuniy natija e'loni",
+      "groupHint": "Belgilangan vaqtda davr natijasi muzlatiladi va arxivga saqlanadi. Joriy reyting jonli ishlashda davom etadi.",
+      "note": "E'lon kunidan keyingi baholar yakuniy natijaga kirmaydi, faqat jonli reytingda ko'rinadi.",
+      "lastDay": "Oyning oxirgi kuni",
+      "monthDayN": "Har oyning {n}-kuni",
+      "lastDayOfPeriod": "Davrning oxirgi kuni",
+      "dateN": "E'lon sanasi: {date}",
+      "clearDate": "Sanani tozalash",
+      "dateOutside": "Tanlangan sana davr ichida emas: davrning oxirgi kuni e'lon qilinadi.",
+      "preview": "Joriy davr uchun e'lon: {value}"
     },
     "pickSchoolForPeriod": "Joriy davrni ko'rish uchun yuqoridan maktabni tanlang.",
     "currentPeriod": "Joriy davr",
@@ -1411,7 +1447,33 @@
     "tabs": {
       "students": "O'quvchilar",
       "classes": "Sinflar",
-      "schools": "Maktablar"
+      "schools": "Maktablar",
+      "results": "Yakunlar"
+    },
+    "results": {
+      "title": "E'lon qilingan davr natijalari",
+      "empty": "Hali e'lon qilingan natija yo'q",
+      "emptyText": "Sozlamalar → Reyting bo'limida yakuniy natija e'lonini yoqing.",
+      "announcedAt": "E'lon qilingan",
+      "frozenTo": "Hisob: {from} – {to}",
+      "students": "{n} ta o'quvchi",
+      "classes": "{n} ta sinf",
+      "manual": "Qo'lda",
+      "open": "Ochish",
+      "back": "Arxivga qaytish",
+      "studentsTitle": "O'quvchilar",
+      "classesTitle": "Sinflar",
+      "announceNow": "Joriy davrni hoziroq e'lon qilish",
+      "announced": "Davr natijasi e'lon qilindi",
+      "announceConfirm": "Joriy davr natijasi hozirgi holatida muzlatiladi. Davom etasizmi?",
+      "teacherNote": "Faqat o'z sinflaringiz ko'rsatilgan; o'rinlar butun maktab bo'yicha.",
+      "winners": {
+        "week": "O'tgan hafta g'oliblari",
+        "month": "O'tgan oy g'oliblari",
+        "quarter": "O'tgan chorak g'oliblari",
+        "academic_year": "O'tgan o'quv yili g'oliblari",
+        "custom": "Davr g'oliblari"
+      }
     },
     "rank": "O'rin",
     "place": "{n}-o'rin",
@@ -1424,6 +1486,7 @@
     },
     "notEnough": "Yetarli baho yo'q ({n}/{m} kun)",
     "rated": "Baholangan / jami",
+    "ratedOnly": "Baholangan o'quvchilar",
     "school": "Maktab",
     "inPublic": "Ochiq reytingda",
     "openClassStudents": "Sinf o'quvchilarini ko'rish",
@@ -1533,6 +1596,10 @@
       "weeklyReport": {
         "label": "Haftalik hisobot",
         "hint": "Maktab ma'muriyatiga va tanlagan superadminlarga"
+      },
+      "ratingResults": {
+        "label": "Reyting yakunlari",
+        "hint": "Reyting davri natijasi e'lon qilinganda maktab ma'muriyatiga va tanlagan superadminlarga"
       }
     },
     "errors": {
@@ -2055,7 +2122,8 @@
         "deactivate": "Xulq turini nofaol qildi"
       },
       "ratings": {
-        "recalculate": "Reytingni qayta hisobladi"
+        "recalculate": "Reytingni qayta hisobladi",
+        "announce": "Davr natijasini e'lon qildi"
       },
       "teacher": {
         "classes": "O'qituvchi sinflarini o'zgartirdi",

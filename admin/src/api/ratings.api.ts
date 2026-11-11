@@ -5,6 +5,8 @@ import type {
   ClassRatingItem,
   RatingConfig,
   RatingListResult,
+  RatingResultDetail,
+  RatingResultMeta,
   SchoolRatingItem,
   StudentRatingItem,
   StudentRatingParams,
@@ -44,6 +46,37 @@ export const ratingsApi = {
     getData<{ items: SchoolRatingItem[] } | SchoolRatingItem[]>('/ratings/schools').then((d) =>
       Array.isArray(d) ? d : d.items,
     ),
+  /** E'lon qilingan davr natijalari arxivi (yangisi birinchi) */
+  async results(
+    params: { page?: number; limit?: number } = {},
+    schoolId?: string,
+  ): Promise<{ items: RatingResultMeta[]; meta: ApiMeta }> {
+    const res = await http.get<ApiSuccess<RatingResultMeta[]>>('/ratings/results', {
+      params: clean(params),
+      ...schoolHeader(schoolId),
+    })
+    const items = res.data.data
+    const meta: ApiMeta = res.data.meta ?? {
+      page: 1,
+      limit: items.length,
+      total: items.length,
+      totalPages: 1,
+    }
+    return { items, meta }
+  },
+  result: (id: string, schoolId?: string) =>
+    http
+      .get<ApiSuccess<RatingResultDetail>>(`/ratings/results/${id}`, schoolHeader(schoolId))
+      .then((r) => r.data.data),
+  /** Joriy davr natijasini hoziroq e'lon qilish (faqat superadmin) */
+  announce: (schoolId?: string) =>
+    http
+      .post<ApiSuccess<RatingResultMeta>>(
+        '/ratings/results/announce',
+        undefined,
+        schoolHeader(schoolId),
+      )
+      .then((r) => r.data.data),
   async recalculate(schoolId?: string): Promise<{ recalculatedAt: string }> {
     const res = await http.post<ApiSuccess<{ recalculatedAt: string }>>(
       '/ratings/recalculate',

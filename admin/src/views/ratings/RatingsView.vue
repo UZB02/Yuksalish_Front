@@ -12,6 +12,8 @@ import type {
 } from '@/api/types'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import ClassRatingTable from '@/components/ratings/ClassRatingTable.vue'
+import LatestWinnersCard from '@/components/ratings/LatestWinnersCard.vue'
+import RatingResultsTab from '@/components/ratings/RatingResultsTab.vue'
 import PeriodBadge from '@/components/ratings/PeriodBadge.vue'
 import SchoolRatingTable from '@/components/ratings/SchoolRatingTable.vue'
 import StudentRatingTable from '@/components/ratings/StudentRatingTable.vue'
@@ -33,7 +35,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 
-type Tab = 'students' | 'classes' | 'schools'
+type Tab = 'students' | 'classes' | 'results' | 'schools'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -47,6 +49,7 @@ const tab = ref<Tab>('students')
 const tabs = computed<{ key: Tab; label: string }[]>(() => [
   { key: 'students', label: t('ratings.tabs.students') },
   { key: 'classes', label: t('ratings.tabs.classes') },
+  { key: 'results', label: t('ratings.tabs.results') },
   ...(auth.isSuperadmin ? [{ key: 'schools' as Tab, label: t('ratings.tabs.schools') }] : []),
 ])
 const canRecalc = computed(
@@ -75,6 +78,8 @@ const schoolsLoading = ref(false)
 const schoolsError = ref('')
 
 const schoolScoped = computed(() => tab.value !== 'schools')
+// Jonli reyting filtrlari (davr, sinf, qidiruv) arxiv ("Yakunlar") yorlig'ida kerak emas
+const showFilters = computed(() => tab.value === 'students' || tab.value === 'classes')
 const blocked = computed(() => schoolScoped.value && needsSchool.value)
 
 async function loadClasses() {
@@ -118,6 +123,7 @@ async function loadConfig() {
 async function loadTab() {
   if (filters.customIncomplete.value) return
   if (tab.value === 'schools') return loadSchools()
+  if (tab.value === 'results') return // arxiv o'z komponentida yuklanadi
   if (needsSchool.value) return
   if (tab.value === 'students') return students.reset()
   return loadClasses()
@@ -217,10 +223,10 @@ watch(
 
   <NeedsSchool v-if="blocked" />
   <div v-else class="card">
-    <div class="space-y-3 border-b border-border p-4">
+    <div v-if="tab !== 'results'" class="space-y-3 border-b border-border p-4">
       <PeriodBadge :period="period" :calculated-at="calculatedAt" />
 
-      <div v-if="schoolScoped" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div v-if="showFilters" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <BaseSelect
           v-model="filters.mode.value"
           :label="t('ratings.periodLabel')"
@@ -272,8 +278,12 @@ watch(
       />
     </div>
 
+    <!-- Yakunlar (arxiv) -->
+    <RatingResultsTab v-if="tab === 'results'" />
+
     <!-- O'quvchilar -->
-    <template v-if="tab === 'students'">
+    <template v-else-if="tab === 'students'">
+      <LatestWinnersCard @open-archive="tab = 'results'" />
       <div v-if="students.error.value" class="p-4">
         <EmptyState
           :title="t('errors.loadFailed')"

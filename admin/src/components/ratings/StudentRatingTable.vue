@@ -10,6 +10,8 @@ const props = defineProps<{
   items: StudentRatingItem[]
   loading?: boolean
   minDays?: number
+  /** Arxiv (muzlatilgan natija): o'zgarish ustuni yo'q */
+  archive?: boolean
 }>()
 const { t } = useI18n()
 
@@ -28,7 +30,9 @@ const columns = computed<TableColumn[]>(() => [
     ? [{ key: 'penalty', label: t('ratings.penalty'), class: 'hidden sm:table-cell' }]
     : []),
   { key: 'daysCount', label: t('ratings.daysCount'), class: 'hidden md:table-cell' },
-  { key: 'change', label: t('ratings.changeCol'), class: 'hidden sm:table-cell' },
+  ...(props.archive
+    ? []
+    : [{ key: 'change', label: t('ratings.changeCol'), class: 'hidden sm:table-cell' }]),
 ])
 </script>
 

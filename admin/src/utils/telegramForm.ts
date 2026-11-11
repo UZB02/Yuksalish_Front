@@ -18,6 +18,7 @@ export const NOTIFY_KEYS: readonly (keyof TelegramNotifyToggles)[] = [
   'timetableChanges',
   'dailyReport',
   'weeklyReport',
+  'ratingResults',
 ]
 
 export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const
@@ -34,6 +35,7 @@ export const DEFAULT_TELEGRAM_FORM: TelegramMessageSettings = {
     timetableChanges: true,
     dailyReport: true,
     weeklyReport: true,
+    ratingResults: true,
   },
   dailyReportAbsentNames: true,
 }

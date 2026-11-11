@@ -11,6 +11,11 @@ export const RATING_KEYS = [
   'tieBreak',
   'refreshMode',
   'weights',
+  'resultsEnabled',
+  'resultsWeekday',
+  'resultsTime',
+  'resultsMonthDay',
+  'resultsDate',
 ] as const
 export type RatingKey = (typeof RATING_KEYS)[number]
 export type RatingErrors = Partial<Record<RatingKey, string>>
@@ -24,9 +29,22 @@ export const DEFAULT_RATING: RatingSettings = {
   tieBreak: ['daysCount', 'alphabetical'],
   refreshMode: 'realtime',
   weights: { conduct: 50, subjects: 50 },
+  resultsEnabled: false,
+  resultsWeekday: 6,
+  resultsTime: '18:00',
+  resultsMonthDay: 0,
+  resultsDate: null,
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
+
+/** Haqiqiy kalendar sana (YYYY-MM-DD): 2026-02-30 yaroqsiz */
+function isRealDate(s: string): boolean {
+  if (!DATE.test(s)) return false
+  const d = new Date(`${s}T00:00:00Z`)
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
+}
 
 export function validateRating(v: RatingSettings, t: Translate): RatingErrors {
   const e: RatingErrors = {}
@@ -53,6 +71,16 @@ export function validateRating(v: RatingSettings, t: Translate): RatingErrors {
     e.weights = t('settingsRating.errors.weightsInt')
   } else if (w.conduct + w.subjects !== 100) {
     e.weights = t('settingsRating.errors.weightsSum')
+  }
+  if (!HHMM.test(v.resultsTime ?? '')) e.resultsTime = t('settingsRating.errors.time')
+  if (!Number.isInteger(v.resultsWeekday) || v.resultsWeekday < 1 || v.resultsWeekday > 7) {
+    e.resultsWeekday = t('settingsRating.errors.weekday')
+  }
+  if (!Number.isInteger(v.resultsMonthDay) || v.resultsMonthDay < 0 || v.resultsMonthDay > 31) {
+    e.resultsMonthDay = t('settingsRating.errors.monthDay')
+  }
+  if (v.resultsDate !== null && v.resultsDate !== undefined && !isRealDate(v.resultsDate)) {
+    e.resultsDate = t('settingsRating.errors.date')
   }
   return e
 }

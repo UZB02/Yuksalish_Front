@@ -136,6 +136,7 @@ describe('TelegramSettingsTab: xabarlar sozlamalari', () => {
           timetableChanges: true,
           dailyReport: false,
           weeklyReport: true,
+          ratingResults: true,
         },
       },
     })
