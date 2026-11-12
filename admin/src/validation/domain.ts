@@ -134,6 +134,18 @@ const optionalInt = (t: Translate) =>
     .default('')
     .refine((v) => v === '' || /^\d+$/.test(v), t('validation.integer'))
 
+/** Reyting jarimasi: 0–100, ko'pi bilan 2 xona (vergul yoki nuqta) */
+const ratingPenaltyField = (t: Translate) =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .default('')
+    .refine(
+      (v) => v === '' || (/^\d+([.,]\d{1,2})?$/.test(v) && Number(v.replace(',', '.')) <= 100),
+      t('behaviorTypes.ratingPenaltyRange'),
+    )
+
 export function behaviorTypeSchema(t: Translate) {
   return z
     .object({
@@ -152,6 +164,7 @@ export function behaviorTypeSchema(t: Translate) {
       minScore: optionalInt(t),
       maxScore: optionalInt(t),
       defaultScore: optionalInt(t),
+      ratingPenalty: ratingPenaltyField(t),
       schoolId: z.string().optional().default(''),
     })
     .refine(

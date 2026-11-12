@@ -11,6 +11,7 @@ export const RATING_KEYS = [
   'tieBreak',
   'refreshMode',
   'weights',
+  'behaviorPenaltyEnabled',
   'resultsEnabled',
   'resultsWeekday',
   'resultsTime',
@@ -34,6 +35,7 @@ export const DEFAULT_RATING: RatingSettings = {
   resultsTime: '18:00',
   resultsMonthDay: 0,
   resultsDate: null,
+  behaviorPenaltyEnabled: false,
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/

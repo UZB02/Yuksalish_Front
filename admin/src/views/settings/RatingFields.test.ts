@@ -208,3 +208,18 @@ describe('ratingResults yordamchilari', () => {
     ).toMatchObject({ className: '5-A', ratedStudents: 7, rankChange: null })
   })
 })
+
+describe('RatingFields: xulq turi jarimasi', () => {
+  it("standart o'chiq; kalit RATING_KEYS da; yoqish emit qiladi; izoh ko'rinadi", async () => {
+    expect(DEFAULT_RATING.behaviorPenaltyEnabled).toBe(false)
+    expect(RATING_KEYS).toContain('behaviorPenaltyEnabled')
+    const w = mountFields({ ...DEFAULT_RATING })
+    const sw = w.get('[data-testid="behavior-penalty-enabled"] button')
+    expect(sw.attributes('aria-checked')).toBe('false')
+    expect(w.text()).toContain('Xulq turi jarimasi')
+    expect(w.text()).toContain('Davomat jarimasidan alohida hisoblanadi')
+    await sw.trigger('click')
+    const ev = w.emitted('update:modelValue')!
+    expect((ev[ev.length - 1]![0] as RatingSettings).behaviorPenaltyEnabled).toBe(true)
+  })
+})

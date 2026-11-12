@@ -137,6 +137,9 @@ const catKey = {
           <p v-if="report.data.value.attendance.penalty > 0" class="mb-3 text-sm text-danger">
             {{ t('reports.cols.penalty') }}: -{{ report.data.value.attendance.penalty }}
           </p>
+          <p v-if="report.data.value.score.behaviorPenalty > 0" class="mb-3 text-sm text-danger">
+            {{ t('reports.cols.behaviorPenalty') }}: -{{ report.data.value.score.behaviorPenalty }}
+          </p>
           <AttendanceCalendar
             v-model:month="month"
             :days="calendarDays"

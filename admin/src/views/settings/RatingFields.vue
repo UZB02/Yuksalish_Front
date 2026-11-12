@@ -191,6 +191,15 @@ function toggle(k: RatingKey, on: boolean) {
         @update:model-value="set('weights', $event)"
       />
 
+      <BaseSwitch
+        v-else-if="k === 'behaviorPenaltyEnabled'"
+        :model-value="modelValue.behaviorPenaltyEnabled"
+        :disabled="!enabled(k)"
+        :label="t('settings.fields.behaviorPenaltyEnabled.label')"
+        data-testid="behavior-penalty-enabled"
+        @update:model-value="set('behaviorPenaltyEnabled', $event)"
+      />
+
       <div v-else class="space-y-2">
         <label
           v-for="m in MODES"

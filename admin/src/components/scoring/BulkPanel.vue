@@ -6,8 +6,14 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import type { RowDraft } from '@/utils/scoring'
 import { quickScores } from '@/utils/scoring'
 import BehaviorChips from './BehaviorChips.vue'
+import BehaviorPenaltyNote from './BehaviorPenaltyNote.vue'
 
-const props = defineProps<{ count: number; settings: ScoringSettings; types: BehaviorType[] }>()
+const props = defineProps<{
+  count: number
+  settings: ScoringSettings
+  types: BehaviorType[]
+  penaltyEnabled?: boolean
+}>()
 const emit = defineEmits<{ apply: [change: Partial<RowDraft>]; clear: [] }>()
 const { t } = useI18n()
 
@@ -66,7 +72,10 @@ function apply() {
           {{ q }}
         </button>
       </div>
-      <BehaviorChips v-model="behaviorTypeId" :types="types" />
+      <div class="space-y-1">
+        <BehaviorChips v-model="behaviorTypeId" :types="types" />
+        <BehaviorPenaltyNote :types="types" :type-id="behaviorTypeId" :enabled="penaltyEnabled" />
+      </div>
     </div>
     <input
       v-model="comment"

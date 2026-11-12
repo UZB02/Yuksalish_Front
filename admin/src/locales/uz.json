@@ -923,6 +923,7 @@
     },
     "lockedReason": "Tahrirlash vaqti o'tgan ({hours} soat). Faqat ruxsati borlar o'zgartira oladi.",
     "behaviorType": "Xulq turi",
+    "behaviorPenaltyNote": "Reytingdan yana −{n} ball ayiriladi",
     "kinds": {
       "positive": "Ijobiy",
       "negative": "Salbiy",
@@ -1025,7 +1026,7 @@
   },
   "behaviorTypes": {
     "title": "Xulq turlari",
-    "description": "Baho qo'yishda tanlanadigan xulq turlari (reytingga ta'sir qilmaydi)",
+    "description": "Baho qo'yishda tanlanadigan xulq turlari (reyting jarimasi Sozlamalar → Reyting'da yoqilgandagina ta'sir qiladi)",
     "add": "Xulq turi qo'shish",
     "edit": "Xulq turini tahrirlash",
     "name": "Nomi",
@@ -1040,6 +1041,10 @@
     "defaultScore": "Standart ball",
     "defaultScoreHint": "Ixtiyoriy (0–100). Sozlamada yoqilsa, tur tanlanganda ball shu qiymat bilan to'ldiriladi",
     "defaultScoreRange": "Standart ball 0–100 oralig'ida va min/max ball ichida bo'lishi kerak",
+    "ratingPenalty": "Reyting jarimasi",
+    "ratingPenaltyHint": "Bu tur tanlangan har bir kun uchun reytingdan shuncha ball ayiriladi (Sozlamalar → Reyting'da yoqilgan bo'lsa). Bir kunda bir xil tur bir marta hisoblanadi.",
+    "ratingPenaltyRange": "Jarima 0 dan 100 gacha, ko'pi bilan 2 xonali son bo'lishi kerak",
+    "ratingPenaltyCol": "Jarima",
     "range": "Ball oralig'i",
     "scope": "Ko'lami",
     "global": "Global (barcha maktablar)",
@@ -1252,6 +1257,10 @@
       "weights": {
         "label": "Reyting tarkibi",
         "hint": "Reytingda xulq bahosi va fan baholarining ulushi (yig'indisi 100)"
+      },
+      "behaviorPenaltyEnabled": {
+        "label": "Xulq turi jarimasi",
+        "hint": "Yoqilsa, xulq turlarida belgilangan jarima reytingdan ayiriladi (bir kunda bir xil tur bir marta). Davomat jarimasidan alohida hisoblanadi. O'chiq bo'lsa, xulq turlari reytingga ta'sir qilmaydi."
       }
     },
     "aggregation": {
@@ -1505,7 +1514,9 @@
       "all": "Hammasini ko'rish"
     },
     "penalty": "Davomat jarimasi",
-    "penaltyHint": "Davomat bo'yicha ayirilgan ball (reytingga ta'sir yoqilgan)"
+    "penaltyHint": "Davomat bo'yicha ayirilgan ball (reytingga ta'sir yoqilgan)",
+    "behaviorPenalty": "Xulq jarimasi",
+    "behaviorPenaltyHint": "Xulq turlari bo'yicha ayirilgan ball (Sozlamalar → Reyting'da yoqilgan)"
   },
   "settingsTimetable": {
     "fields": {
@@ -1653,7 +1664,7 @@
       "penaltyAbsentExcused": "Sababli yo'qlik jarimasi (ball)",
       "penaltyAbsentUnexcused": "Sababsiz yo'qlik jarimasi (ball)"
     },
-    "impactHelp": "Davr ichidagi har bir davomat birligi uchun jarima davr ballidan ayiriladi, natija 0 dan pastga tushmaydi. Jarimalar ball shkalasida kiritiladi. Reyting avtomatik qayta hisoblanadi.",
+    "impactHelp": "Jarima har bir kun uchun BIR marta hisoblanadi: kunning eng og'ir holati (sababsiz > sababli > kechikish) olinadi; dars rejimida bir kunda bir nechta dars yozuvi bo'lsa ham bitta jarima. Jarima davr ballidan ayiriladi, natija 0 dan pastga tushmaydi. Jarimalar ball shkalasida kiritiladi. Reyting avtomatik qayta hisoblanadi.",
     "impactSummary": "kechikish {late}, sababli {excused}, sababsiz {unexcused}",
     "confirmImpact": "DIQQAT: davomatning reytingga ta'siri yoqilmoqda. Barcha o'quvchilar reytingi jarimalarga ko'ra qayta hisoblanadi.",
     "errors": {
@@ -1897,7 +1908,8 @@
       "rated": "{n} tasi baholangan",
       "avgScore": "O'rtacha ball",
       "attendance": "Davomat",
-      "penalty": "Jarima",
+      "penalty": "Davomat jarimasi",
+      "behaviorPenalty": "Xulq jarimasi",
       "rank": "Reyting o'rni (maktab)",
       "days": "Baholangan kunlar",
       "scores": "Baholar soni",
@@ -1915,7 +1927,8 @@
       "ratingScore": "Reyting bali",
       "days": "Kunlar",
       "attendanceRate": "Davomat",
-      "penalty": "Jarima",
+      "penalty": "Davomat jarimasi",
+      "behaviorPenalty": "Xulq jarimasi",
       "topBehavior": "Asosiy xulq",
       "teacher": "O'qituvchi",
       "classes": "Sinflar",

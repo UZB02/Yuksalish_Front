@@ -81,6 +81,11 @@ const stats = computed(() => {
       tone: rateTone(s.attendanceRate),
     },
     { key: 'penalty', label: t('reports.stats.penalty'), value: s.penaltyTotal },
+    {
+      key: 'behaviorPenalty',
+      label: t('reports.stats.behaviorPenalty'),
+      value: s.behaviorPenaltyTotal,
+    },
   ]
 })
 

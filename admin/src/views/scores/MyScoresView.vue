@@ -18,6 +18,7 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useClassLookup } from '@/composables/useLookups'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { usePagination } from '@/composables/usePagination'
+import { useBehaviorPenaltySetting } from '@/composables/useBehaviorPenaltySetting'
 import { useEffectiveScoring } from '@/composables/useScoringSettings'
 import { useToast } from '@/composables/useToast'
 import { PERMISSIONS } from '@/constants/permissions'
@@ -60,6 +61,7 @@ const behaviorFilter = ref('')
 const classes = useClassLookup()
 const behaviorTypes = ref<BehaviorType[]>([])
 const effective = useEffectiveScoring()
+const penalty = useBehaviorPenaltySetting()
 
 const list = usePagination<Score>(({ page, limit }) =>
   scoresApi.list({
@@ -100,6 +102,7 @@ async function init() {
   if (needsSchool.value) return
   void classes.load()
   void effective.load()
+  void penalty.load()
   behaviorTypesApi
     .list()
     .then((r) => (behaviorTypes.value = r.items))
@@ -276,6 +279,7 @@ async function remove(s: Score) {
     :score="editing"
     :types="editTypes"
     :settings="effective.settings.value"
+    :penalty-enabled="penalty.enabled.value"
     @close="editing = null"
     @saved="list.load()"
   />

@@ -21,6 +21,8 @@ const rows = computed<Row[]>(() => props.items.map((i) => ({ ...i, id: i.student
 // Jarima ustuni faqat kamida bitta qatorda jarima > 0 bo'lsa ko'rinadi
 const hasPenalty = computed(() => props.items.some((i) => (i.penalty ?? 0) > 0))
 
+const hasBehaviorPenalty = computed(() => props.items.some((i) => (i.behaviorPenalty ?? 0) > 0))
+
 const columns = computed<TableColumn[]>(() => [
   { key: 'rank', label: t('ratings.rank') },
   { key: 'fullName', label: t('common.fullName') },
@@ -28,6 +30,15 @@ const columns = computed<TableColumn[]>(() => [
   { key: 'score', label: t('scoring.score') },
   ...(hasPenalty.value
     ? [{ key: 'penalty', label: t('ratings.penalty'), class: 'hidden sm:table-cell' }]
+    : []),
+  ...(hasBehaviorPenalty.value
+    ? [
+        {
+          key: 'behaviorPenalty',
+          label: t('ratings.behaviorPenalty'),
+          class: 'hidden sm:table-cell',
+        },
+      ]
     : []),
   { key: 'daysCount', label: t('ratings.daysCount'), class: 'hidden md:table-cell' },
   ...(props.archive
@@ -67,6 +78,17 @@ const columns = computed<TableColumn[]>(() => [
         data-testid="penalty"
       >
         -{{ row.penalty }}
+      </span>
+      <span v-else class="text-fg-muted">-</span>
+    </template>
+    <template #cell-behaviorPenalty="{ row }">
+      <span
+        v-if="(row.behaviorPenalty ?? 0) > 0"
+        class="font-medium text-danger"
+        :title="t('ratings.behaviorPenaltyHint')"
+        data-testid="behavior-penalty"
+      >
+        -{{ row.behaviorPenalty }}
       </span>
       <span v-else class="text-fg-muted">-</span>
     </template>

@@ -458,6 +458,8 @@ export interface BehaviorType {
   maxScore: number | null
   /** Baholash varag'ida avtomatik to'ldiriladigan ball (null = yo'q) */
   defaultScore: number | null
+  /** Reytingdan ayiriladigan jarima (kun+tur uchun bir marta; sozlamada yoqilgan bo'lsa). 0 = yo'q */
+  ratingPenalty: number
   isActive: boolean
   createdAt: string
 }
@@ -475,6 +477,7 @@ export interface BehaviorTypePayload {
   minScore?: number | null
   maxScore?: number | null
   defaultScore?: number | null
+  ratingPenalty?: number
 }
 
 export interface BehaviorTypeCreatePayload extends BehaviorTypePayload {
@@ -811,6 +814,8 @@ export interface RatingSettings {
   resultsMonthDay: number
   /** Chorak / o'quv yili / erkin davr: e'lon sanasi (YYYY-MM-DD); null yoki davrdan tashqarida = oxirgi kun */
   resultsDate: string | null
+  /** Xulq turi jarimasini reytingga qo'llash (standart: o'chiq) */
+  behaviorPenaltyEnabled: boolean
 }
 
 export interface RatingWeights {
@@ -867,6 +872,8 @@ export interface StudentRatingItem {
   eligible: boolean
   /** Davomat jarimasi (reytingga ta'sir yoqilgan bo'lsa) */
   penalty?: number
+  /** Xulq turi jarimasi (sozlama yoqilgan bo'lsa) */
+  behaviorPenalty?: number
 }
 
 export interface ClassRatingItem {
@@ -1292,6 +1299,7 @@ export interface ClassReportStudent {
   scoresCount: number
   attendance: ReportAttendanceCounts
   penalty: number
+  behaviorPenalty: number
   topBehavior: { name: string; count: number } | null
 }
 
@@ -1311,6 +1319,7 @@ export interface ClassReport {
     scoresCount: number
     attendanceRate: number | null
     penaltyTotal: number
+    behaviorPenaltyTotal: number
   }
   students: ClassReportStudent[]
   behaviorDistribution: ReportBehaviorShare[]
@@ -1337,6 +1346,7 @@ export interface StudentReport {
     rank: number | null
     classRank: number | null
     ratingScore: number | null
+    behaviorPenalty: number
     ratedStudentsInClass: number
   }
   trend: TrendPoint[]
@@ -1385,6 +1395,7 @@ export interface SchoolReport {
     avgScore: number | null
     attendanceRate: number | null
     penaltyTotal: number
+    behaviorPenaltyTotal: number
   }
   classes: {
     classId: string

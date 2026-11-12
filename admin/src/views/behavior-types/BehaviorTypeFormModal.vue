@@ -46,6 +46,7 @@ const { errors, defineField, handleSubmit, resetForm, setErrors, setFieldValue }
     minScore: '',
     maxScore: '',
     defaultScore: '',
+    ratingPenalty: '',
     schoolId: '',
   },
 })
@@ -56,6 +57,7 @@ const [order, orderAttrs] = defineField('order')
 const [minScore, minAttrs] = defineField('minScore')
 const [maxScore, maxAttrs] = defineField('maxScore')
 const [defaultScore, defaultAttrs] = defineField('defaultScore')
+const [ratingPenalty, penaltyAttrs] = defineField('ratingPenalty')
 const [schoolId, schoolAttrs] = defineField('schoolId')
 
 watch(
@@ -72,6 +74,7 @@ watch(
         minScore: b?.minScore != null ? String(b.minScore) : '',
         maxScore: b?.maxScore != null ? String(b.maxScore) : '',
         defaultScore: b?.defaultScore != null ? String(b.defaultScore) : '',
+        ratingPenalty: b?.ratingPenalty ? String(b.ratingPenalty) : '',
         schoolId: b?.schoolId ?? props.defaultSchoolId ?? '',
       },
     })
@@ -106,6 +109,7 @@ const FIELDS = [
   'minScore',
   'maxScore',
   'defaultScore',
+  'ratingPenalty',
   'schoolId',
 ] as const
 
@@ -119,6 +123,7 @@ const onSubmit = handleSubmit(async (v) => {
     minScore: v.minScore === '' ? null : Number(v.minScore),
     maxScore: v.maxScore === '' ? null : Number(v.maxScore),
     defaultScore: v.defaultScore === '' ? null : Number(v.defaultScore),
+    ratingPenalty: v.ratingPenalty === '' ? 0 : Number(v.ratingPenalty.replace(',', '.')),
   }
   try {
     if (props.item) await behaviorTypesApi.update(props.item.id, payload)
@@ -210,6 +215,17 @@ const onSubmit = handleSubmit(async (v) => {
         :label="t('behaviorTypes.defaultScore')"
         :hint="t('behaviorTypes.defaultScoreHint')"
         :error="errors.defaultScore"
+      />
+
+      <BaseInput
+        v-model="ratingPenalty"
+        v-bind="penaltyAttrs"
+        type="text"
+        inputmode="decimal"
+        data-testid="rating-penalty"
+        :label="t('behaviorTypes.ratingPenalty')"
+        :hint="t('behaviorTypes.ratingPenaltyHint')"
+        :error="errors.ratingPenalty"
       />
 
       <BaseSelect

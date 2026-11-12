@@ -68,6 +68,13 @@ const columns = computed<ReportColumn<Row>[]>(() => [
     align: 'right',
     class: 'hidden md:table-cell',
   },
+  {
+    key: 'behaviorPenalty',
+    label: t('reports.cols.behaviorPenalty'),
+    sortValue: (r) => r.behaviorPenalty,
+    align: 'right',
+    class: 'hidden md:table-cell',
+  },
   { key: 'topBehavior', label: t('reports.cols.topBehavior'), class: 'hidden lg:table-cell' },
 ])
 
@@ -89,6 +96,11 @@ const stats = computed(() => {
       tone: rateTone(s.attendanceRate),
     },
     { key: 'penalty', label: t('reports.stats.penalty'), value: s.penaltyTotal },
+    {
+      key: 'behaviorPenalty',
+      label: t('reports.stats.behaviorPenalty'),
+      value: s.behaviorPenaltyTotal,
+    },
   ]
 })
 </script>
@@ -142,6 +154,12 @@ const stats = computed(() => {
           </template>
           <template #cell-penalty="{ row }">
             <span v-if="row.penalty > 0" class="text-danger">-{{ row.penalty }}</span>
+            <span v-else class="text-fg-muted">0</span>
+          </template>
+          <template #cell-behaviorPenalty="{ row }">
+            <span v-if="row.behaviorPenalty > 0" class="text-danger"
+              >-{{ row.behaviorPenalty }}</span
+            >
             <span v-else class="text-fg-muted">0</span>
           </template>
           <template #cell-topBehavior="{ row }">

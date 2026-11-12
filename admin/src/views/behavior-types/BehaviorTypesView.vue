@@ -47,6 +47,11 @@ const columns = computed<TableColumn[]>(() => [
   { key: 'kind', label: t('behaviorTypes.kind'), class: 'hidden sm:table-cell' },
   { key: 'range', label: t('behaviorTypes.range'), class: 'hidden md:table-cell' },
   { key: 'defaultScore', label: t('behaviorTypes.defaultScore'), class: 'hidden md:table-cell' },
+  {
+    key: 'ratingPenalty',
+    label: t('behaviorTypes.ratingPenaltyCol'),
+    class: 'hidden md:table-cell',
+  },
   { key: 'scope', label: t('behaviorTypes.scope'), class: 'hidden lg:table-cell' },
   { key: 'order', label: t('behaviorTypes.order'), class: 'hidden md:table-cell' },
   { key: 'isActive', label: t('common.status') },
@@ -141,6 +146,12 @@ async function toggle(b: BehaviorType) {
         <template #cell-defaultScore="{ row }">
           <span v-if="row.defaultScore !== null && row.defaultScore !== undefined">
             {{ row.defaultScore }}
+          </span>
+          <span v-else class="text-fg-muted">—</span>
+        </template>
+        <template #cell-ratingPenalty="{ row }">
+          <span v-if="(row.ratingPenalty ?? 0) > 0" class="font-medium text-danger">
+            -{{ row.ratingPenalty }}
           </span>
           <span v-else class="text-fg-muted">—</span>
         </template>

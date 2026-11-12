@@ -5,6 +5,7 @@ import { isApiError } from '@/api/errors'
 import { scoresApi } from '@/api/scores.api'
 import type { BehaviorType, Score, ScoringSettings } from '@/api/types'
 import BehaviorChips from '@/components/scoring/BehaviorChips.vue'
+import BehaviorPenaltyNote from '@/components/scoring/BehaviorPenaltyNote.vue'
 import ScoreSlider from '@/components/scoring/ScoreSlider.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
@@ -26,6 +27,8 @@ const props = defineProps<{
   score: Score | null
   types: BehaviorType[]
   settings: ScoringSettings
+  /** Xulq turi jarimasi sozlamasi yoqilganmi (ogohlantirish uchun) */
+  penaltyEnabled?: boolean
 }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 
@@ -149,6 +152,12 @@ async function save() {
         <p v-if="msg(errors.behavior)" class="mt-1 text-xs text-danger" role="alert">
           {{ msg(errors.behavior) }}
         </p>
+        <BehaviorPenaltyNote
+          class="mt-1"
+          :types="types"
+          :type-id="draft.behaviorTypeId"
+          :enabled="penaltyEnabled"
+        />
         <p v-if="serverErrors.behaviorTypeId" class="mt-1 text-xs text-danger" role="alert">
           {{ serverErrors.behaviorTypeId }}
         </p>

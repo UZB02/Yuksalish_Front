@@ -14,6 +14,7 @@ import {
 import AvatarImage from '@/components/ui/AvatarImage.vue'
 import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BehaviorChips from './BehaviorChips.vue'
+import BehaviorPenaltyNote from './BehaviorPenaltyNote.vue'
 import ScoreSlider from './ScoreSlider.vue'
 
 const props = defineProps<{
@@ -26,6 +27,8 @@ const props = defineProps<{
   selected: boolean
   /** Xatolarni faqat qator o'zgargan bo'lsa ko'rsatamiz */
   showErrors: boolean
+  /** Xulq turi jarimasi sozlamasi yoqilganmi (ogohlantirish uchun) */
+  penaltyEnabled?: boolean
 }>()
 const emit = defineEmits<{
   patch: [studentId: string, change: Partial<RowDraft>]
@@ -163,6 +166,11 @@ const border = computed(
             <p v-if="errText(errors.behavior)" class="text-xs text-danger" role="alert">
               {{ errText(errors.behavior) }}
             </p>
+            <BehaviorPenaltyNote
+              :types="types"
+              :type-id="row.draft.behaviorTypeId"
+              :enabled="penaltyEnabled"
+            />
             <div>
               <textarea
                 ref="area"

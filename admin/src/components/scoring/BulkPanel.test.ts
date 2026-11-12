@@ -26,6 +26,7 @@ const types: BehaviorType[] = [
     minScore: null,
     maxScore: null,
     defaultScore: null,
+    ratingPenalty: 0,
     isActive: true,
     createdAt: '',
   },

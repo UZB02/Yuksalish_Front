@@ -12,6 +12,7 @@ import StickySaveBar from '@/components/ui/StickySaveBar.vue'
 import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
+import { useBehaviorPenaltySetting } from '@/composables/useBehaviorPenaltySetting'
 import { useConfirm } from '@/composables/useConfirm'
 import { useDirtySource } from '@/composables/useDirtyRegistry'
 import { useScoringSheet } from '@/composables/useScoringSheet'
@@ -137,9 +138,11 @@ const beforeUnload = (e: BeforeUnloadEvent) => {
     e.returnValue = ''
   }
 }
+const penalty = useBehaviorPenaltySetting()
 onMounted(() => {
   window.addEventListener('beforeunload', beforeUnload)
   void loadTypes()
+  void penalty.load()
   void sheet.load()
 })
 onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
@@ -268,6 +271,7 @@ watch(classId, async () => {
       :count="sheet.selected.size"
       :settings="sheet.settings.value"
       :types="types"
+      :penalty-enabled="penalty.enabled.value"
       @apply="onBulk"
       @clear="sheet.selected.clear()"
     />
@@ -285,6 +289,7 @@ watch(classId, async () => {
         :errors="sheet.errorsOf(row)"
         :settings="sheet.settings.value"
         :types="types"
+        :penalty-enabled="penalty.enabled.value"
         :selected="sheet.selected.has(row.studentId)"
         :show-errors="sheet.isDirty(row) || !!row.serverError"
         @patch="sheet.patch"
