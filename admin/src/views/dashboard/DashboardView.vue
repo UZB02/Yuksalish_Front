@@ -15,6 +15,9 @@ import { isApiError } from '@/api/errors'
 import { attendanceApi } from '@/api/attendance.api'
 import { scoresApi } from '@/api/scores.api'
 import ProgressBar from '@/components/scoring/ProgressBar.vue'
+import AttendanceTrendCard from '@/components/dashboard/AttendanceTrendCard.vue'
+import AttentionStudentsCard from '@/components/dashboard/AttentionStudentsCard.vue'
+import UnscoredClassesCard from '@/components/dashboard/UnscoredClassesCard.vue'
 import TodayLessons from '@/components/timetable/TodayLessons.vue'
 import TopRatings from '@/components/ratings/TopRatings.vue'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
@@ -241,13 +244,11 @@ watch(() => schoolCtx.schoolId, load)
     </ul>
   </section>
 
-  <div class="card mt-6 p-6">
-    <h2 class="text-base font-semibold text-fg">{{ t('dashboard.chartTitle') }}</h2>
-    <p class="mt-1 text-sm text-fg-muted">{{ t('dashboard.chartPlaceholder') }}</p>
-    <div
-      class="mt-4 flex h-48 items-center justify-center rounded-lg border border-dashed border-border text-sm text-fg-muted"
-    >
-      {{ t('common.comingSoon') }}
+  <template v-if="!needsSchool && !forbidden">
+    <div class="mt-6 grid gap-4 lg:grid-cols-2">
+      <UnscoredClassesCard :key="`u-${schoolCtx.schoolId ?? 'own'}`" />
+      <AttentionStudentsCard :key="`a-${schoolCtx.schoolId ?? 'own'}`" />
     </div>
-  </div>
+    <AttendanceTrendCard :key="`t-${schoolCtx.schoolId ?? 'own'}`" class="mt-6" />
+  </template>
 </template>

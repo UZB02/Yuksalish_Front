@@ -50,3 +50,26 @@ export function formatDateTimeTashkent(value: string | null | undefined): string
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
   return `${get('day')}.${get('month')}.${get('year')} ${get('hour')}:${get('minute')}:${get('second')}`
 }
+
+const UZ_MONTHS = [
+  'yanvar',
+  'fevral',
+  'mart',
+  'aprel',
+  'may',
+  'iyun',
+  'iyul',
+  'avgust',
+  'sentyabr',
+  'oktyabr',
+  'noyabr',
+  'dekabr',
+]
+
+/** Sana: 11-noyabr (ISO satrdan) */
+export function formatDayMonth(value: string | null | undefined): string {
+  const iso = toDateInput(value)
+  if (!iso) return ''
+  const [, m, d] = iso.split('-')
+  return `${Number(d)}-${UZ_MONTHS[Number(m) - 1] ?? ''}`
+}

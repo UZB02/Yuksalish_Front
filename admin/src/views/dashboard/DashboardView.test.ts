@@ -13,6 +13,15 @@ vi.mock('@/api/dashboard.api', () => ({ dashboardApi: { summary: vi.fn() } }))
 vi.mock('@/api/attendance.api', () => ({ attendanceApi: { todayProgress: vi.fn() } }))
 vi.mock('@/api/scores.api', () => ({ scoresApi: { todayProgress: vi.fn() } }))
 vi.mock('@/components/ratings/TopRatings.vue', () => ({ default: { template: '<div />' } }))
+vi.mock('@/components/dashboard/UnscoredClassesCard.vue', () => ({
+  default: { template: '<div />' },
+}))
+vi.mock('@/components/dashboard/AttentionStudentsCard.vue', () => ({
+  default: { template: '<div />' },
+}))
+vi.mock('@/components/dashboard/AttendanceTrendCard.vue', () => ({
+  default: { template: '<div />' },
+}))
 
 const i18n = createI18n({ legacy: false, locale: 'uz', messages: { uz } })
 

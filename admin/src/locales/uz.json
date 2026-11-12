@@ -58,7 +58,6 @@
     "phone": "Telefon",
     "lastLogin": "Oxirgi kirish",
     "never": "Hali kirmagan",
-    "comingSoon": "Tez orada",
     "showPassword": "Parolni ko'rsatish",
     "hidePassword": "Parolni yashirish",
     "pagination": "Sahifalash",
@@ -289,8 +288,45 @@
       "scoresToday": "Bugungi baholar",
       "unscoredClassesToday": "Bugun baholanmagan sinflar"
     },
-    "chartTitle": "O'rtacha ball dinamikasi",
-    "chartPlaceholder": "Grafik keyingi bosqichda qo'shiladi.",
+    "widgets": {
+      "retry": "Qayta urinish",
+      "unscored": {
+        "title": "Bugun baholanmagan sinflar",
+        "teacherTitle": "Bugungi xulq baholash",
+        "allDone": "Barcha sinflar baholandi ✅",
+        "teacherDone": "Sinfingiz bugun to'liq baholandi ✅",
+        "noClasses": "Sizga sinf rahbarligi biriktirilmagan",
+        "notWorkingDay": "Bugun dars kuni emas",
+        "noHomeroom": "Sinf rahbari biriktirilmagan",
+        "homeroom": "Sinf rahbari: {name}",
+        "progress": "Baholangan: {done} / {total}",
+        "grade": "Baholash",
+        "showAll": "Hammasini ko'rish ({n})",
+        "showLess": "Yig'ish"
+      },
+      "attention": {
+        "title": "E'tibor talab qiladigan o'quvchilar",
+        "hint": "Oxirgi 7 kun, oldingi 7 kun bilan solishtirilganda",
+        "empty": "Hozircha e'tibor talab qiladigan o'quvchi yo'q",
+        "more": "Yana {n} ta o'quvchi bor",
+        "drop": "Ball {from} → {to} ({delta})",
+        "negative": "{n} ta salbiy xulq",
+        "unexcused": "{n} kun sababsiz yo'q"
+      },
+      "attendanceTrend": {
+        "title": "Davomat dinamikasi",
+        "hint": "Oxirgi 30 kun, kunlik davomat foizi",
+        "empty": "Oxirgi 30 kunda davomat olinmagan",
+        "average": "O'rtacha: {value}%",
+        "aria": "{from} dan {to} gacha davomat foizi, {n} kun ma'lumot bor",
+        "present": "Keldi",
+        "late": "Kechikdi",
+        "partial": "Qisman",
+        "excused": "Sababli",
+        "unexcused": "Sababsiz",
+        "note": "Davomat olinmagan kunlar va dam olish kunlari ko'rsatilmaydi. Foiz = (keldi + kechikdi) / davomat olingan o'quvchilar."
+      }
+    },
     "noAccessTitle": "Ruxsat yo'q",
     "noAccessText": "Boshqaruv panelini ko'rish uchun sizda ruxsat yo'q.",
     "todayProgress": "Bugungi baholash progressi",
@@ -419,7 +455,11 @@
     "deactivateText": "{name} tizimga kira olmaydi. Davom etasizmi?",
     "activated": "O'qituvchi faollashtirildi",
     "deactivated": "O'qituvchi nofaol qilindi",
-    "filter": { "active": "Faol", "inactive": "Nofaol", "all": "Hammasi" },
+    "filter": {
+      "active": "Faol",
+      "inactive": "Nofaol",
+      "all": "Hammasi"
+    },
     "deleteForever": "Butunlay o'chirish",
     "deleteTitle": "O'qituvchini butunlay o'chirish",
     "deleteText": "{name} butunlay o'chiriladi. Bu amalni qaytarib bo'lmaydi. Sinf va fan biriktirishlari ham olib tashlanadi.",
@@ -2313,7 +2353,11 @@
     "description": "Sinflar bo'yicha haftalik dars jadvali: versiyalar, to'qnashuvlar va o'qituvchilar yuklamasi",
     "myTitle": "Mening jadvalim",
     "myDescription": "Haftalik darslaringiz",
-    "tabs": { "classes": "Sinflar", "day": "Kun bo'yicha", "teachers": "O'qituvchilar" },
+    "tabs": {
+      "classes": "Sinflar",
+      "day": "Kun bo'yicha",
+      "teachers": "O'qituvchilar"
+    },
     "class": "Sinf",
     "classTitle": "Dars jadvali · {name}",
     "archivedClass": "Arxivdagi sinf: faqat o'qish",

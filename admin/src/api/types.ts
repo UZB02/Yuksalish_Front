@@ -444,6 +444,61 @@ export interface DashboardSummary {
   schools?: number
 }
 
+// ---- Dashboard vidjetlari ----
+export interface UnscoredClassItem {
+  classId: string
+  className: string
+  homeroomTeacher: { id: string; fullName: string } | null
+  graded: number
+  total: number
+}
+
+export interface UnscoredClasses {
+  date: string
+  scope: 'school' | 'homeroom'
+  workingDay: boolean
+  totalClasses: number
+  classes: UnscoredClassItem[]
+}
+
+export type AttentionReason =
+  | { type: 'drop'; from: number; to: number; delta: number }
+  | { type: 'negative'; count: number }
+  | { type: 'unexcused'; days: number }
+
+export interface AttentionStudent {
+  studentId: string
+  fullName: string
+  classId: string
+  className: string
+  reasons: AttentionReason[]
+}
+
+export interface AttentionStudents {
+  current: { from: string; to: string }
+  previous: { from: string; to: string }
+  total: number
+  students: AttentionStudent[]
+}
+
+export interface AttendanceTrendDay {
+  date: string
+  rate: number
+  present: number
+  late: number
+  partial: number
+  absentExcused: number
+  absentUnexcused: number
+  total: number
+}
+
+export interface AttendanceTrend {
+  from: string
+  to: string
+  average: number | null
+  days: AttendanceTrendDay[]
+}
+
 // ---- Xulq turlari ----
 export type BehaviorKind = 'positive' | 'negative' | 'neutral'
 
