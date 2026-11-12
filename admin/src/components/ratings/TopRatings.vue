@@ -33,9 +33,13 @@ watch(() => schoolCtx.schoolId, load)
 </script>
 
 <template>
-  <section v-if="!failed" class="mt-6 grid gap-4 lg:grid-cols-2" data-testid="top-ratings">
-    <div class="card p-5">
-      <div class="mb-3 flex items-center justify-between">
+  <section
+    v-if="!failed"
+    class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
+    data-testid="top-ratings"
+  >
+    <div class="card min-w-0 p-4 sm:p-5">
+      <div class="mb-3 flex items-center justify-between gap-3">
         <h2 class="text-base font-semibold text-fg">{{ t('ratings.top.students') }}</h2>
         <RouterLink :to="{ name: 'ratings' }" class="text-sm text-primary-700 hover:underline">
           {{ t('ratings.top.all') }}
@@ -46,22 +50,23 @@ watch(() => schoolCtx.schoolId, load)
         {{ t('ratings.emptyText') }}
       </p>
       <ol v-else class="divide-y divide-border">
-        <li v-for="s in students" :key="s.studentId" class="flex items-center gap-2 py-2 text-sm">
-          <RankBadge :rank="s.rank" />
+        <li v-for="s in students" :key="s.studentId" class="flex items-center gap-3 py-2 text-sm">
+          <RankBadge :rank="s.rank" class="shrink-0" />
           <RouterLink
             :to="{ name: 'student-profile', params: { id: s.studentId } }"
-            class="flex-1 truncate text-fg hover:underline"
+            class="group flex min-w-0 flex-1 flex-col"
+            :title="`${s.fullName} · ${s.className}`"
           >
-            {{ s.fullName }}
-            <span class="text-xs text-fg-muted">{{ s.className }}</span>
+            <span class="truncate leading-5 text-fg group-hover:underline">{{ s.fullName }}</span>
+            <span class="truncate text-xs leading-4 text-fg-muted">{{ s.className }}</span>
           </RouterLink>
-          <b class="text-fg">{{ s.score }}</b>
+          <b class="shrink-0 tabular-nums text-fg">{{ s.score }}</b>
         </li>
       </ol>
     </div>
 
-    <div class="card p-5">
-      <div class="mb-3 flex items-center justify-between">
+    <div class="card min-w-0 p-4 sm:p-5">
+      <div class="mb-3 flex items-center justify-between gap-3">
         <h2 class="text-base font-semibold text-fg">{{ t('ratings.top.classes') }}</h2>
         <RouterLink :to="{ name: 'ratings' }" class="text-sm text-primary-700 hover:underline">
           {{ t('ratings.top.all') }}
@@ -72,10 +77,12 @@ watch(() => schoolCtx.schoolId, load)
         {{ t('ratings.emptyText') }}
       </p>
       <ol v-else class="divide-y divide-border">
-        <li v-for="c in classes" :key="c.classId" class="flex items-center gap-2 py-2 text-sm">
-          <RankBadge :rank="c.rank" />
-          <span class="flex-1 truncate text-fg">{{ c.className }}</span>
-          <b class="text-fg">{{ c.score }}</b>
+        <li v-for="c in classes" :key="c.classId" class="flex items-center gap-3 py-2 text-sm">
+          <RankBadge :rank="c.rank" class="shrink-0" />
+          <span class="min-w-0 flex-1 truncate text-fg" :title="c.className">{{
+            c.className
+          }}</span>
+          <b class="shrink-0 tabular-nums text-fg">{{ c.score }}</b>
         </li>
       </ol>
     </div>
