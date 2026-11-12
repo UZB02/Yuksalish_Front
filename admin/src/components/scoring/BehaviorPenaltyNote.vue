@@ -8,6 +8,8 @@ const props = defineProps<{
   typeId: string | null
   /** Sozlamalar → Reyting: xulq turi jarimasi yoqilganmi */
   enabled?: boolean
+  /** Ball kiritilganmi (default: ha -> "yana"); ball bo'lmasa faqat jarima qaydi matni */
+  scored?: boolean
 }>()
 const { t } = useI18n()
 
@@ -20,6 +22,10 @@ const penalty = computed(() =>
 
 <template>
   <p v-if="penalty > 0" class="text-xs text-warning" data-testid="behavior-penalty-note">
-    {{ t('scoring.behaviorPenaltyNote', { n: penalty }) }}
+    {{
+      t(scored === false ? 'scoring.behaviorPenaltyOnlyNote' : 'scoring.behaviorPenaltyNote', {
+        n: penalty,
+      })
+    }}
   </p>
 </template>

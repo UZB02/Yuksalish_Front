@@ -9,6 +9,7 @@ import {
   todayTashkent,
   validateDraft,
   type DraftErrors,
+  type PenaltyContext,
   type RowDraft,
 } from '@/utils/scoring'
 import { useBulkRows, type BulkRow } from './useBulkRows'
@@ -33,7 +34,8 @@ const emptyDraft = (): RowDraft => ({ value: '', behaviorTypeId: null, comment: 
 function toRow(s: ScoringSheetStudent): SheetRow {
   const d: RowDraft = s.myScore
     ? {
-        value: String(s.myScore.value),
+        // value null = faqat jarima qaydi: ball maydoni bo'sh qoladi
+        value: s.myScore.value === null ? '' : String(s.myScore.value),
         behaviorTypeId: s.myScore.behaviorTypeId,
         comment: s.myScore.comment ?? '',
       }
@@ -62,6 +64,8 @@ function toRow(s: ScoringSheetStudent): SheetRow {
 export function useScoringSheet(
   getClassId: () => string,
   getTypes: () => BehaviorType[] = () => [],
+  /** Sozlamalar -> Reyting: xulq turi jarimasi yoqilganmi (ballsiz "faqat jarima" qaydi uchun) */
+  getPenaltyEnabled: () => boolean = () => false,
 ) {
   const date = ref(todayTashkent())
   const className = ref('')
@@ -70,14 +74,20 @@ export function useScoringSheet(
   const loadError = ref<unknown>(null)
   const saving = ref(false)
   let requestId = 0
+  const penaltyCtx = (): PenaltyContext => ({
+    enabled: getPenaltyEnabled(),
+    types: getTypes(),
+  })
 
   const core = useBulkRows<RowDraft, SheetRow>({
     keyOf: (r) => r.studentId,
     hasRecord: (r) => r.scoreId !== null,
     equal: draftsEqual,
     // Hech qachon baholanmagan va hech narsa kiritilmagan qator o'zgarish emas.
-    isBlank: (d) => d.value.trim() === '' && d.comment.trim() === '',
-    validate: (r) => validateDraft(r.draft, settings.value),
+    // Faqat xulq turi tanlangan qator ham o'zgarish: aks holda saqlash jim o'chiq qoladi,
+    // validatsiya esa "ball kiriting" xatosini ko'rsatadi.
+    isBlank: (d) => d.value.trim() === '' && d.comment.trim() === '' && !d.behaviorTypeId,
+    validate: (r) => validateDraft(r.draft, settings.value, penaltyCtx()),
   })
   const { rows, selected, isDirty, dirtyRows, invalidDirty, changedCount } = core
 
@@ -135,7 +145,8 @@ export function useScoringSheet(
     for (const r of rows.value) r.autoFilled = false
   }
 
-  const errorsOf = (r: SheetRow): DraftErrors => validateDraft(r.draft, settings.value)
+  const errorsOf = (r: SheetRow): DraftErrors =>
+    validateDraft(r.draft, settings.value, penaltyCtx())
 
   function statusOf(r: SheetRow): RowStatus {
     if (!r.editable) return 'locked'
@@ -153,7 +164,8 @@ export function useScoringSheet(
   const buildItems = (): BulkScoreItem[] =>
     core.validDirty().map((r) => ({
       studentId: r.studentId,
-      value: Number(r.draft.value),
+      // Ball bo'sh (faqat jarima qaydi) bo'lsa null yuboriladi
+      value: r.draft.value.trim() === '' ? null : Number(r.draft.value),
       behaviorTypeId: r.draft.behaviorTypeId,
       comment: r.draft.comment.trim() === '' ? null : r.draft.comment.trim(),
     }))

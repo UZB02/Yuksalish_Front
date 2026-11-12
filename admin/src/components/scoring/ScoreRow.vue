@@ -6,6 +6,7 @@ import type { BehaviorType, ScoringSettings } from '@/api/types'
 import type { RowStatus, SheetRow } from '@/composables/useScoringSheet'
 import {
   COMMENT_MAX,
+  activePenalty,
   isCommentRequired,
   quickScores,
   type DraftErrors,
@@ -41,6 +42,14 @@ const quick = computed(() => quickScores(props.settings))
 const locked = computed(() => props.status === 'locked')
 const commentRequired = computed(() => isCommentRequired(props.row.draft, props.settings))
 const area = ref<HTMLTextAreaElement | null>(null)
+// Ball bo'sh va jarimali tur tanlangan: ball o'rnida "−N" ko'rsatiladi (faqat jarima qaydi)
+const rowPenalty = computed(() =>
+  activePenalty(props.row.draft.behaviorTypeId, {
+    enabled: !!props.penaltyEnabled,
+    types: props.types,
+  }),
+)
+const penaltyOnly = computed(() => props.row.draft.value.trim() === '' && rowPenalty.value > 0)
 
 const errText = (key?: string) =>
   key && props.showErrors
@@ -145,6 +154,7 @@ const border = computed(
               :quick="quick"
               :disabled="locked"
               :invalid="!!errors.value && showErrors"
+              :penalty="rowPenalty"
               :index="index"
               :label="`${t('scoring.score')}: ${row.fullName}`"
               @update:model-value="emit('patch', row.studentId, { value: $event })"
@@ -170,6 +180,7 @@ const border = computed(
               :types="types"
               :type-id="row.draft.behaviorTypeId"
               :enabled="penaltyEnabled"
+              :scored="!penaltyOnly"
             />
             <div>
               <textarea

@@ -14,6 +14,7 @@ import { errorMessage } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
 import {
   COMMENT_MAX,
+  activePenalty,
   hasErrors,
   isCommentRequired,
   resolveAutoScore,
@@ -46,7 +47,8 @@ watch(
   (isOpen) => {
     if (!isOpen || !props.score) return
     draft.value = {
-      value: String(props.score.value),
+      // value null = faqat jarima qaydi: ball maydoni bo'sh
+      value: props.score.value === null ? '' : String(props.score.value),
       behaviorTypeId: props.score.behaviorTypeId,
       comment: props.score.comment ?? '',
     }
@@ -57,7 +59,10 @@ watch(
   { immediate: true },
 )
 
-const errors = computed(() => validateDraft(draft.value, props.settings))
+const penaltyCtx = computed(() => ({ enabled: !!props.penaltyEnabled, types: props.types }))
+const errors = computed(() => validateDraft(draft.value, props.settings, penaltyCtx.value))
+const rowPenalty = computed(() => activePenalty(draft.value.behaviorTypeId, penaltyCtx.value))
+const penaltyOnly = computed(() => draft.value.value.trim() === '' && rowPenalty.value > 0)
 const quick = computed(() => quickScores(props.settings))
 const msg = (key?: string) =>
   key && submitted.value
@@ -95,7 +100,8 @@ async function save() {
   submitting.value = true
   try {
     await scoresApi.update(props.score.id, {
-      value: Number(draft.value.value),
+      // Ball bo'sh (faqat jarima qaydi) bo'lsa null
+      value: draft.value.value.trim() === '' ? null : Number(draft.value.value),
       behaviorTypeId: draft.value.behaviorTypeId,
       comment: draft.value.comment.trim() === '' ? null : draft.value.comment.trim(),
     })
@@ -132,6 +138,7 @@ async function save() {
           :max="settings.maxScore"
           :quick="quick"
           :invalid="!!msg(errors.value)"
+          :penalty="rowPenalty"
           @update:model-value="onScore"
         />
         <p v-if="msg(errors.value)" class="mt-1 text-xs text-danger" role="alert">
@@ -157,6 +164,7 @@ async function save() {
           :types="types"
           :type-id="draft.behaviorTypeId"
           :enabled="penaltyEnabled"
+          :scored="!penaltyOnly"
         />
         <p v-if="serverErrors.behaviorTypeId" class="mt-1 text-xs text-danger" role="alert">
           {{ serverErrors.behaviorTypeId }}

@@ -22,9 +22,9 @@ const type = (id: string, ratingPenalty: number): BehaviorType => ({
   createdAt: '',
 })
 const types = [type('neg', 5), type('zero', 0)]
-const mountNote = (typeId: string | null, enabled: boolean | undefined) =>
+const mountNote = (typeId: string | null, enabled: boolean | undefined, scored?: boolean) =>
   mount(BehaviorPenaltyNote, {
-    props: { types, typeId, enabled },
+    props: { types, typeId, enabled, scored },
     global: { plugins: [i18n] },
   })
 const NOTE = '[data-testid="behavior-penalty-note"]'
@@ -32,6 +32,11 @@ const NOTE = '[data-testid="behavior-penalty-note"]'
 describe('BehaviorPenaltyNote', () => {
   it("yoqilgan va jarima > 0 bo'lsa ogohlantirish ko'rsatiladi", () => {
     expect(mountNote('neg', true).get(NOTE).text()).toBe('Reytingdan yana −5 ball ayiriladi')
+  })
+
+  it("ball kiritilmagan (faqat jarima qaydi): 'yana' so'zisiz matn", () => {
+    expect(mountNote('neg', true, false).get(NOTE).text()).toBe('Reytingdan −5 ball ayiriladi')
+    expect(mountNote('neg', true, true).get(NOTE).text()).toContain('yana')
   })
 
   it("sozlama o'chiq, jarima 0, tur yo'q yoki noma'lum bo'lsa ko'rinmaydi", () => {

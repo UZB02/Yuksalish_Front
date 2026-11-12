@@ -32,6 +32,7 @@ import StudentGradesSection from '@/components/grading/StudentGradesSection.vue'
 import { PERMISSIONS } from '@/constants/permissions'
 import { useAcademicYearLookup } from '@/composables/useLookups'
 import { useReportExport } from '@/composables/useReportExport'
+import PenaltyBadge from '@/components/scoring/PenaltyBadge.vue'
 import { useAuthStore } from '@/stores/auth'
 import { errorMessage } from '@/utils/errors'
 import { formatDate, toDateInput } from '@/utils/format'
@@ -361,7 +362,12 @@ const metaItems = computed(() => {
                   <span class="min-w-0 truncate text-xs text-fg-muted">
                     {{ formatDate(s.date) }} - {{ s.teacher.fullName }}
                   </span>
-                  <span class="text-lg font-semibold leading-none text-fg">{{ s.value }}</span>
+                  <span
+                    v-if="s.value !== null"
+                    class="text-lg font-semibold leading-none text-fg"
+                    >{{ s.value }}</span
+                  >
+                  <PenaltyBadge v-else :penalty="s.behaviorPenalty" />
                 </div>
                 <span
                   v-if="s.behaviorType"

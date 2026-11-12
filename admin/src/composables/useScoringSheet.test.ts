@@ -47,15 +47,24 @@ function sheetOf(students: ScoringSheetStudent[], s = settings): ScoringSheet {
   return { class: { id: 'c1', name: '7-A' }, date: '2026-10-16', settings: s, students }
 }
 
-const tp = (id: string, defaultScore: number | null): BehaviorType =>
-  ({ id, name: id, kind: 'positive', color: '#16a34a', defaultScore }) as BehaviorType
-const TYPES = [tp('b1', 95), tp('b2', 60), tp('b0', null)]
+const tp = (id: string, defaultScore: number | null, ratingPenalty = 0): BehaviorType =>
+  ({
+    id,
+    name: id,
+    kind: 'positive',
+    color: '#16a34a',
+    defaultScore,
+    ratingPenalty,
+  }) as BehaviorType
+// bp: "Dars paytida bezovtalik", reytingdan -20 ayiriladi (ballsiz ham saqlanadi)
+const TYPES = [tp('b1', 95), tp('b2', 60), tp('b0', null), tp('bp', null, 20)]
 
-async function setup(students: ScoringSheetStudent[], s = settings) {
+async function setup(students: ScoringSheetStudent[], s = settings, penaltyEnabled = false) {
   vi.mocked(scoresApi.sheet).mockResolvedValue(sheetOf(students, s))
   const sh = useScoringSheet(
     () => 'c1',
     () => TYPES,
+    () => penaltyEnabled,
   )
   await sh.load()
   return sh
@@ -106,6 +115,118 @@ describe('useScoringSheet', () => {
     sh.patch('1', { value: '10' })
     expect(sh.errorsOf(sh.rows.value[0]!)).toEqual({})
     expect(sh.canSave.value).toBe(true)
+  })
+
+  it("faqat xulq turi tanlangan qator o'zgarish hisoblanadi; jarimasiz turda ball xatosi ko'rsatiladi", async () => {
+    const sh = await setup([student('1'), student('2')], settings, true)
+    sh.patch('1', { behaviorTypeId: 'b2' }) // jarimasi yo'q tur
+    expect(sh.changedCount.value).toBe(1)
+    expect(sh.statusOf(sh.rows.value[0]!)).toBe('error')
+    expect(sh.errorsOf(sh.rows.value[0]!).value).toBe('required')
+    expect(sh.invalidDirty.value).toHaveLength(1)
+    expect(sh.canSave.value).toBe(false)
+    sh.patch('1', { value: '70' })
+    expect(sh.canSave.value).toBe(true)
+    sh.patch('1', { value: '', behaviorTypeId: null })
+    expect(sh.changedCount.value).toBe(0)
+  })
+
+  describe('faqat jarima qaydi (ballsiz)', () => {
+    it("jarimali tur + jarima yoqilgan: ball bo'sh bo'lsa xato yo'q, qator o'zgarish, payload value=null", async () => {
+      const sh = await setup([student('1'), student('2')], settings, true)
+      sh.patch('1', { behaviorTypeId: 'bp' })
+      expect(sh.changedCount.value).toBe(1)
+      expect(sh.errorsOf(sh.rows.value[0]!)).toEqual({})
+      expect(sh.statusOf(sh.rows.value[0]!)).toBe('dirty')
+      expect(sh.invalidDirty.value).toHaveLength(0)
+      expect(sh.canSave.value).toBe(true)
+      expect(sh.buildItems()).toEqual([
+        { studentId: '1', value: null, behaviorTypeId: 'bp', comment: null },
+      ])
+    })
+
+    it("jarima o'chiq bo'lsa ball majburiy (eski xatti-harakat)", async () => {
+      const sh = await setup([student('1')], settings, false)
+      sh.patch('1', { behaviorTypeId: 'bp' })
+      expect(sh.errorsOf(sh.rows.value[0]!).value).toBe('required')
+      expect(sh.canSave.value).toBe(false)
+    })
+
+    it("jarimasiz tur (jarima yoqilgan bo'lsa ham) ball talab qiladi", async () => {
+      const sh = await setup([student('1')], settings, true)
+      sh.patch('1', { behaviorTypeId: 'b0' })
+      expect(sh.errorsOf(sh.rows.value[0]!).value).toBe('required')
+      expect(sh.canSave.value).toBe(false)
+    })
+
+    it("ball yozilsa oddiy baho (ikkalasi); ballni o'chirsa yana jarima qaydi", async () => {
+      const sh = await setup([student('1')], settings, true)
+      sh.patch('1', { behaviorTypeId: 'bp' })
+      sh.patch('1', { value: '70' })
+      expect(sh.errorsOf(sh.rows.value[0]!)).toEqual({})
+      expect(sh.buildItems()[0]).toMatchObject({ value: 70, behaviorTypeId: 'bp' })
+      sh.patch('1', { value: '' })
+      expect(sh.errorsOf(sh.rows.value[0]!)).toEqual({})
+      expect(sh.buildItems()[0]).toMatchObject({ value: null, behaviorTypeId: 'bp' })
+      // chegaradan past ball izohni talab qiladi, ballsiz jarima qaydida izoh talab qilinmaydi
+      sh.patch('1', { value: '50' })
+      expect(sh.errorsOf(sh.rows.value[0]!).comment).toBe('commentRequired')
+      sh.patch('1', { value: '' })
+      expect(sh.errorsOf(sh.rows.value[0]!).comment).toBeUndefined()
+    })
+
+    it("serverdan kelgan ballsiz qayd: ball maydoni bo'sh, 'saqlangan', o'zgarish emas", async () => {
+      const sh = await setup(
+        [
+          student('1', {
+            scoresCount: 1,
+            myScore: {
+              id: 'sc-1',
+              studentId: '1',
+              value: null,
+              behaviorPenalty: 20,
+              behaviorTypeId: 'bp',
+              comment: null,
+              editable: true,
+            } as never,
+          }),
+        ],
+        settings,
+        true,
+      )
+      expect(sh.rows.value[0]!.draft.value).toBe('')
+      expect(sh.changedCount.value).toBe(0)
+      expect(sh.statusOf(sh.rows.value[0]!)).toBe('saved')
+      expect(sh.scoredCount.value).toBe(1)
+      // oddiy ballga o'tkazish
+      sh.patch('1', { value: '80' })
+      expect(sh.buildItems()[0]).toMatchObject({ value: 80 })
+    })
+
+    it('ommaviy qo`llash: jarimali tur ballsiz tanlangan qatorlarga o`tadi', async () => {
+      const sh = await setup([student('1'), student('2'), student('3')], settings, true)
+      sh.toggleSelect('1', true)
+      sh.toggleSelect('2', true)
+      sh.applyToSelected({ behaviorTypeId: 'bp' })
+      expect(sh.changedCount.value).toBe(2)
+      expect(sh.invalidDirty.value).toHaveLength(0)
+      expect(sh.buildItems().map((i) => [i.studentId, i.value])).toEqual([
+        ['1', null],
+        ['2', null],
+      ])
+    })
+
+    it("saqlash: bulk so'rovga value=null ketadi", async () => {
+      const sh = await setup([student('1')], settings, true)
+      sh.patch('1', { behaviorTypeId: 'bp' })
+      vi.mocked(scoresApi.bulk).mockResolvedValue({ created: 1, updated: 0, failed: [] })
+      await sh.save()
+      expect(scoresApi.bulk).toHaveBeenCalledWith({
+        classId: 'c1',
+        date: expect.any(String),
+        items: [{ studentId: '1', value: null, behaviorTypeId: 'bp', comment: null }],
+      })
+    })
   })
 
   it("xatoli qator bo'lsa saqlash o'chirilgan va bulk so'rovga tushmaydi", async () => {

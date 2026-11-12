@@ -29,12 +29,35 @@ export interface DraftErrors {
 
 export const hasErrors = (e: DraftErrors) => Object.keys(e).length > 0
 
+/** Xulq turi jarimasi konteksti: sozlama yoqilganmi va turlar (ratingPenalty bilan). */
+export interface PenaltyContext {
+  enabled: boolean
+  types: readonly Pick<BehaviorType, 'id' | 'ratingPenalty'>[]
+}
+
+/** Tanlangan turning amaldagi reyting jarimasi (sozlama o'chiq, tur yo'q yoki jarimasiz = 0). */
+export function activePenalty(typeId: string | null, ctx?: PenaltyContext): number {
+  if (!ctx?.enabled || !typeId) return 0
+  return ctx.types.find((t) => t.id === typeId)?.ratingPenalty ?? 0
+}
+
+/**
+ * "Faqat jarima qaydi": ball bo'sh, jarimali xulq turi tanlangan va jarima yoqilgan.
+ * Bunday qator ballsiz saqlanadi (payload value: null).
+ */
+export const isPenaltyOnly = (draft: RowDraft, ctx?: PenaltyContext): boolean =>
+  draft.value.trim() === '' && activePenalty(draft.behaviorTypeId, ctx) > 0
+
 /** Qoralamani sozlamalarga ko'ra tekshiradi. */
-export function validateDraft(draft: RowDraft, settings: ScoringSettings): DraftErrors {
+export function validateDraft(
+  draft: RowDraft,
+  settings: ScoringSettings,
+  penalty?: PenaltyContext,
+): DraftErrors {
   const errors: DraftErrors = {}
   const raw = draft.value.trim()
   if (raw === '') {
-    errors.value = 'required'
+    if (!isPenaltyOnly(draft, penalty)) errors.value = 'required'
   } else if (!/^-?\d+$/.test(raw)) {
     errors.value = 'integer'
   } else {

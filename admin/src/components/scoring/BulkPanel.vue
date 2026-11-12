@@ -74,7 +74,12 @@ function apply() {
       </div>
       <div class="space-y-1">
         <BehaviorChips v-model="behaviorTypeId" :types="types" />
-        <BehaviorPenaltyNote :types="types" :type-id="behaviorTypeId" :enabled="penaltyEnabled" />
+        <BehaviorPenaltyNote
+          :types="types"
+          :type-id="behaviorTypeId"
+          :enabled="penaltyEnabled"
+          :scored="valueText !== ''"
+        />
       </div>
     </div>
     <input

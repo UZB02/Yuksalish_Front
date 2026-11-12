@@ -27,9 +27,11 @@ const { confirm } = useConfirm()
 
 const classId = computed(() => String(route.params.id))
 const types = ref<BehaviorType[]>([])
+const penalty = useBehaviorPenaltySetting()
 const sheet = useScoringSheet(
   () => classId.value,
   () => types.value,
+  () => penalty.enabled.value,
 )
 const search = ref('')
 const onlyUnscored = ref(false)
@@ -138,7 +140,6 @@ const beforeUnload = (e: BeforeUnloadEvent) => {
     e.returnValue = ''
   }
 }
-const penalty = useBehaviorPenaltySetting()
 onMounted(() => {
   window.addEventListener('beforeunload', beforeUnload)
   void loadTypes()

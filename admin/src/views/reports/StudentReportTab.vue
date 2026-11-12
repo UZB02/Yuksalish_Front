@@ -9,6 +9,7 @@ import ReportShell from '@/components/reports/ReportShell.vue'
 import StatCards from '@/components/reports/StatCards.vue'
 import TrendChart from '@/components/scoring/TrendChart.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
+import PenaltyBadge from '@/components/scoring/PenaltyBadge.vue'
 import { useReport } from '@/composables/useReport'
 import { CATEGORY_COLORS, CATEGORIES, formatRate, monthOf, rateTone } from '@/utils/attendance'
 import { formatDate } from '@/utils/format'
@@ -162,9 +163,10 @@ const catKey = {
         </p>
         <ul v-else class="divide-y divide-border" data-testid="student-entries">
           <li v-for="(e, i) in report.data.value.entries" :key="i" class="flex gap-3 p-4 sm:px-5">
-            <span class="w-12 shrink-0 text-right text-lg font-semibold text-fg">{{
-              e.value
-            }}</span>
+            <span class="w-12 shrink-0 text-right text-lg font-semibold text-fg">
+              <template v-if="e.value !== null">{{ e.value }}</template>
+              <PenaltyBadge v-else :penalty="e.behaviorPenalty" />
+            </span>
             <div class="min-w-0 flex-1 text-sm">
               <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-fg-muted">
                 <span>{{ formatDate(e.date) }}</span>

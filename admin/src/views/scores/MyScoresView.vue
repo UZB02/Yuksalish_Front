@@ -28,6 +28,7 @@ import { errorMessage } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
 import { shiftDate, todayTashkent, withAlpha } from '@/utils/scoring'
 import MyGradesTable from './MyGradesTable.vue'
+import PenaltyBadge from '@/components/scoring/PenaltyBadge.vue'
 import ScoreEditModal from './ScoreEditModal.vue'
 
 const { t } = useI18n()
@@ -204,7 +205,10 @@ async function remove(s: Score) {
         </template>
         <template #cell-class="{ row }">{{ row.class.name }}</template>
         <template #cell-value="{ row }">
-          <span class="text-base font-semibold text-fg">{{ row.value }}</span>
+          <span v-if="row.value !== null" class="text-base font-semibold text-fg">{{
+            row.value
+          }}</span>
+          <PenaltyBadge v-else :penalty="row.behaviorPenalty" />
         </template>
         <template #cell-behavior="{ row }">
           <span

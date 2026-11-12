@@ -731,7 +731,10 @@ export interface Score {
   academicYearId: string
   behaviorTypeId: string | null
   behaviorType: BehaviorRef | null
-  value: number
+  /** null = faqat jarima qaydi (ball yo'q; reytingdan behaviorPenalty ayiriladi) */
+  value: number | null
+  /** Baho paytidagi xulq turi jarimasi (snapshot); eski serverda yo'q = 0 */
+  behaviorPenalty?: number
   comment: string | null
   date: string
   editable: boolean
@@ -759,20 +762,22 @@ export interface ScoringSheet {
 export interface ScorePayload {
   studentId: string
   date?: string
-  value: number
+  value: number | null
   behaviorTypeId?: string | null
   comment?: string | null
 }
 
 export interface ScoreUpdatePayload {
-  value?: number
+  /** null = faqat jarima qaydiga o'tkazish */
+  value?: number | null
   behaviorTypeId?: string | null
   comment?: string | null
 }
 
 export interface BulkScoreItem {
   studentId: string
-  value: number
+  /** null = faqat jarima qaydi */
+  value: number | null
   behaviorTypeId?: string | null
   comment?: string | null
 }
@@ -1413,7 +1418,9 @@ export interface StudentReport {
   }
   entries: {
     date: string
-    value: number
+    /** null = faqat jarima qaydi */
+    value: number | null
+    behaviorPenalty?: number
     behaviorType: { id?: string; name: string; color?: string; kind?: BehaviorKind } | null
     comment: string | null
     teacher: PersonRef

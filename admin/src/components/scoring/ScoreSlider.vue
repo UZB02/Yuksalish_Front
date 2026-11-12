@@ -12,6 +12,8 @@ const props = defineProps<{
   /** Enter bilan keyingi o'quvchiga o'tish uchun tartib raqami */
   index?: number
   label?: string
+  /** > 0 va ball bo'sh bo'lsa: ball o'rnida jarima ("−20") ko'rsatiladi; yozilgan son uni almashtiradi */
+  penalty?: number
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string]; enter: [] }>()
 const { t } = useI18n()
@@ -23,6 +25,7 @@ const sliderValue = computed(() => {
     : props.min
 })
 const filled = computed(() => props.modelValue.trim() !== '')
+const penaltyShown = computed(() => !filled.value && (props.penalty ?? 0) > 0)
 </script>
 
 <template>
@@ -39,9 +42,17 @@ const filled = computed(() => props.modelValue.trim() !== '')
         :data-score-input="index"
         :aria-label="label ?? t('scoring.score')"
         :aria-invalid="invalid"
-        placeholder="-"
+        :placeholder="penaltyShown ? `−${penalty}` : '-'"
+        :data-penalty-only="penaltyShown ? 'true' : undefined"
         class="h-11 w-20 shrink-0 rounded-lg border bg-surface px-2 text-center text-lg font-semibold text-fg focus:border-primary-500 disabled:cursor-not-allowed disabled:opacity-60"
-        :class="invalid ? 'border-danger' : 'border-border'"
+        :class="[
+          invalid
+            ? 'border-danger'
+            : penaltyShown
+              ? 'border-danger/60 bg-danger/5'
+              : 'border-border',
+          penaltyShown ? 'placeholder:font-bold placeholder:text-danger' : '',
+        ]"
         @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         @keydown.enter.prevent="emit('enter')"
       />

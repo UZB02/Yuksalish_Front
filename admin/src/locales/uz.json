@@ -967,6 +967,9 @@
     "lockedReason": "Tahrirlash vaqti o'tgan ({hours} soat). Faqat ruxsati borlar o'zgartira oladi.",
     "behaviorType": "Xulq turi",
     "behaviorPenaltyNote": "Reytingdan yana −{n} ball ayiriladi",
+    "behaviorPenaltyOnlyNote": "Reytingdan −{n} ball ayiriladi",
+    "penaltyOnlyHint": "Faqat jarima qaydi: ball kiritilmagan, reytingdan −{n} ball ayiriladi",
+    "penaltyOnlyBadge": "−{n} (jarima)",
     "kinds": {
       "positive": "Ijobiy",
       "negative": "Salbiy",
