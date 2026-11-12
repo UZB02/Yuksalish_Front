@@ -30,7 +30,7 @@ const summary = computed(() => {
 
 <template>
   <section class="card p-4" data-testid="unscored-classes">
-    <div class="mb-2 flex items-start justify-between gap-3">
+    <div class="mb-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
       <div class="min-w-0">
         <h2 class="text-base font-semibold text-fg">
           {{
@@ -45,7 +45,7 @@ const summary = computed(() => {
       </div>
       <p
         v-if="data && data.workingDay && summary.total"
-        class="shrink-0 text-right text-xs text-fg-muted"
+        class="shrink-0 text-xs text-fg-muted sm:text-right"
         data-testid="unscored-summary"
       >
         {{ t('dashboard.widgets.unscored.summary', summary) }}
@@ -103,25 +103,32 @@ const summary = computed(() => {
     </p>
 
     <template v-else>
-      <ul class="max-h-[19rem] divide-y divide-border overflow-y-auto overflow-x-hidden">
+      <ul
+        class="divide-y divide-border overflow-x-hidden"
+        :class="expanded ? 'max-h-[21rem] overflow-y-auto pr-3' : ''"
+      >
         <li v-for="c in visible" :key="c.classId" data-testid="unscored-row">
           <RouterLink
             :to="{ name: 'class-scoring', params: { id: c.classId } }"
-            class="-mx-2 flex h-11 items-center gap-3 rounded-md px-2 text-sm hover:bg-surface-muted focus-visible:bg-surface-muted"
+            class="-mx-2 flex min-h-[3.25rem] items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted focus-visible:bg-surface-muted"
             :aria-label="`${c.className}: ${c.graded}/${c.total}`"
           >
-            <span class="w-12 shrink-0 font-semibold text-fg">{{ c.className }}</span>
-            <span
-              class="min-w-0 flex-1 truncate text-xs"
-              :class="c.homeroomTeacher ? 'text-fg-muted' : 'text-warning'"
-              :title="c.homeroomTeacher?.fullName"
-              :data-testid="c.homeroomTeacher ? undefined : 'no-homeroom'"
-            >
-              {{
-                c.homeroomTeacher
-                  ? c.homeroomTeacher.fullName
-                  : t('dashboard.widgets.unscored.noHomeroom')
-              }}
+            <span class="flex min-w-0 flex-1 flex-col">
+              <span class="truncate font-semibold leading-5 text-fg" :title="c.className">
+                {{ c.className }}
+              </span>
+              <span
+                class="truncate text-xs leading-4"
+                :class="c.homeroomTeacher ? 'text-fg-muted' : 'text-warning'"
+                :title="c.homeroomTeacher?.fullName"
+                :data-testid="c.homeroomTeacher ? undefined : 'no-homeroom'"
+              >
+                {{
+                  c.homeroomTeacher
+                    ? c.homeroomTeacher.fullName
+                    : t('dashboard.widgets.unscored.noHomeroom')
+                }}
+              </span>
             </span>
             <span
               v-if="isTeacher"
