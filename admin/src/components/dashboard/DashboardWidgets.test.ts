@@ -72,14 +72,23 @@ describe('UnscoredClassesCard', () => {
     expect(rows).toHaveLength(2)
     expect(rows[0]!.text()).toContain('6-A')
     expect(rows[0]!.get('[data-testid="no-homeroom"]').text()).toBe('Sinf rahbari biriktirilmagan')
-    expect(rows[1]!.text()).toContain('Sinf rahbari: Aliyev Vali')
-    expect(rows[1]!.text()).toContain('10 / 20')
+    expect(rows[1]!.text()).toContain('Aliyev Vali')
+    expect(rows[1]!.text()).toContain('10/20')
     expect(rows[1]!.get('a').attributes('href')).toBe('/classes/c5/scoring')
     expect(w.find('[data-testid="grade-button"]').exists()).toBe(false)
+    // xulosa: 2 sinf ochiq, jami 2 -> 0 / 2
+    expect(w.get('[data-testid="unscored-summary"]').text()).toBe('Baholangan sinflar: 0 / 2')
+    expect(w.get('[data-testid="unscored-date"]').text()).toBe('12-noyabr')
   })
 
-  it('10 tadan ko`p bo`lsa "Hammasini ko`rish" bilan ochiladi', async () => {
-    const classes = Array.from({ length: 13 }, (_, i) => ({
+  it('xulosa: tugallangan sinflar soni jami - ochiqlar', async () => {
+    vi.mocked(dashboardApi.unscoredClasses).mockResolvedValue(unscored({ totalClasses: 24 }))
+    const w = await mountCard(UnscoredClassesCard)
+    expect(w.get('[data-testid="unscored-summary"]').text()).toBe('Baholangan sinflar: 22 / 24')
+  })
+
+  it('6 tadan ko`p bo`lsa "Yana N ta sinf" bilan ochiladi', async () => {
+    const classes = Array.from({ length: 9 }, (_, i) => ({
       classId: `c${i}`,
       className: `${i + 1}-A`,
       homeroomTeacher: null,
@@ -88,9 +97,11 @@ describe('UnscoredClassesCard', () => {
     }))
     vi.mocked(dashboardApi.unscoredClasses).mockResolvedValue(unscored({ classes }))
     const w = await mountCard(UnscoredClassesCard)
-    expect(w.findAll('[data-testid="unscored-row"]')).toHaveLength(10)
+    expect(w.findAll('[data-testid="unscored-row"]')).toHaveLength(6)
+    expect(w.get('[data-testid="unscored-toggle"]').text()).toBe('Yana 3 ta sinf')
     await w.get('[data-testid="unscored-toggle"]').trigger('click')
-    expect(w.findAll('[data-testid="unscored-row"]')).toHaveLength(13)
+    expect(w.findAll('[data-testid="unscored-row"]')).toHaveLength(9)
+    expect(w.get('[data-testid="unscored-toggle"]').text()).toBe("Yig'ish")
   })
 
   it('hammasi baholangan / dars kuni emas holatlari', async () => {
@@ -111,7 +122,7 @@ describe('UnscoredClassesCard', () => {
     )
     const w = await mountCard(UnscoredClassesCard)
     expect(w.get('[data-testid="grade-button"]').text()).toBe('Baholash')
-    expect(w.get('[data-testid="grade-button"]').attributes('href')).toBe('/classes/c5/scoring')
+    expect(w.get('[data-testid="unscored-row"] a').attributes('href')).toBe('/classes/c5/scoring')
   })
 
   it('xato va qayta urinish', async () => {
@@ -158,7 +169,19 @@ describe('AttentionStudentsCard', () => {
       '3 ta salbiy xulq',
       "2 kun sababsiz yo'q",
     ])
-    expect(w.text()).toContain('Yana 11 ta')
+    expect(w.text()).toContain("Yana 11 ta o'quvchi bor")
+    expect(w.find('[data-testid="attention-toggle"]').exists()).toBe(false) // 1 ta <= 6
+  })
+
+  it('6 tadan ko`p bo`lsa "Yana N ta" bilan ochiladi', async () => {
+    const st = attention().students[0]!
+    const students = Array.from({ length: 9 }, (_, i) => ({ ...st, studentId: `s${i}` }))
+    vi.mocked(dashboardApi.attentionStudents).mockResolvedValue(attention({ students, total: 9 }))
+    const w = await mountCard(AttentionStudentsCard)
+    expect(w.findAll('[data-testid="attention-row"]')).toHaveLength(6)
+    expect(w.get('[data-testid="attention-toggle"]').text()).toBe('Yana 3 ta')
+    await w.get('[data-testid="attention-toggle"]').trigger('click')
+    expect(w.findAll('[data-testid="attention-row"]')).toHaveLength(9)
   })
 
   it('bo`sh holat', async () => {
@@ -208,13 +231,37 @@ const trend = (over: Partial<AttendanceTrend> = {}): AttendanceTrend => ({
 })
 
 describe('AttendanceTrendCard', () => {
-  it('faqat ma`lumotli kunlar uchun ustun; o`rtacha qiymat va chizig`i', async () => {
+  it('faqat ma`lumotli kunlar (kategorik) uchun ustun; bugun/o`rtacha/eng past va chiziq', async () => {
     vi.mocked(dashboardApi.attendanceTrend).mockResolvedValue(trend())
     const w = await mountCard(AttendanceTrendCard)
     expect(w.findAll('[data-testid="trend-bar"]')).toHaveLength(2)
     expect(w.findAll('[data-testid="trend-hit"]')).toHaveLength(2)
-    expect(w.get('[data-testid="trend-average"]').text()).toBe("O'rtacha: 91.5%")
+    expect(w.get('[data-testid="trend-last"]').text()).toBe('88%') // oxirgi kun = to (bugun)
+    expect(w.get('[data-testid="trend-stats"]').text()).toContain('Bugun')
+    expect(w.get('[data-testid="trend-average"]').text()).toBe('91.5%')
+    expect(w.get('[data-testid="trend-min"]').text()).toBe('88%')
     expect(w.find('[data-testid="trend-avg-line"]').exists()).toBe(true)
+    expect(w.findAll('[data-testid="trend-xlabel"]').map((l) => l.text())).toEqual([
+      '10.11',
+      '12.11',
+    ])
+    // daraja ranglari: 95 yaxshi (yashil), 88 ogohlantirish
+    const cls = w.findAll('[data-testid="trend-bar"]').map((b) => b.classes())
+    expect(cls[0]).toContain('fill-success')
+    expect(cls[1]).toContain('fill-warning')
+  })
+
+  it('30 ta kun bo`lsa oxirgi 20 tasi, yorliqlar siyraklashadi va oxirgisi bor', async () => {
+    const days = Array.from({ length: 22 }, (_, i) => ({
+      ...trend().days[0]!,
+      date: `2026-10-${String(i + 1).padStart(2, '0')}`,
+    }))
+    vi.mocked(dashboardApi.attendanceTrend).mockResolvedValue(trend({ days, to: '2026-10-22' }))
+    const w = await mountCard(AttendanceTrendCard)
+    expect(w.findAll('[data-testid="trend-bar"]')).toHaveLength(20)
+    const labels = w.findAll('[data-testid="trend-xlabel"]').map((l) => l.text())
+    expect(labels.length).toBeLessThan(20)
+    expect(labels[labels.length - 1]).toBe('22.10')
   })
 
   it('hover: sana, foiz va sonlar', async () => {

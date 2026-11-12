@@ -298,33 +298,36 @@
         "noClasses": "Sizga sinf rahbarligi biriktirilmagan",
         "notWorkingDay": "Bugun dars kuni emas",
         "noHomeroom": "Sinf rahbari biriktirilmagan",
-        "homeroom": "Sinf rahbari: {name}",
-        "progress": "Baholangan: {done} / {total}",
         "grade": "Baholash",
-        "showAll": "Hammasini ko'rish ({n})",
-        "showLess": "Yig'ish"
+        "showLess": "Yig'ish",
+        "summary": "Baholangan sinflar: {done} / {total}",
+        "more": "Yana {n} ta sinf"
       },
       "attention": {
         "title": "E'tibor talab qiladigan o'quvchilar",
         "hint": "Oxirgi 7 kun, oldingi 7 kun bilan solishtirilganda",
         "empty": "Hozircha e'tibor talab qiladigan o'quvchi yo'q",
-        "more": "Yana {n} ta o'quvchi bor",
+        "more": "Yana {n} ta o'quvchi bor (ro'yxatda ko'rsatilmagan)",
         "drop": "Ball {from} → {to} ({delta})",
         "negative": "{n} ta salbiy xulq",
-        "unexcused": "{n} kun sababsiz yo'q"
+        "unexcused": "{n} kun sababsiz yo'q",
+        "moreShow": "Yana {n} ta"
       },
       "attendanceTrend": {
         "title": "Davomat dinamikasi",
-        "hint": "Oxirgi 30 kun, kunlik davomat foizi",
+        "hint": "Oxirgi 30 kun ichida davomat olingan kunlar",
         "empty": "Oxirgi 30 kunda davomat olinmagan",
-        "average": "O'rtacha: {value}%",
         "aria": "{from} dan {to} gacha davomat foizi, {n} kun ma'lumot bor",
         "present": "Keldi",
         "late": "Kechikdi",
         "partial": "Qisman",
         "excused": "Sababli",
         "unexcused": "Sababsiz",
-        "note": "Davomat olinmagan kunlar va dam olish kunlari ko'rsatilmaydi. Foiz = (keldi + kechikdi) / davomat olingan o'quvchilar."
+        "note": "Foiz = (keldi + kechikdi) / davomat olingan o'quvchilar. Davomat olinmagan kunlar ko'rsatilmaydi.",
+        "today": "Bugun",
+        "avg": "O'rtacha",
+        "avgShort": "o'rtacha {value}%",
+        "min": "Eng past"
       }
     },
     "noAccessTitle": "Ruxsat yo'q",

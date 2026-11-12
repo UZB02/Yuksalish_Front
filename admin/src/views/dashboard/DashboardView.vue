@@ -245,7 +245,7 @@ watch(() => schoolCtx.schoolId, load)
   </section>
 
   <template v-if="!needsSchool && !forbidden">
-    <div class="mt-6 grid gap-4 lg:grid-cols-2">
+    <div class="mt-6 grid items-start gap-4 lg:grid-cols-2">
       <UnscoredClassesCard :key="`u-${schoolCtx.schoolId ?? 'own'}`" />
       <AttentionStudentsCard :key="`a-${schoolCtx.schoolId ?? 'own'}`" />
     </div>
