@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { AlertCircle, CheckCircle2, Lock, MessageSquare, Pencil } from 'lucide-vue-next'
-import type { GradeRowStatus, GradeSheetRow } from '@/composables/useGradeSheet'
+import { AlertCircle, CheckCircle2, Lock, MessageSquare, Pencil, Trash2 } from 'lucide-vue-next'
+import {
+  isPendingDelete,
+  type GradeRowStatus,
+  type GradeSheetRow,
+} from '@/composables/useGradeSheet'
 import { GRADE_COMMENT_MAX, type GradeDraft, type GradeDraftErrors } from '@/utils/grades'
 import AvatarImage from '@/components/ui/AvatarImage.vue'
 import GradeButtons from './GradeButtons.vue'
@@ -18,6 +22,7 @@ const emit = defineEmits<{ patch: [studentId: string, change: Partial<GradeDraft
 const { t } = useI18n()
 
 const locked = computed(() => props.status === 'locked')
+const toDelete = computed(() => props.status === 'dirty' && isPendingDelete(props.row))
 // Izoh maydoni ixtiyoriy: izoh bor bo'lsa ochiq, aks holda tugma orqali ochiladi.
 const commentOpen = ref(props.row.draft.comment !== '')
 const showComment = computed(() => commentOpen.value || props.row.draft.comment !== '')
@@ -60,6 +65,13 @@ const errText = (key?: string) =>
         </span>
         <span v-else-if="status === 'saved'" class="inline-flex items-center gap-1 text-success">
           <CheckCircle2 class="h-3.5 w-3.5" aria-hidden="true" /> {{ t('grading.status.saved') }}
+        </span>
+        <span
+          v-else-if="toDelete"
+          class="inline-flex items-center gap-1 text-danger"
+          data-testid="grade-to-delete"
+        >
+          <Trash2 class="h-3.5 w-3.5" aria-hidden="true" /> {{ t('grading.status.toDelete') }}
         </span>
         <span
           v-else-if="status === 'dirty'"

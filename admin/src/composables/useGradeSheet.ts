@@ -1,6 +1,12 @@
 import { computed, ref } from 'vue'
+import { toApiError } from '@/api/errors'
 import { gradesApi } from '@/api/grades.api'
-import type { BulkGradeItem, GradeSheetLesson, GradeSheetStudent } from '@/api/types'
+import type {
+  BulkGradeItem,
+  BulkScoresResult,
+  GradeSheetLesson,
+  GradeSheetStudent,
+} from '@/api/types'
 import {
   gradeDraftsEqual,
   validateGradeDraft,
@@ -24,6 +30,15 @@ export interface GradeSheetRow extends BulkRow<GradeDraft> {
 }
 
 const emptyDraft = (): GradeDraft => ({ value: null, comment: '' })
+
+/** Saqlash natijasi: bulk natijasi + o'chirilgan (bekor qilingan) baholar soni. */
+export type GradeSaveResult = BulkScoresResult & { deleted: number }
+
+const errorText = (e: unknown): string => toApiError(e).message
+
+/** Serverda bahosi bor, lekin qoralamada baho olib tashlangan — saqlashda o'chiriladi. */
+export const isPendingDelete = (r: Pick<GradeSheetRow, 'gradeId' | 'draft'>): boolean =>
+  r.gradeId !== null && r.draft.value === null
 
 export function toGradeRow(s: GradeSheetStudent): GradeSheetRow {
   const d: GradeDraft = s.grade
@@ -70,7 +85,8 @@ export function useGradeSheet(getClassId: () => string, getSubjectId: () => stri
     equal: gradeDraftsEqual,
     // Baholanmagan va hech narsa kiritilmagan qator o'zgarish emas.
     isBlank: (d) => d.value === null && d.comment.trim() === '',
-    validate: (r) => validateGradeDraft(r.draft),
+    // Saqlangan bahoni bo'shatish — o'chirish: "bahoni tanlang" xatosi emas.
+    validate: (r) => (isPendingDelete(r) ? {} : validateGradeDraft(r.draft)),
   })
   const { rows, isDirty, invalidDirty, changedCount } = core
 
@@ -102,7 +118,8 @@ export function useGradeSheet(getClassId: () => string, getSubjectId: () => stri
     }
   }
 
-  const errorsOf = (r: GradeSheetRow): GradeDraftErrors => validateGradeDraft(r.draft)
+  const errorsOf = (r: GradeSheetRow): GradeDraftErrors =>
+    isPendingDelete(r) ? {} : validateGradeDraft(r.draft)
 
   function statusOf(r: GradeSheetRow): GradeRowStatus {
     if (!r.editable) return 'locked'
@@ -130,11 +147,14 @@ export function useGradeSheet(getClassId: () => string, getSubjectId: () => stri
 
   /** Faqat o'zgargan va to'g'ri qatorlar. */
   const buildItems = (): BulkGradeItem[] =>
-    core.validDirty().map((r) => ({
-      studentId: r.studentId,
-      value: r.draft.value as number,
-      comment: r.draft.comment.trim() === '' ? null : r.draft.comment.trim(),
-    }))
+    core
+      .validDirty()
+      .filter((r) => !isPendingDelete(r))
+      .map((r) => ({
+        studentId: r.studentId,
+        value: r.draft.value as number,
+        comment: r.draft.comment.trim() === '' ? null : r.draft.comment.trim(),
+      }))
 
   const gradedCount = computed(() => rows.value.filter((r) => r.gradeId !== null).length)
   const total = computed(() => rows.value.length)
@@ -142,16 +162,41 @@ export function useGradeSheet(getClassId: () => string, getSubjectId: () => stri
   async function save() {
     if (!canSave.value) return null
     const items = buildItems()
+    const deletions = core.validDirty().filter(isPendingDelete)
     saving.value = true
     try {
-      const result = await gradesApi.bulk({
-        classId: getClassId(),
-        subjectId: getSubjectId(),
-        date: date.value,
-        lessonNo: lessonNo.value as number,
-        items,
+      const result: GradeSaveResult = items.length
+        ? await gradesApi
+            .bulk({
+              classId: getClassId(),
+              subjectId: getSubjectId(),
+              date: date.value,
+              lessonNo: lessonNo.value as number,
+              items,
+            })
+            .then((r) => ({ ...r, failed: [...r.failed], deleted: 0 }))
+        : { created: 0, updated: 0, failed: [], deleted: 0 }
+      // Bekor qilingan (qayta bosilgan) saqlangan baholar: har biri alohida o'chiriladi.
+      const deleted = await Promise.allSettled(
+        deletions.map((r) => gradesApi.remove(r.gradeId as string)),
+      )
+      let deletedOk = 0
+      deleted.forEach((d, i) => {
+        if (d.status === 'fulfilled') deletedOk++
+        else {
+          const row = deletions[i] as GradeSheetRow
+          result.failed.push({
+            studentId: row.studentId,
+            code: 'DELETE_FAILED',
+            message: errorText(d.reason),
+          })
+        }
       })
-      core.applyBulkResult(new Set(items.map((i) => i.studentId)), result.failed)
+      result.deleted = deletedOk
+      core.applyBulkResult(
+        new Set([...items.map((i) => i.studentId), ...deletions.map((r) => r.studentId)]),
+        result.failed,
+      )
       // Server maydonlarini (id, editable) yangilaymiz; xatoli qoralamalar saqlanadi.
       await load({ keepDirty: true })
       return result

@@ -2325,11 +2325,15 @@
     "onlyUngraded": "Faqat baholanmaganlar",
     "progress": "{done} / {total} o'quvchi baholangan",
     "saved": "{n} ta baho saqlandi",
+    "deleted": "{n} ta baho bekor qilindi",
+    "savedAndDeleted": "{n} ta baho saqlandi, {d} ta baho bekor qilindi",
+    "clearHint": "Bekor qilish uchun yana bosing",
     "unsavedChange": "Saqlanmagan baholar bor. O'zgartirsangiz, ular yo'qoladi.",
     "status": {
       "locked": "Qulflangan",
       "saved": "Saqlangan",
       "dirty": "O'zgargan",
+      "toDelete": "Bekor qilinadi",
       "error": "Xato"
     },
     "errors": {

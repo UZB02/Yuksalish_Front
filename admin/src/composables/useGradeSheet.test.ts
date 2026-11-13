@@ -4,7 +4,9 @@ import type { GradeSheet, GradeSheetStudent } from '@/api/types'
 import { gradeTo100, gradeTone, validateGradeDraft } from '@/utils/grades'
 import { useGradeSheet } from './useGradeSheet'
 
-vi.mock('@/api/grades.api', () => ({ gradesApi: { sheet: vi.fn(), bulk: vi.fn() } }))
+vi.mock('@/api/grades.api', () => ({
+  gradesApi: { sheet: vi.fn(), bulk: vi.fn(), remove: vi.fn() },
+}))
 
 function student(id: string, over: Partial<GradeSheetStudent> = {}): GradeSheetStudent {
   return {
@@ -54,6 +56,52 @@ async function setup(students: GradeSheetStudent[]) {
 
 describe('useGradeSheet', () => {
   beforeEach(() => vi.clearAllMocks())
+
+  describe('bahoni bekor qilish (qayta bosish)', () => {
+    it("yangi qatorda tanlovni olib tashlash — o'zgarish emas", async () => {
+      const sh = await setup([student('1')])
+      sh.patch('1', { value: 4 })
+      expect(sh.changedCount.value).toBe(1)
+      sh.patch('1', { value: null })
+      expect(sh.changedCount.value).toBe(0)
+      expect(sh.canSave.value).toBe(false)
+    })
+
+    it("saqlangan baho bo'shatilsa — xatosiz o'zgarish, saqlashda DELETE, bulk yo'q", async () => {
+      const sh = await setup([graded('1', 5), student('2')])
+      sh.patch('1', { value: null })
+      expect(sh.changedCount.value).toBe(1)
+      expect(sh.errorsOf(sh.rows.value[0]!)).toEqual({})
+      expect(sh.statusOf(sh.rows.value[0]!)).toBe('dirty')
+      expect(sh.canSave.value).toBe(true)
+      expect(sh.buildItems()).toEqual([])
+      vi.mocked(gradesApi.remove).mockResolvedValue()
+      vi.mocked(gradesApi.sheet).mockResolvedValue(sheetOf([student('1'), student('2')]))
+      const res = await sh.save()
+      expect(gradesApi.remove).toHaveBeenCalledWith('g-1')
+      expect(gradesApi.bulk).not.toHaveBeenCalled()
+      expect(res).toMatchObject({ created: 0, updated: 0, deleted: 1, failed: [] })
+      expect(sh.changedCount.value).toBe(0)
+    })
+
+    it("o'chirish va yangi baho birga; o'chirish xatosi qatorga yoziladi", async () => {
+      const sh = await setup([graded('1', 5), student('2')])
+      sh.patch('1', { value: null })
+      sh.patch('2', { value: 3 })
+      vi.mocked(gradesApi.bulk).mockResolvedValue({ created: 1, updated: 0, failed: [] })
+      vi.mocked(gradesApi.remove).mockRejectedValue(new Error('Tahrir muddati tugagan'))
+      vi.mocked(gradesApi.sheet).mockResolvedValue(sheetOf([graded('1', 5), graded('2', 3)]))
+      const res = await sh.save()
+      expect(gradesApi.bulk).toHaveBeenCalledWith(
+        expect.objectContaining({ items: [{ studentId: '2', value: 3, comment: null }] }),
+      )
+      expect(res?.deleted).toBe(0)
+      expect(res?.failed).toEqual([
+        expect.objectContaining({ studentId: '1', message: 'Tahrir muddati tugagan' }),
+      ])
+      expect(sh.rows.value[0]!.serverError).toBe('Tahrir muddati tugagan')
+    })
+  })
 
   it('yuklangach: nom, "allaqachon baholangan" qatorlar va progress', async () => {
     const sh = await setup([graded('1', 5), student('2'), student('3')])

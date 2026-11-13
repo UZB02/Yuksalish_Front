@@ -190,9 +190,11 @@ async function save() {
     const res = await sheet.save()
     if (!res) return
     const failed = res.failed.length
-    if (failed > 0)
-      toast.error(t('scoring.savedPartial', { ok: res.created + res.updated, failed }))
-    else toast.success(t('grading.saved', { n: res.created + res.updated }))
+    const ok = res.created + res.updated
+    if (failed > 0) toast.error(t('scoring.savedPartial', { ok: ok + res.deleted, failed }))
+    else if (res.deleted > 0 && ok === 0) toast.success(t('grading.deleted', { n: res.deleted }))
+    else if (res.deleted > 0) toast.success(t('grading.savedAndDeleted', { n: ok, d: res.deleted }))
+    else toast.success(t('grading.saved', { n: ok }))
   } catch (e) {
     toast.error(errorMessage(e, t))
   }

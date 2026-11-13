@@ -3,13 +3,15 @@ import { useI18n } from 'vue-i18n'
 import { GRADE_VALUES } from '@/utils/grades'
 
 // Tezkor 2/3/4/5 tugmalari: telefonda bosish oson bo'lishi uchun katta (h-12) va 4 ustunli.
-defineProps<{
+const props = defineProps<{
   modelValue: number | null
   disabled?: boolean
   invalid?: boolean
   name?: string
 }>()
-const emit = defineEmits<{ 'update:modelValue': [value: number] }>()
+// Tanlangan bahoni qayta bosish uni bekor qiladi (null).
+const emit = defineEmits<{ 'update:modelValue': [value: number | null] }>()
+const pick = (v: number) => emit('update:modelValue', props.modelValue === v ? null : v)
 const { t } = useI18n()
 
 const ACTIVE: Record<number, string> = {
@@ -42,7 +44,8 @@ const ACTIVE: Record<number, string> = {
             : 'border-border text-fg hover:bg-surface-muted'
       "
       :data-grade="v"
-      @click="emit('update:modelValue', v)"
+      :title="modelValue === v ? t('grading.clearHint') : undefined"
+      @click="pick(v)"
     >
       {{ v }}
     </button>

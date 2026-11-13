@@ -50,6 +50,17 @@ describe('GradeButtons', () => {
     expect(w.emitted('update:modelValue')![0]).toEqual([5])
   })
 
+  it('tanlangan bahoni qayta bosish uni bekor qiladi (null)', async () => {
+    const w = mount(GradeButtons, {
+      props: { modelValue: 4 },
+      global: { plugins: [i18n] },
+    })
+    const btns = w.findAll('button[role="radio"]')
+    expect(btns[2]!.attributes('title')).toBeTruthy()
+    await btns[2]!.trigger('click')
+    expect(w.emitted('update:modelValue')![0]).toEqual([null])
+  })
+
   it('disabled bo`lsa bosilmaydi', async () => {
     const w = mount(GradeButtons, {
       props: { modelValue: null, disabled: true },
