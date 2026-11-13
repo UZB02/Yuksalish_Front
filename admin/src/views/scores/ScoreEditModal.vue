@@ -91,6 +91,10 @@ function onBehavior(id: string | null) {
   if (v !== null) {
     draft.value.value = v
     autoFilled.value = true
+  } else if (autoFilled.value) {
+    // Avvalgi turdan avtomatik qo'yilgan ball yangi turga tegishli emas: tozalaymiz.
+    draft.value.value = ''
+    autoFilled.value = false
   }
 }
 

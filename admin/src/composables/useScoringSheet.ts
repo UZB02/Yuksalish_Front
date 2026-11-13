@@ -129,6 +129,11 @@ export function useScoringSheet(
       if (v !== null) {
         next.value = v
         auto = true
+      } else if (row.autoFilled) {
+        // Avvalgi turdan avtomatik qo'yilgan ball yangi turga tegishli emas (masalan, standart balli
+        // yo'q jarimali tur): eskisini tozalaymiz. Qo'lda kiritilgan ballga tegilmaydi.
+        next.value = ''
+        auto = false
       }
     }
     core.patch(key, next)

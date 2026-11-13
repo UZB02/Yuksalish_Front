@@ -317,13 +317,35 @@ describe('useScoringSheet', () => {
       expect(sh.rows.value[0]!.draft.value).toBe('77')
     })
 
-    it("tanlovni bekor qilish yoki standart ballsiz tur — ballni o'zgartirmaydi", async () => {
+    it("tanlovni bekor qilish ballni o'zgartirmaydi; standart ballsiz turga o'tilsa avtomatik ball tozalanadi", async () => {
       const sh = await setup([student('1')], ON)
       sh.patch('1', { behaviorTypeId: 'b1' })
       sh.patch('1', { behaviorTypeId: null })
       expect(sh.rows.value[0]!.draft.value).toBe('95')
       sh.patch('1', { behaviorTypeId: 'b0' })
+      expect(sh.rows.value[0]!.draft.value).toBe('')
+      expect(sh.rows.value[0]!.autoFilled).toBe(false)
+    })
+
+    it("avtomatik 95 dan jarimali turga o'tilsa eski ball qolmaydi, ballsiz jarima qaydi bo'ladi", async () => {
+      const sh = await setup([student('1')], ON, true)
+      sh.patch('1', { behaviorTypeId: 'b1' })
       expect(sh.rows.value[0]!.draft.value).toBe('95')
+      sh.patch('1', { behaviorTypeId: 'bp' })
+      expect(sh.rows.value[0]!.draft.value).toBe('')
+      expect(sh.invalidDirty.value).toHaveLength(0)
+      expect(sh.buildItems()[0]).toMatchObject({ value: null, behaviorTypeId: 'bp' })
+      // yana standart balli turga qaytsa — qayta to'ldiriladi
+      sh.patch('1', { behaviorTypeId: 'b2' })
+      expect(sh.rows.value[0]!.draft.value).toBe('60')
+    })
+
+    it("qo'lda yozilgan ball jarimali turga o'tilganda saqlanib qoladi", async () => {
+      const sh = await setup([student('1')], ON, true)
+      sh.patch('1', { value: '85', behaviorTypeId: 'b1' })
+      sh.patch('1', { behaviorTypeId: 'bp' })
+      expect(sh.rows.value[0]!.draft.value).toBe('85')
+      expect(sh.buildItems()[0]).toMatchObject({ value: 85, behaviorTypeId: 'bp' })
     })
 
     it("serverdan yuklangan saqlangan ball qo'lda hisoblanadi (almashtirilmaydi)", async () => {
