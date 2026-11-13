@@ -77,6 +77,11 @@ export const ratingsApi = {
         schoolHeader(schoolId),
       )
       .then((r) => r.data.data),
+  /** Arxivni yumshoq o'chirish (faqat superadmin) */
+  deleteResult: (id: string, schoolId?: string) =>
+    http
+      .delete<ApiSuccess<{ id: string }>>(`/ratings/results/${id}`, schoolHeader(schoolId))
+      .then((r) => r.data.data),
   async recalculate(schoolId?: string): Promise<{ recalculatedAt: string }> {
     const res = await http.post<ApiSuccess<{ recalculatedAt: string }>>(
       '/ratings/recalculate',

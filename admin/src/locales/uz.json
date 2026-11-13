@@ -1520,6 +1520,11 @@
       "classesTitle": "Sinflar",
       "announceNow": "Joriy davrni hoziroq e'lon qilish",
       "announced": "Davr natijasi e'lon qilindi",
+      "delete": "Yakunni o'chirish",
+      "deleteTitle": "Yakunni o'chirish",
+      "deleteMessage": "«{label}» natijasi arxivdan o'chiriladi va ochiq saytda ko'rinmaydi. Bu davr avtomatik qayta e'lon qilinmaydi (joriy davr bo'lsa, qo'lda qayta e'lon qilish mumkin).",
+      "deleteConfirm": "O'chirish",
+      "deleted": "Yakun o'chirildi",
       "announceConfirm": "Joriy davr natijasi hozirgi holatida muzlatiladi. Davom etasizmi?",
       "teacherNote": "Faqat o'z sinflaringiz ko'rsatilgan; o'rinlar butun maktab bo'yicha.",
       "winners": {
@@ -2077,6 +2082,7 @@
       "behavior_type": "Xulq turi",
       "class": "Sinf",
       "rating": "Reyting",
+      "rating_result": "Reyting natijasi",
       "school": "Maktab",
       "score": "Xulq bahosi",
       "settings": "Sozlama",
@@ -2182,7 +2188,10 @@
       },
       "ratings": {
         "recalculate": "Reytingni qayta hisobladi",
-        "announce": "Davr natijasini e'lon qildi"
+        "announce": "Davr natijasini e'lon qildi",
+        "results": {
+          "delete": "Yakuniy natijani o'chirdi"
+        }
       },
       "teacher": {
         "classes": "O'qituvchi sinflarini o'zgartirdi",

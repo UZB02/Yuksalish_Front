@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, CalendarCheck, Megaphone, Trophy } from 'lucide-vue-next'
+import { ArrowLeft, CalendarCheck, Megaphone, Trash2, Trophy } from 'lucide-vue-next'
 import { ratingsApi } from '@/api/ratings.api'
 import type { RatingResultDetail, RatingResultMeta } from '@/api/types'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
@@ -9,6 +9,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
@@ -20,6 +21,7 @@ import StudentRatingTable from './StudentRatingTable.vue'
 
 const { t } = useI18n()
 const toast = useToast()
+const { confirm } = useConfirm()
 const auth = useAuthStore()
 const schoolCtx = useSchoolContextStore()
 
@@ -34,6 +36,7 @@ const error = ref('')
 const detail = ref<RatingResultDetail | null>(null)
 const detailLoading = ref(false)
 const announcing = ref(false)
+const deletingId = ref<string | null>(null)
 
 const studentRows = computed(() => (detail.value?.students ?? []).map(toStudentItem))
 const classRows = computed(() => (detail.value?.classes ?? []).map(toClassItem))
@@ -85,6 +88,31 @@ async function announce() {
   }
 }
 
+async function remove(r: Pick<RatingResultMeta, 'id' | 'label'>) {
+  const ok = await confirm({
+    title: t('ratings.results.deleteTitle'),
+    message: t('ratings.results.deleteMessage', { label: r.label }),
+    confirmText: t('ratings.results.deleteConfirm'),
+    cancelText: t('common.cancel'),
+    variant: 'danger',
+  })
+  if (!ok) return
+  deletingId.value = r.id
+  try {
+    await ratingsApi.deleteResult(r.id)
+    toast.success(t('ratings.results.deleted'))
+    detail.value = null
+    detailLoading.value = false
+    // So'nggi sahifa bo'shab qolsa oldingisiga qaytamiz
+    if (page.value > 1 && items.value.length === 1) page.value -= 1
+    await load()
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    deletingId.value = null
+  }
+}
+
 function setPage(p: number) {
   page.value = p
   void load()
@@ -124,6 +152,16 @@ watch(
               · {{ t('ratings.results.announcedAt') }}: {{ formatDateTime(detail.announcedAt) }}
             </p>
           </div>
+          <BaseButton
+            v-if="auth.isSuperadmin"
+            variant="danger"
+            class="ml-auto"
+            :loading="deletingId === detail.id"
+            data-testid="results-detail-delete"
+            @click="remove(detail)"
+          >
+            <Trash2 class="h-4 w-4" /> {{ t('ratings.results.delete') }}
+          </BaseButton>
         </template>
       </div>
       <Skeleton v-if="detailLoading" class="m-4 h-40" />
@@ -175,10 +213,10 @@ watch(
         :description="t('ratings.results.emptyText')"
       />
       <ul v-else class="divide-y divide-border" data-testid="results-list">
-        <li v-for="r in items" :key="r.id">
+        <li v-for="r in items" :key="r.id" class="flex items-center">
           <button
             type="button"
-            class="flex w-full flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition-colors hover:bg-surface-muted"
+            class="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition-colors hover:bg-surface-muted"
             :data-testid="`result-${r.periodKey}`"
             @click="open(r.id)"
           >
@@ -201,6 +239,18 @@ watch(
             <span class="text-sm font-medium text-primary-700">{{
               t('ratings.results.open')
             }}</span>
+          </button>
+          <button
+            v-if="auth.isSuperadmin"
+            type="button"
+            class="mr-3 shrink-0 rounded-lg p-2 text-danger transition-colors hover:bg-surface-muted disabled:opacity-50"
+            :disabled="deletingId === r.id"
+            :title="t('ratings.results.delete')"
+            :aria-label="t('ratings.results.delete')"
+            :data-testid="`result-delete-${r.periodKey}`"
+            @click="remove(r)"
+          >
+            <Trash2 class="h-4 w-4" />
           </button>
         </li>
       </ul>

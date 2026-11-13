@@ -5,11 +5,14 @@ import { createI18n } from 'vue-i18n'
 import uz from '@/locales/uz.json'
 import type { RatingResultDetail, RatingResultMeta } from '@/api/types'
 import { ratingsApi } from '@/api/ratings.api'
+import { useAuthStore } from '@/stores/auth'
+import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 import LatestWinnersCard from './LatestWinnersCard.vue'
 import RatingResultsTab from './RatingResultsTab.vue'
 
 vi.mock('@/api/ratings.api', () => ({
-  ratingsApi: { results: vi.fn(), result: vi.fn(), announce: vi.fn() },
+  ratingsApi: { results: vi.fn(), result: vi.fn(), announce: vi.fn(), deleteResult: vi.fn() },
 }))
 
 const i18n = createI18n({ legacy: false, locale: 'uz', messages: { uz } })
@@ -115,6 +118,109 @@ describe('RatingResultsTab', () => {
     const w = mountTab()
     await flushPromises()
     expect(w.find('[data-testid="results-announce"]').exists()).toBe(false)
+  })
+})
+
+const asRole = (role: 'superadmin' | 'school_admin' | 'teacher') =>
+  useAuthStore().setSession('tok', {
+    id: '1',
+    fullName: 'A',
+    username: 'a',
+    role,
+    schoolId: 's1',
+    permissions: [],
+    isActive: true,
+    lastLoginAt: null,
+    createdAt: '',
+  })
+const listOf = (items: RatingResultMeta[]) => ({
+  items,
+  meta: { page: 1, limit: 20, total: items.length, totalPages: 1 },
+})
+
+describe('RatingResultsTab: yakunni o‘chirish', () => {
+  const KEY = 'week:2026-11-09'
+
+  it("o'chirish tugmasi faqat superadminga ko'rinadi", async () => {
+    vi.mocked(ratingsApi.results).mockResolvedValue(listOf([meta()]))
+    for (const role of ['school_admin', 'teacher'] as const) {
+      asRole(role)
+      const w = mountTab()
+      await flushPromises()
+      expect(w.find(`[data-testid="result-delete-${KEY}"]`).exists()).toBe(false)
+    }
+    asRole('superadmin')
+    const w = mountTab()
+    await flushPromises()
+    expect(w.find(`[data-testid="result-delete-${KEY}"]`).exists()).toBe(true)
+  })
+
+  it("tasdiqlansa API chaqiriladi, toast chiqadi va ro'yxat yangilanadi", async () => {
+    asRole('superadmin')
+    vi.mocked(ratingsApi.results)
+      .mockResolvedValueOnce(listOf([meta(), meta({ id: 'r2', periodKey: 'week:2026-11-02' })]))
+      .mockResolvedValueOnce(listOf([meta({ id: 'r2', periodKey: 'week:2026-11-02' })]))
+    vi.mocked(ratingsApi.deleteResult).mockResolvedValue({ id: 'r1' })
+    const w = mountTab()
+    await flushPromises()
+    await w.get(`[data-testid="result-delete-${KEY}"]`).trigger('click')
+    const { state, settle } = useConfirm()
+    expect(state.open).toBe(true)
+    expect(state.options.title).toBe("Yakunni o'chirish")
+    expect(state.options.variant).toBe('danger')
+    expect(state.options.confirmText).toBe("O'chirish")
+    expect(state.options.message).toContain("«9–15-noyabr» natijasi arxivdan o'chiriladi")
+    expect(ratingsApi.deleteResult).not.toHaveBeenCalled()
+    settle(true)
+    await flushPromises()
+    expect(ratingsApi.deleteResult).toHaveBeenCalledWith('r1')
+    expect(ratingsApi.results).toHaveBeenCalledTimes(2)
+    expect(useToast().toasts.some((x) => x.message === "Yakun o'chirildi")).toBe(true)
+    expect(w.find(`[data-testid="result-${KEY}"]`).exists()).toBe(false)
+    expect(w.find('[data-testid="result-week:2026-11-02"]').exists()).toBe(true)
+  })
+
+  it("bekor qilinsa hech narsa o'chmaydi va ro'yxat qayta yuklanmaydi", async () => {
+    asRole('superadmin')
+    vi.mocked(ratingsApi.results).mockResolvedValue(listOf([meta()]))
+    const w = mountTab()
+    await flushPromises()
+    await w.get(`[data-testid="result-delete-${KEY}"]`).trigger('click')
+    useConfirm().settle(false)
+    await flushPromises()
+    expect(ratingsApi.deleteResult).not.toHaveBeenCalled()
+    expect(ratingsApi.results).toHaveBeenCalledTimes(1)
+  })
+
+  it("batafsil ko'rinishda ham o'chiriladi va ro'yxatga qaytadi", async () => {
+    asRole('superadmin')
+    vi.mocked(ratingsApi.results)
+      .mockResolvedValueOnce(listOf([meta()]))
+      .mockResolvedValueOnce(listOf([]))
+    vi.mocked(ratingsApi.result).mockResolvedValue(detail())
+    vi.mocked(ratingsApi.deleteResult).mockResolvedValue({ id: 'r1' })
+    const w = mountTab()
+    await flushPromises()
+    await w.get(`[data-testid="result-${KEY}"]`).trigger('click')
+    await flushPromises()
+    await w.get('[data-testid="results-detail-delete"]').trigger('click')
+    useConfirm().settle(true)
+    await flushPromises()
+    expect(ratingsApi.deleteResult).toHaveBeenCalledWith('r1')
+    expect(w.find('[data-testid="results-detail-title"]').exists()).toBe(false)
+    expect(w.text()).toContain(uz.ratings.results.empty)
+  })
+
+  it("xato bo'lsa ro'yxat yangilanmaydi", async () => {
+    asRole('superadmin')
+    vi.mocked(ratingsApi.results).mockResolvedValue(listOf([meta()]))
+    vi.mocked(ratingsApi.deleteResult).mockRejectedValue(new Error('x'))
+    const w = mountTab()
+    await flushPromises()
+    await w.get(`[data-testid="result-delete-${KEY}"]`).trigger('click')
+    useConfirm().settle(true)
+    await flushPromises()
+    expect(ratingsApi.results).toHaveBeenCalledTimes(1)
   })
 })
 
