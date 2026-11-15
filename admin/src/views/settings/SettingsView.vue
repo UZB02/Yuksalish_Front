@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   CalendarDays,
   ClipboardCheck,
+  ClipboardList,
   Globe,
   Image as ImageIcon,
   Palette,
@@ -23,6 +24,7 @@ import AttendanceSettingsTab from './AttendanceSettingsTab.vue'
 import PublicSettingsTab from './PublicSettingsTab.vue'
 import RatingSettingsTab from './RatingSettingsTab.vue'
 import ScoringSettingsTab from './ScoringSettingsTab.vue'
+import ExamsSettingsTab from './ExamsSettingsTab.vue'
 import TimetableSettingsTab from './TimetableSettingsTab.vue'
 import TelegramSettingsTab from './TelegramSettingsTab.vue'
 
@@ -55,6 +57,12 @@ const ALL: SettingsTab[] = [
     component: TimetableSettingsTab,
   },
   {
+    key: 'exams',
+    labelKey: 'settings.tabs.exams',
+    icon: ClipboardList,
+    component: ExamsSettingsTab,
+  },
+  {
     key: 'branding',
     labelKey: 'settings.tabs.branding',
     icon: Palette,
@@ -77,7 +85,7 @@ const ALL: SettingsTab[] = [
 /** Yon menyu guruhlari (bo'sh guruhlar rolga qarab yashiriladi) */
 const GROUPS: { key: string; tabs: SettingsTabKey[] }[] = [
   { key: 'grading', tabs: ['scoring', 'rating'] },
-  { key: 'process', tabs: ['attendance', 'timetable'] },
+  { key: 'process', tabs: ['attendance', 'timetable', 'exams'] },
   { key: 'publicSite', tabs: ['public'] },
   { key: 'appearance', tabs: ['branding', 'schoolLogo'] },
   { key: 'integrations', tabs: ['telegram'] },

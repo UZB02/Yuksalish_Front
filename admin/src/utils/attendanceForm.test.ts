@@ -43,6 +43,7 @@ describe('visibleSettingsTabs', () => {
       'public',
       'attendance',
       'timetable',
+      'exams',
       'branding',
       'telegram',
     ])

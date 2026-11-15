@@ -104,11 +104,13 @@
     "subjects": "Fanlar",
     "grading": "Fan baholari",
     "journal": "Sinf jurnali",
+    "examQuestions": "Savollar banki",
     "groups": {
       "myWork": "Mening ishim",
       "academic": "O'quv jarayoni",
       "grading": "Baholash",
       "attendance": "Davomat",
+      "exams": "Imtihonlar",
       "results": "Natijalar",
       "reference": "Ma'lumotnomalar",
       "system": "Tizim"
@@ -532,7 +534,8 @@
       "attendance": "Davomat",
       "grades": "Fan baholari",
       "subjects": "Fanlar",
-      "timetable": "Dars jadvali"
+      "timetable": "Dars jadvali",
+      "exams": "Imtihonlar"
     },
     "items": {
       "dashboard_view": "Boshqaruv panelini ko'rish",
@@ -554,7 +557,11 @@
       "subjects_manage": "Fanlarni boshqarish (o'z maktabi)",
       "timetable_view": "Dars jadvalini ko'rish",
       "timetable_manage": "Dars jadvalini boshqarish",
-      "timetable_substitute": "O'rinbosar qo'yish va darsni bekor qilish"
+      "timetable_substitute": "O'rinbosar qo'yish va darsni bekor qilish",
+      "exams_questions": "Imtihon savollar bankini yuritish (o'z fani)",
+      "exams_manage": "Imtihonlarni rejalashtirish va sozlash",
+      "exams_grade": "Esse javoblarini tekshirish",
+      "exams_results": "Imtihon natijalarini ko'rish"
     }
   },
   "resetPassword": {
@@ -1120,6 +1127,7 @@
       "public": "Ochiq ko'rinish",
       "attendance": "Davomat",
       "timetable": "Dars jadvali",
+      "exams": "Imtihon",
       "branding": "Brending",
       "schoolLogo": "Maktab logosi",
       "telegram": "Telegram bot"
@@ -1138,6 +1146,7 @@
       "public": "Ochiq reyting sahifasida nimalar va qanday ko'rinishi.",
       "attendance": "Davomat rejimi, ish kunlari va reytingga ta'siri.",
       "timetable": "Dars jadvali bo'yicha davomat va almashtirish qoidalari.",
+      "exams": "Onlayn imtihon moduli: yoqish, o'qituvchi huquqlari va nomzod ma'lumotlarini saqlash muddati.",
       "branding": "Ilova nomi, logosi va ikonkalari.",
       "schoolLogo": "Maktabingiz logosi hujjatlar va ochiq sahifada ko'rinadi.",
       "telegram": "Bot ulanishi va xabarlar jadvali."
@@ -1568,6 +1577,320 @@
     "penaltyHint": "Davomat bo'yicha ayirilgan ball (reytingga ta'sir yoqilgan)",
     "behaviorPenalty": "Xulq jarimasi",
     "behaviorPenaltyHint": "Xulq turlari bo'yicha ayirilgan ball (Sozlamalar → Reyting'da yoqilgan)"
+  },
+  "settingsExams": {
+    "fields": {
+      "enabled": {
+        "label": "Imtihon moduli yoqilgan",
+        "hint": "Yoqilmaguncha menyuda \"Imtihonlar\" ko'rinmaydi va barcha imtihon so'rovlari rad etiladi. Faqat superadmin o'zgartiradi."
+      },
+      "teachersCanCreateQuizzes": {
+        "label": "O'qituvchilar nazorat ishi yarata oladi",
+        "hint": "Yoqilsa, o'qituvchi faqat o'z sinfi va fani uchun nazorat ishi yaratadi. O'chirilsa, barcha imtihonlarni faqat ma'muriyat yaratadi. Modul yoqilgan bo'lsagina ishlaydi."
+      },
+      "candidateRetentionDays": {
+        "label": "Nomzod ma'lumotlarini saqlash muddati (kun)",
+        "hint": "Kirish imtihoni nomzodlarining telefoni va tug'ilgan sanasi shuncha kundan keyin o'chiriladi (1 dan 3650 gacha)."
+      }
+    },
+    "retentionRange": "{min} dan {max} gacha butun son kiriting",
+    "disabledNote": "Imtihon moduli bu maktab uchun hali yoqilmagan. Uni faqat superadmin yoqadi."
+  },
+  "exams": {
+    "breadcrumb": "Savollar banki yo'li",
+    "bank": {
+      "title": "Savollar banki",
+      "description": "Fan tanlang, so'ng mavzu ichida savollar bilan ishlang.",
+      "search": "Fanni qidirish",
+      "noMatch": "Bunday fan topilmadi",
+      "inactive": "Nofaol fan",
+      "topicsCount": "{n} ta mavzu",
+      "questionsCount": "{n} ta savol",
+      "noOwnTitle": "Sizga fan biriktirilmagan",
+      "noOwnText": "Savollar bankida ishlash uchun avval sinfga fan va o'qituvchi biriktirilishi kerak. Ma'muriyatga murojaat qiling.",
+      "noSubjectsTitle": "Fanlar yo‘q",
+      "noSubjectsText": "Avval Fanlar bo'limida fan qo'shing."
+    },
+    "topics": {
+      "pageTitle": "Fan mavzulari",
+      "description2": "Mavzu kartasini oching va savollar qo'shing.",
+      "add": "Mavzu qo'shish",
+      "addTitle": "Yangi mavzu",
+      "editTitle": "Mavzuni tahrirlash",
+      "name": "Mavzu nomi",
+      "description": "Tavsif",
+      "descriptionHint": "Ixtiyoriy, 500 belgigacha",
+      "emptyTitle": "Mavzular hali yo‘q",
+      "emptyText": "Birinchi mavzuni qo'shing, keyin unga savollar kiriting.",
+      "deleteTitle": "Mavzuni o'chirish",
+      "deleteText": "\"{name}\" mavzusi o'chiriladi. Mavzu bo'sh bo'lgani uchun savollar yo'qolmaydi.",
+      "notEmpty": "Mavzuda savollar bor: avval savollarni o'chiring yoki boshqa mavzuga ko'chiring",
+      "cantEdit": "Mavzuni faqat yaratuvchisi yoki ma'muriyat o'zgartira oladi",
+      "forbiddenTitle": "Bu fan sizga biriktirilmagan",
+      "forbiddenText": "Faqat o‘zingiz o‘qitadigan fanlar bilan ishlay olasiz.",
+      "topicForbiddenText": "Mavzu topilmadi yoki bu fan sizga biriktirilmagan.",
+      "quickPlaceholder": "Yangi mavzu nomi",
+      "quickAdd": "Mavzu yaratish",
+      "errors": {
+        "nameRequired": "Mavzu nomini kiriting",
+        "nameLong": "Mavzu nomi 150 belgidan oshmasligi kerak",
+        "duplicate": "Bu fanda bunday nomli mavzu bor"
+      },
+      "toast": {
+        "created": "Mavzu qo'shildi",
+        "updated": "Mavzu yangilandi",
+        "deleted": "Mavzu o'chirildi"
+      }
+    },
+    "sharing": {
+      "title": "Ulashish",
+      "modes": {
+        "private": "Yopiq",
+        "subject": "Fan o'qituvchilariga",
+        "users": "Tanlangan o'qituvchilarga"
+      },
+      "hints": {
+        "private": "Savolni faqat siz (va ma'muriyat) ko'rasiz.",
+        "subject": "Shu fanni o'qitadigan maktab o'qituvchilari savolni javob kaliti bilan ko'ra oladi va o'z qoralamasiga nusxa oladi. Tahrirlay olmaydi.",
+        "users": "Tanlangan o'qituvchilar savolni javob kaliti bilan ko'ra oladi va nusxa oladi. Tahrirlay olmaydi."
+      },
+      "search": "O'qituvchini qidirish",
+      "noTeachers": "O'qituvchi topilmadi",
+      "teachesSubject": "shu fan o'qituvchisi",
+      "selected": "Tanlandi: {n} ta",
+      "badge": "Ulashilgan",
+      "badgeWithMe": "Menga ulashilgan"
+    },
+    "import": {
+      "button": "Import",
+      "title": "Savollarni import qilish",
+      "target": "Savollar \"{subject} › {topic}\" mavzusiga qo'shiladi.",
+      "bulkPoints": "Barcha savollarga ball",
+      "bulkPointsPlaceholder": "Masalan: 2",
+      "bulkPointsApply": "Hammasiga qo'llash",
+      "bulkPointsHint": "Chiqarib tashlanmagan barcha savollarga bir xil ball qo'yiladi (0 dan katta, {max} gacha; 0,5 ham mumkin). Alohida savol ballini \"Tuzatish\" orqali o'zgartirish mumkin.",
+      "bulkPointsDone": "{n} ta savolga {points} ball qo'yildi",
+      "ignoredNote": "Faylda Fan va Mavzu ustun/qatorlari kerak emas: barcha savollar tanlangan mavzuga qo'shiladi (bo'lsa e'tiborsiz qoldiriladi).",
+      "noTargetTitle": "Mavzu tanlanmagan",
+      "noTargetText": "Import mavzu ichidan boshlanadi: fan va mavzuni tanlang, keyin Import tugmasini bosing.",
+      "description": "Word yoki Excel fayldan savollarni qoralama sifatida qo'shing.",
+      "kinds": {
+        "word": "Word (.docx)",
+        "excel": "Excel (.xlsx)"
+      },
+      "formatTitle": "Fayl formati",
+      "help": {
+        "word": {
+          "1": "Savollar \"1.\" kabi raqam bilan, variantlar \"A)\", \"B)\" ... \"J)\" bilan boshlanadi.",
+          "2": "To'g'ri variant oldiga * qo'ying (*B)) yoki hujjat oxirida \"Javoblar\" ro'yxati yozing: 1-B, 2-AC, 3: 12,5.",
+          "3": "Savol ostida ixtiyoriy qatorlar: Qiyinlik: 1-3, Ball:, Tur: short/essay, Javob: 12,5 {'|'} 12.5.",
+          "4": "Rasmlar va Word formulalari (Insert > Equation) avtomatik olinadi. Formula o'tmasa [formula] belgisi qo'yiladi, uni keyin tuzating.",
+          "5": "Faqat .docx (5 MB gacha). .doc va makroli (.docm) fayllar qabul qilinmaydi."
+        },
+        "excel": {
+          "1": "Har bir qator bitta savol. Sarlavhalarni o'zgartirmang: Qiyinlik, Tur, Savol, A...J, To'g'ri javob, Ball, Qisman ball.",
+          "2": "Tur: single, multi, short, essay (bo'sh bo'lsa avtomatik aniqlanadi).",
+          "3": "To'g'ri javob: single uchun \"B\", multi uchun \"A,C\", short uchun javoblar {'|'} bilan ajratiladi (\"2,5{'|'}2.5\").",
+          "4": "Variantlar A dan J gacha ketma-ket to'ldiriladi (ko'pi bilan 10 ta).",
+          "5": "Faqat .xlsx, 5 MB gacha va 1000 qatorgacha."
+        }
+      },
+      "template": "Shablonni yuklab olish",
+      "defaultSubject": "Standart fan",
+      "noDefault": "Faylda ko'rsatilganidek",
+      "defaultSubjectHint": "Faylda fan ko'rsatilmagan savollar uchun ishlatiladi. O'qituvchi faqat o'z fanlariga import qiladi.",
+      "choose": "{ext} faylni tanlang",
+      "limits": "5 MB gacha, ko‘pi bilan 1000 savol",
+      "analyze": "Yuklash va tekshirish",
+      "badExt": "Faqat {ext} fayl yuklash mumkin",
+      "tooBig": "Fayl hajmi 5 MB dan oshmasligi kerak",
+      "rowExcel": "{n}-qator",
+      "rowWord": "{n}-savol",
+      "summary": "Jami {total} ta: tayyor {ok}, xatoli {bad}",
+      "excludeInvalid": "Xatolilarni chiqarib tashlash",
+      "includeAll": "Hammasini qaytarish",
+      "another": "Boshqa fayl",
+      "excluded": "Import qilinmaydi",
+      "hasErrors": "{n} ta xato",
+      "hasWarnings": "{n} ta ogohlantirish",
+      "ready": "Tayyor",
+      "edited": "Tuzatilgan",
+      "noSubject": "Fan yo'q",
+      "exclude": "Chiqarib tashlash",
+      "fix": "Tuzatish",
+      "hideFix": "Yopish",
+      "typePlaceholder": "Turni tanlang",
+      "typeUnknown": "Savol turini tanlang",
+      "correct": "To'g'ri javob",
+      "skipTitle": "Xatoli qatorlar bor",
+      "skipText": "{n} ta xatoli savol import qilinmaydi (qolganlari qo'shiladi). Davom etasizmi?",
+      "commit": "Import qilish",
+      "willImport": "{n} ta savol qoralama sifatida qo‘shiladi",
+      "doneTitle": "Import yakunlandi",
+      "doneText": "Qo'shildi: {created}, xato: {failed}, chiqarib tashlangan: {excluded}",
+      "draftNote": "Savollar qoralama holatida, faqat siz ko'rasiz (ulashilmagan). Ularni tekshirib faollashtiring.",
+      "toBank": "Savollar bankiga o‘tish"
+    },
+    "points": "{n} ball",
+    "types": {
+      "single": "Bitta to'g'ri javob",
+      "multi": "Bir nechta to'g'ri javob",
+      "short": "Qisqa javob",
+      "essay": "Ochiq javob (esse)"
+    },
+    "typeHints": {
+      "single": "O'quvchi variantlardan bittasini tanlaydi.",
+      "multi": "O'quvchi bir nechta variantni belgilaydi.",
+      "short": "O'quvchi son yoki so'z yozadi, avtomatik tekshiriladi.",
+      "essay": "Qo'lda tekshiriladi (mezon bo'yicha)."
+    },
+    "difficulty": {
+      "1": "Oson",
+      "2": "O'rta",
+      "3": "Qiyin"
+    },
+    "status": {
+      "draft": "Qoralama",
+      "active": "Faol",
+      "archived": "Arxivda"
+    },
+    "fields": {
+      "subject": "Fan",
+      "subjectPlaceholder": "Fanni tanlang",
+      "topic": "Mavzu",
+      "topicPlaceholder": "Mavzuni tanlang",
+      "topicHint": "Ixtiyoriy, qidirish uchun",
+      "type": "Savol turi",
+      "difficulty": "Qiyinlik",
+      "points": "Ball",
+      "status": "Holati"
+    },
+    "filters": {
+      "search": "Savol matni yoki mavzu bo'yicha qidirish",
+      "allSubjects": "Barcha fanlar",
+      "allTypes": "Barcha turlar",
+      "allDifficulties": "Barcha qiyinliklar",
+      "allStatuses": "Barcha holatlar",
+      "mine": "Faqat mening savollarim",
+      "shared": "Menga ulashilgan",
+      "reset": "Filtrlarni tozalash"
+    },
+    "questions": {
+      "title": "Savollar banki",
+      "description": "Imtihon va nazorat ishlari uchun savollar. O'qituvchi o'z fani bo'yicha, ma'muriyat barcha fanlar bo'yicha ishlaydi.",
+      "add": "Savol qo'shish",
+      "ownScopeHint": "Faqat o'zingiz o'qitadigan fanlar ko'rsatiladi.",
+      "emptyTitle": "Savollar hali yo'q",
+      "emptyText": "Birinchi savolni qo'shing: matn, formula va rasm bilan.",
+      "noMatchTitle": "Hech narsa topilmadi",
+      "noMatchText": "Tanlangan filtrlar bo'yicha savol yo'q.",
+      "noText": "(matnsiz savol)",
+      "hasMath": "Formula bor",
+      "hasImage": "Rasm bor",
+      "you": "siz",
+      "readOnly": "faqat o'qish",
+      "moreActions": "Savol amallari",
+      "view": "Ko'rish"
+    },
+    "actions": {
+      "duplicate": "Nusxa olish",
+      "archive": "Arxivlash",
+      "restore": "Arxivdan tiklash"
+    },
+    "archiveTitle": "Savolni arxivlash",
+    "archiveText": "Arxivdagi savol yangi imtihonlarga qo'shilmaydi. Uni keyinroq qoralama sifatida tiklash mumkin.",
+    "deleteTitle": "Savolni o'chirish",
+    "deleteText": "Savol bankdan o'chiriladi. Allaqachon o'tkazilgan imtihonlar natijalari buzilmaydi. Ulashilgan o'qituvchilar ham uni ko'ra olmaydi.",
+    "toast": {
+      "created": "Savol saqlandi",
+      "updated": "Savol yangilandi",
+      "duplicated": "Nusxa qoralama sifatida yaratildi",
+      "archived": "Savol arxivlandi",
+      "restored": "Savol qoralama sifatida tiklandi",
+      "deleted": "Savol o'chirildi"
+    },
+    "editor": {
+      "back": "Savollar",
+      "createTitle": "Yangi savol",
+      "editTitle": "Savolni tahrirlash",
+      "viewTitle": "Savol",
+      "versionInfo": "Versiya {n}",
+      "tabEdit": "Tahrirlash",
+      "tabPreview": "Ko'rinish",
+      "readOnly": "Bu savolni {name} yaratgan. Siz uni faqat ko'ra olasiz (javob kaliti ko'rsatilmaydi).",
+      "archivedNote": "Savol arxivda. Tahrirlash uchun avval ro'yxatdan arxivdan tiklang.",
+      "noSubjects": "Sizga biriktirilgan fan yo'q. Savol qo'shish uchun avval sinfga fan va o'qituvchi biriktirilishi kerak.",
+      "contentTitle": "Savol matni",
+      "optionsTitle": "Variantlar",
+      "shortTitle": "To'g'ri javoblar",
+      "rubricTitle": "Baholash mezoni (rubrika)",
+      "rubricPlaceholder": "Masalan: mavzuning ochilishi, dalillar, til savodxonligi",
+      "rubricHint": "Ixtiyoriy. Faqat tekshiruvchi ko'radi, o'quvchiga ko'rsatilmaydi.",
+      "previewTitle": "O'quvchi ko'rinishi",
+      "previewHint": "Savol o'quvchiga aynan shunday ko'rinadi. To'g'ri javob ko'rsatilmaydi.",
+      "unsavedText": "Saqlanmagan o'zgarishlar bor. Sahifadan chiqsangiz, ular yo'qoladi."
+    },
+    "blocks": {
+      "text": "Matn",
+      "math": "Formula",
+      "image": "Rasm",
+      "up": "Yuqoriga",
+      "down": "Pastga",
+      "remove": "Blokni o'chirish",
+      "add": "Blok qo'shish",
+      "addText": "Matn",
+      "addMath": "Formula",
+      "addImage": "Rasm",
+      "textPlaceholder": "Matnni kiriting (oddiy matn, HTML qabul qilinmaydi)",
+      "mathPlaceholder": "TeX formulasi, masalan: x^2 + \\pi r^2",
+      "mathPreview": "Formula ko'rinishi",
+      "mathEmpty": "Formula kiriting, bu yerda ko'rinadi"
+    },
+    "image": {
+      "choose": "Rasm tanlash",
+      "replace": "Rasmni almashtirish",
+      "uploading": "Yuklanmoqda...",
+      "hint": "JPG, PNG yoki WebP, 5 MB gacha. Rasm avtomatik siqiladi va metadata o'chiriladi.",
+      "badType": "Faqat JPG, PNG yoki WebP rasm yuklash mumkin",
+      "tooBig": "Rasm hajmi 5 MB dan oshmasligi kerak",
+      "failed": "Rasmni yuklab bo'lmadi",
+      "alt": "Savol rasmi"
+    },
+    "options": {
+      "add": "Variant qo'shish",
+      "remove": "{letter} variantni o'chirish",
+      "markCorrect": "{letter} variant to'g'ri",
+      "partialCredit": "Qisman ball berilsin",
+      "partialCreditHint": "Yoqilsa, to'g'ri variantlarning bir qismi tanlansa ham ball qisman beriladi."
+    },
+    "short": {
+      "label": "To'g'ri javob",
+      "placeholder": "Javobni yozing va Enter bosing",
+      "add": "Qo'shish",
+      "remove": "{value} javobni olib tashlash",
+      "hint": "Bir nechta to'g'ri variant kiritish mumkin (ko'pi bilan {n} ta). Katta-kichik harf va ortiqcha probellar e'tiborga olinmaydi; sonlarda 12,5 va 12.5 bir xil."
+    },
+    "preview": {
+      "points": "{n} ball",
+      "empty": "Savol matni hali kiritilmagan",
+      "multiHint": "Bir nechta javobni tanlash mumkin",
+      "shortPlaceholder": "Javobingizni yozing",
+      "essayPlaceholder": "Javobingizni yozing"
+    },
+    "errors": {
+      "subject": "Fanni tanlang",
+      "topic": "Mavzuni tanlang yoki yarating",
+      "topicLong": "Mavzu {n} belgidan oshmasligi kerak",
+      "contentEmpty": "Savol matnini kiriting",
+      "blockEmpty": "Bo'sh bloklarni to'ldiring yoki o'chiring",
+      "points": "Ball 0 dan katta va {n} dan oshmasligi kerak",
+      "optionsMin": "Kamida 2 ta variant bo'lishi kerak",
+      "optionEmpty": "Barcha variantlarni to'ldiring",
+      "correctSingle": "To'g'ri variantni belgilang",
+      "correctMulti": "Kamida bitta to'g'ri variantni belgilang",
+      "acceptedMin": "Kamida bitta to'g'ri javob kiriting",
+      "sharingUsers": "Kamida bitta o'qituvchini tanlang"
+    }
   },
   "settingsTimetable": {
     "fields": {
@@ -2073,7 +2396,8 @@
       "grades": "Fan baholari",
       "subject": "Fanlar",
       "timetable": "Dars jadvali",
-      "telegram": "Telegram"
+      "telegram": "Telegram",
+      "exam": "Imtihonlar"
     },
     "entities": {
       "academic_year": "O'quv yili",
@@ -2093,9 +2417,32 @@
       "subject": "Fan",
       "subject_grade": "Fan bahosi",
       "timetable": "Dars jadvali",
-      "telegram": "Telegram"
+      "telegram": "Telegram",
+      "exam_question": "Imtihon savoli",
+      "exam_asset": "Savol rasmi",
+      "exam_import": "Savollar importi",
+      "exam_topic": "Imtihon mavzusi"
     },
     "actions": {
+      "exam": {
+        "question": {
+          "create": "Imtihon savoli qo'shdi",
+          "update": "Imtihon savolini o'zgartirdi",
+          "archive": "Imtihon savolini arxivladi",
+          "restore": "Imtihon savolini arxivdan tikladi",
+          "duplicate": "Imtihon savolidan nusxa oldi",
+          "delete": "Imtihon savolini o'chirdi",
+          "import": "Savollarni Word/Excel'dan import qildi"
+        },
+        "topic": {
+          "create": "Imtihon mavzusi qo'shdi",
+          "update": "Imtihon mavzusini o'zgartirdi",
+          "delete": "Imtihon mavzusini o'chirdi"
+        },
+        "asset": {
+          "upload": "Savol rasmini yukladi"
+        }
+      },
       "telegram": {
         "config": {
           "update": "Telegram bot sozlamasi o'zgartirildi",

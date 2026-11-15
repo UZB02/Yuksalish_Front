@@ -1640,3 +1640,196 @@ export interface TelegramLinkInfo {
   url: string
   expiresAt: string
 }
+
+// ---- Imtihonlar (savollar banki) ----
+export interface ExamsSettings {
+  enabled: boolean
+  teachersCanCreateQuizzes: boolean
+  candidateRetentionDays: number
+}
+
+export type QuestionType = 'single' | 'multi' | 'short' | 'essay'
+export type QuestionStatus = 'draft' | 'active' | 'archived'
+export type QuestionDifficulty = 1 | 2 | 3
+
+/** Kontent bloki: HTML yo'q, faqat matn / formula (TeX) / rasm (assetId) */
+export type QuestionBlock =
+  | { type: 'text'; text: string }
+  | { type: 'math'; tex: string }
+  | { type: 'image'; assetId: string }
+
+export interface QuestionOption {
+  id: string
+  content: QuestionBlock[]
+}
+
+/** Javob kaliti: faqat tahrirlash huquqi bor foydalanuvchiga keladi */
+export interface QuestionAnswer {
+  optionId?: string | null
+  optionIds?: string[]
+  partialCredit?: boolean
+  acceptedAnswers?: string[]
+  rubric?: string
+}
+
+export interface QuestionListItem {
+  id: string
+  subjectId: string
+  subjectName: string | null
+  topicId: string
+  topicName: string | null
+  difficulty: QuestionDifficulty
+  type: QuestionType
+  points: number
+  status: QuestionStatus
+  version: number
+  authorId: string
+  authorName: string | null
+  isMine: boolean
+  canEdit: boolean
+  /** Ulashilgan (private emas) */
+  isShared: boolean
+  /** Boshqa muallifning savoli menga ulashilgan */
+  sharedWithMe: boolean
+  preview: string
+  hasMath: boolean
+  hasImage: boolean
+  optionsCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Question extends Omit<
+  QuestionListItem,
+  'preview' | 'hasMath' | 'hasImage' | 'optionsCount'
+> {
+  content: QuestionBlock[]
+  options: QuestionOption[]
+  /** Ko'ra oladigan har kim oladi (ulashish muallif ruxsati bilan) */
+  answer?: QuestionAnswer
+  /** Faqat tahrir huquqi borlarga */
+  sharing?: QuestionSharing
+}
+
+export type SharingMode = 'private' | 'subject' | 'users'
+export interface QuestionSharing {
+  mode: SharingMode
+  userIds: string[]
+}
+
+export interface ShareTeacher {
+  id: string
+  fullName: string
+  teachesSubject: boolean
+}
+
+export interface QuestionPayload {
+  /** Mavzu majburiy; fan mavzudan olinadi */
+  topicId: string
+  difficulty: QuestionDifficulty
+  type: QuestionType
+  content: QuestionBlock[]
+  options: QuestionOption[]
+  answer: QuestionAnswer
+  points: number
+  status: 'draft' | 'active'
+  sharing: QuestionSharing
+}
+
+export interface QuestionListParams extends PageParams {
+  subjectId?: string
+  topicId?: string
+  difficulty?: number
+  type?: QuestionType
+  status?: QuestionStatus
+  mine?: boolean
+  shared?: boolean
+  search?: string
+}
+
+export interface ExamSubjectCard {
+  id: string
+  name: string
+  isActive: boolean
+  topicsCount: number
+  /** Foydalanuvchiga ko'rinadigan savollar soni */
+  questionsCount: number
+}
+
+export interface ExamSubjectsResponse {
+  scope: 'all' | 'own'
+  subjects: ExamSubjectCard[]
+}
+
+export interface ExamTopic {
+  id: string
+  subjectId: string
+  subjectName: string | null
+  name: string
+  description: string
+  order: number
+  createdBy: string
+  createdByName: string | null
+  isMine: boolean
+  questionsCount: number
+  isEmpty: boolean
+  canEdit: boolean
+  canDelete: boolean
+}
+
+export interface ExamTopicsResponse {
+  subject: { id: string; name: string; isActive: boolean }
+  topics: ExamTopic[]
+}
+
+export interface ExamAssetInfo {
+  id: string
+  contentType: string
+  size: number
+  width: number
+  height: number
+}
+
+// ---- Savollar importi (Excel / Word) ----
+export interface ExamImportItem {
+  row: number
+  subjectName: string | null
+  subjectId: string | null
+  difficulty: number
+  type: QuestionType | null
+  points: number
+  content: QuestionBlock[]
+  options: QuestionOption[]
+  answer: QuestionAnswer
+  errors: string[]
+  warnings: string[]
+}
+
+export interface ExamImportPreview {
+  id: string
+  kind: 'excel' | 'word'
+  fileName: string
+  expiresAt: string
+  consumed: boolean
+  warnings: string[]
+  stats: { total: number; valid: number; invalid: number }
+  items: ExamImportItem[]
+  /** Import nishoni */
+  topic: { id: string; name: string; subjectName: string | null }
+}
+
+export interface ExamImportOverride {
+  row: number
+  type?: QuestionType
+  difficulty?: number
+  points?: number
+  answer?: QuestionAnswer
+}
+
+export interface ExamImportResult {
+  created: number
+  failed: { row: number; errors: string[] }[]
+  excluded: number
+  total: number
+  replay?: boolean
+}

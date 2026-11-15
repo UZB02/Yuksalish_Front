@@ -62,6 +62,7 @@ describe('SettingsView: yon menyu guruhlari (rollar)', () => {
       'rating',
       'attendance',
       'timetable',
+      'exams',
       'public',
       'branding',
       'telegram',

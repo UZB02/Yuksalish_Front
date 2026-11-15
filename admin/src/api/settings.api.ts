@@ -2,6 +2,7 @@ import { http } from './http'
 import type {
   ApiSuccess,
   AttendanceSettings,
+  ExamsSettings,
   PublicSettings,
   RatingSettings,
   SaveScoringSettingsPayload,
@@ -13,7 +14,8 @@ import type {
   TimetableAttendanceSettings,
 } from './types'
 
-export type SettingsKind = 'scoring' | 'rating' | 'public' | 'attendance' | 'timetable' | 'telegram'
+export type SettingsKind =
+  'scoring' | 'rating' | 'public' | 'attendance' | 'timetable' | 'telegram' | 'exams'
 
 interface SettingsMap {
   scoring: ScoringSettings
@@ -22,6 +24,7 @@ interface SettingsMap {
   attendance: AttendanceSettings
   timetable: TimetableAttendanceSettings
   telegram: TelegramMessageSettings
+  exams: ExamsSettings
 }
 
 export const settingsApi = {

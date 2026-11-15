@@ -3,6 +3,7 @@ import type { Role } from '@/api/types'
 import { NAV_ITEMS } from '@/constants/navigation'
 import { useAuthStore } from '@/stores/auth'
 import { useBrandingStore } from '@/stores/branding'
+import { useFeaturesStore, type FeatureKey } from '@/stores/features'
 import { i18n } from '@/i18n'
 
 declare module 'vue-router' {
@@ -21,6 +22,8 @@ declare module 'vue-router' {
      * ekran kengligini egallaydi (jadval/ro'yxatlar sidebar yig'ilganda kengayadi).
      */
     narrow?: boolean
+    /** Modul maktab uchun yoqilgan bo'lishi shart (masalan, 'exams'); aks holda ruxsat yo'q */
+    feature?: FeatureKey
   }
 }
 
@@ -31,13 +34,16 @@ export interface AccessContext {
   networkError?: boolean
   hasRole: (roles?: Role[]) => boolean
   hasPermission: (permission?: string) => boolean
+  /** Modul (feature flag) joriy maktab uchun yoqilganmi. Berilmasa, feature talab qilgan sahifalar yopiq. */
+  isFeatureEnabled?: (feature: FeatureKey) => boolean
 }
 
 export function canAccess(
-  ctx: Pick<AccessContext, 'hasRole' | 'hasPermission'>,
-  meta: Pick<RouteMeta, 'roles' | 'permission' | 'anyPermission'>,
+  ctx: Pick<AccessContext, 'hasRole' | 'hasPermission' | 'isFeatureEnabled'>,
+  meta: Pick<RouteMeta, 'roles' | 'permission' | 'anyPermission' | 'feature'>,
 ): boolean {
   if (!ctx.hasRole(meta.roles) || !ctx.hasPermission(meta.permission)) return false
+  if (meta.feature && !ctx.isFeatureEnabled?.(meta.feature)) return false
   if (meta.anyPermission && meta.anyPermission.length > 0) {
     return meta.anyPermission.some((p) => ctx.hasPermission(p))
   }
@@ -105,12 +111,27 @@ export function resolveAccess(
   return true
 }
 
+/** Guard va menyu uchun kontekst: auth + modul (feature) holati */
+export function accessContext(): AccessContext {
+  const auth = useAuthStore()
+  const features = useFeaturesStore()
+  return {
+    isAuthenticated: auth.isAuthenticated,
+    networkError: auth.networkError,
+    hasRole: auth.hasRole,
+    hasPermission: auth.hasPermission,
+    isFeatureEnabled: features.isEnabled,
+  }
+}
+
 export function installGuards(router: Router) {
   router.beforeEach(async (to) => {
     const auth = useAuthStore()
     // Sessiyani (httpOnly refresh cookie orqali) bir marta tiklaymiz.
     if (!auth.initialized) await auth.init()
-    return resolveAccess(to, auth)
+    // Modul darvozasi: sahifa feature talab qilsa, joriy maktab sozlamasi avval yuklanadi
+    if (auth.isAuthenticated && to.meta.feature) await useFeaturesStore().load()
+    return resolveAccess(to, accessContext())
   })
 
   router.afterEach((to) => {

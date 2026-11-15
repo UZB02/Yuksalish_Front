@@ -17,6 +17,8 @@ import {
   Users,
   UserCheck,
   Library,
+  FileQuestion,
+  ClipboardList,
   Settings2,
   LayoutDashboard,
   School as SchoolIcon,
@@ -30,10 +32,11 @@ import {
   UserRoundCheck,
 } from 'lucide-vue-next'
 import type { Role } from '@/api/types'
+import type { FeatureKey } from '@/stores/features'
 import { PERMISSIONS } from './permissions'
 
 export type NavGroupKey =
-  'myWork' | 'academic' | 'grading' | 'attendance' | 'results' | 'reference' | 'system'
+  'myWork' | 'academic' | 'grading' | 'attendance' | 'exams' | 'results' | 'reference' | 'system'
 
 export interface NavGroup {
   key: NavGroupKey
@@ -47,6 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { key: 'academic', labelKey: 'nav.groups.academic', icon: GraduationCap },
   { key: 'grading', labelKey: 'nav.groups.grading', icon: ClipboardCheck },
   { key: 'attendance', labelKey: 'nav.groups.attendance', icon: CalendarCheck },
+  { key: 'exams', labelKey: 'nav.groups.exams', icon: ClipboardList },
   { key: 'results', labelKey: 'nav.groups.results', icon: Trophy },
   { key: 'reference', labelKey: 'nav.groups.reference', icon: Library },
   { key: 'system', labelKey: 'nav.groups.system', icon: Settings2 },
@@ -62,6 +66,10 @@ export interface NavItem {
   roles?: Role[]
   permission?: string
   anyPermission?: string[]
+  /** Shu yo'l prefikslaridagi sahifalar ham ushbu bandni faol qiladi (ichki sahifalar) */
+  activePrefixes?: string[]
+  /** Modul maktab uchun yoqilgan bo'lsa ko'rinadi (feature flag) */
+  feature?: FeatureKey
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -249,6 +257,15 @@ export const NAV_ITEMS: NavItem[] = [
     permission: PERMISSIONS.TIMETABLE_SUBSTITUTE,
   },
   {
+    name: 'exam-questions',
+    group: 'exams',
+    labelKey: 'nav.examQuestions',
+    icon: FileQuestion,
+    anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+    feature: 'exams',
+    activePrefixes: ['/exams/'],
+  },
+  {
     name: 'superadmins',
     group: 'system',
     labelKey: 'nav.superadmins',
@@ -280,6 +297,7 @@ export const NAV_DISPLAY_ORDER: string[] = [
   'attendance-history',
   'ratings',
   'reports',
+  'exam-questions',
   'subjects',
   'behavior-types',
   'attendance-statuses',

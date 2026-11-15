@@ -45,6 +45,8 @@ const props = defineProps<{
   warnings?: (before: T, after: T) => string[]
 }>()
 
+const emit = defineEmits<{ saved: [] }>()
+
 defineSlots<{
   fields(p: {
     scope: 'global' | 'school'
@@ -124,6 +126,7 @@ async function persistGlobal(values: T | null) {
       values: values as never,
     })) as unknown as SettingsResponse<T>
     applyGlobal(res)
+    emit('saved')
     return true
   } catch (e) {
     // Maktab override'lari bilan ziddiyat (400) - server xabari formada ko'rsatiladi.
@@ -197,8 +200,15 @@ const pendingOverride = computed(() =>
 const schoolChanged = computed(() =>
   diffValues(savedMerged.value, mergeValues(schoolGlobal.value, pendingOverride.value), props.keys),
 )
+// Faqat global kalitlar (masalan, maktab admini yoza olmaydigan 'enabled') solishtirishga kirmaydi
+const comparableSaved = computed(() => {
+  const saved = schoolSavedOverride.value
+  if (!saved || !props.globalOnlyKeys?.length) return saved
+  const rest = omitKeys(saved, props.globalOnlyKeys)
+  return Object.keys(rest).length > 0 ? rest : null
+})
 const overrideChanged = computed(
-  () => JSON.stringify(pendingOverride.value) !== JSON.stringify(schoolSavedOverride.value),
+  () => JSON.stringify(pendingOverride.value) !== JSON.stringify(comparableSaved.value),
 )
 const schoolHasErrors = computed(() =>
   // Faqat override qilingan maydonlar xatosi saqlashni to'sadi.
@@ -249,6 +259,7 @@ async function persistSchool(values: Partial<T> | null) {
       values: values ? (omitKeys(values, props.globalOnlyKeys ?? []) as never) : null,
     })
     await loadSchool()
+    emit('saved')
     return true
   } catch (e) {
     if (applyServerErrors(e, (m) => (schoolFieldErrors.value = m), props.keys)) return false

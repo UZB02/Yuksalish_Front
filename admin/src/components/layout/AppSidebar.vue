@@ -10,6 +10,7 @@ import type { NavGroup, NavGroupKey, NavItem } from '@/constants/navigation'
 import { canAccess } from '@/router/guards'
 import { useAuthStore } from '@/stores/auth'
 import { useBrandingStore } from '@/stores/branding'
+import { useFeaturesStore } from '@/stores/features'
 import { useUiStore } from '@/stores/ui'
 import SidebarNavLink from './SidebarNavLink.vue'
 
@@ -17,6 +18,7 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const ui = useUiStore()
 const branding = useBrandingStore()
+const features = useFeaturesStore()
 const route = useRoute()
 const router = useRouter()
 const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -24,10 +26,18 @@ const closeBtn = ref<HTMLButtonElement | null>(null)
 
 const OPEN_GROUP_KEY = 'sidebar-open-group'
 
+// Imtihon moduli (feature flag): maktab uchun yoqilmagan bo'lsa bandlari ko'rinmaydi
 const items = computed(() =>
-  NAV_ITEMS.filter((i) => canAccess(auth, i)).sort(
-    (a, b) => NAV_DISPLAY_ORDER.indexOf(a.name) - NAV_DISPLAY_ORDER.indexOf(b.name),
-  ),
+  NAV_ITEMS.filter((i) =>
+    canAccess(
+      {
+        hasRole: auth.hasRole,
+        hasPermission: auth.hasPermission,
+        isFeatureEnabled: features.isEnabled,
+      },
+      i,
+    ),
+  ).sort((a, b) => NAV_DISPLAY_ORDER.indexOf(a.name) - NAV_DISPLAY_ORDER.indexOf(b.name)),
 )
 
 /** Guruhsiz bandlar (tepada) va ko'rinadigan bandlari bor guruhlar (tartib bilan). */
@@ -50,6 +60,8 @@ type Entry =
 function activeItem(): NavItem | null {
   const exact = NAV_ITEMS.find((i) => i.name === route.name)
   if (exact) return exact
+  const byPrefix = NAV_ITEMS.find((i) => i.activePrefixes?.some((p) => route.path.startsWith(p)))
+  if (byPrefix) return byPrefix
   let best: NavItem | null = null
   let bestLen = -1
   for (const i of NAV_ITEMS) {

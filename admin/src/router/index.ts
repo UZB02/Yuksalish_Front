@@ -75,6 +75,66 @@ const router = createRouter({
           meta: { roles: ['superadmin'], titleKey: 'nav.schoolAdmins' },
         },
         {
+          path: 'exams/questions',
+          name: 'exam-questions',
+          component: () => import('@/views/exams/ExamSubjectsView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'nav.examQuestions',
+          },
+        },
+        {
+          path: 'exams/subjects/:subjectId',
+          name: 'exam-subject',
+          component: () => import('@/views/exams/SubjectTopicsView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'exams.topics.pageTitle',
+          },
+        },
+        {
+          path: 'exams/topics/:topicId',
+          name: 'exam-topic',
+          component: () => import('@/views/exams/QuestionsView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'exams.questions.title',
+          },
+        },
+        {
+          path: 'exams/questions/new',
+          name: 'exam-question-create',
+          component: () => import('@/views/exams/QuestionEditorView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'exams.editor.createTitle',
+          },
+        },
+        {
+          path: 'exams/questions/import',
+          name: 'exam-question-import',
+          component: () => import('@/views/exams/QuestionImportView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'exams.import.title',
+          },
+        },
+        {
+          path: 'exams/questions/:id/edit',
+          name: 'exam-question-edit',
+          component: () => import('@/views/exams/QuestionEditorView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'exams.editor.editTitle',
+          },
+        },
+        {
           path: 'superadmins',
           name: 'superadmins',
           component: () => import('@/views/superadmins/SuperadminsView.vue'),

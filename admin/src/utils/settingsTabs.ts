@@ -4,6 +4,7 @@ export type SettingsTabKey =
   | 'public'
   | 'attendance'
   | 'timetable'
+  | 'exams'
   | 'branding'
   | 'schoolLogo'
   | 'telegram'
@@ -14,6 +15,7 @@ export const ALL_SETTINGS_TABS: SettingsTabKey[] = [
   'public',
   'attendance',
   'timetable',
+  'exams',
   'branding',
   'telegram',
 ]
@@ -31,6 +33,8 @@ export function visibleSettingsTabs(
   const tabs: SettingsTabKey[] = hasPermission('attendance.settings')
     ? ['attendance', 'timetable', 'telegram']
     : []
+  // Imtihon sozlamalari: exams.manage li maktab admini (enabled dan tashqari)
+  if (hasPermission('exams.manage')) tabs.push('exams')
   // Maktab logosini faqat maktab admini o'zi boshqaradi (superadmin: Maktablar sahifasida)
   if (isSchoolAdmin) tabs.push('schoolLogo')
   return tabs

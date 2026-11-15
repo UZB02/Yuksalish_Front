@@ -21,10 +21,14 @@ export const PERMISSIONS = {
   TIMETABLE_VIEW: 'timetable.view',
   TIMETABLE_MANAGE: 'timetable.manage',
   TIMETABLE_SUBSTITUTE: 'timetable.substitute',
+  EXAMS_QUESTIONS: 'exams.questions',
+  EXAMS_MANAGE: 'exams.manage',
+  EXAMS_GRADE: 'exams.grade',
+  EXAMS_RESULTS: 'exams.results',
 } as const
 
 /** O'qituvchida doim mavjud ruxsatlar (TZ 4.5.3): ro'yxatda bo'lmasa ham ruxsat beriladi. */
-export const TEACHER_ALWAYS: readonly string[] = ['attendance.take']
+export const TEACHER_ALWAYS: readonly string[] = ['attendance.take', 'exams.questions']
 
 /**
  * Zaxira: /meta/permissions javob bermasa ishlatiladi.
@@ -115,5 +119,24 @@ export const FALLBACK_PERMISSIONS: PermissionMeta[] = [
     group: 'timetable',
     label: 'timetable.substitute',
     roles: ['school_admin'],
+  },
+  {
+    key: 'exams.questions',
+    group: 'exams',
+    label: 'exams.questions',
+    roles: ['school_admin', 'teacher'],
+  },
+  { key: 'exams.manage', group: 'exams', label: 'exams.manage', roles: ['school_admin'] },
+  {
+    key: 'exams.grade',
+    group: 'exams',
+    label: 'exams.grade',
+    roles: ['school_admin', 'teacher'],
+  },
+  {
+    key: 'exams.results',
+    group: 'exams',
+    label: 'exams.results',
+    roles: ['school_admin', 'teacher'],
   },
 ]
