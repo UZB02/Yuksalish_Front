@@ -265,6 +265,7 @@
     "toHome": "Bosh sahifaga qaytish",
     "codes": {
       "VALIDATION_ERROR": "Kiritilgan ma'lumotlar noto'g'ri. Maydonlarni tekshiring.",
+      "INVALID_PASSWORD": "Parol noto'g'ri.",
       "UNAUTHORIZED": "Sessiya tugagan. Qaytadan kiring.",
       "FORBIDDEN": "Bu amalni bajarish uchun ruxsatingiz yo'q.",
       "NOT_FOUND": "So'ralgan ma'lumot topilmadi.",
@@ -388,7 +389,34 @@
     "deactivateTitle": "Maktabni nofaol qilish",
     "deactivateText": "\"{name}\" maktabi nofaol qilinadi. Davom etasizmi?",
     "activated": "Maktab faollashtirildi",
-    "deactivated": "Maktab nofaol qilindi"
+    "deactivated": "Maktab nofaol qilindi",
+    "danger": {
+      "title": "Xavfli hudud",
+      "text": "Maktab va unga tegishli barcha ma'lumotlarni butunlay o'chirish. Bu amalni qaytarib bo'lmaydi.",
+      "button": "Maktabni butunlay o'chirish",
+      "needInactive": "Avval maktabni nofaol qiling",
+      "inProgress": "Oldingi o'chirish yarim yo'lda to'xtagan. Qayta urinib, tugatishingiz mumkin."
+    },
+    "delete": {
+      "title": "Maktabni butunlay o'chirish",
+      "warning": "Bu amalni qaytarib bo'lmaydi. Barcha ma'lumotlar butunlay o'chiriladi.",
+      "loading": "O'chiriladigan ma'lumotlar hisoblanmoqda...",
+      "loadFailed": "O'chiriladigan ma'lumotlar sonini yuklab bo'lmadi",
+      "willDelete": "Quyidagilar butunlay o'chiriladi:",
+      "total": "Jami hujjatlar: {count}",
+      "nothing": "Maktabda ma'lumot yo'q",
+      "notInactive": "Maktab faol. Avval uni nofaol qiling.",
+      "confirmName": "Tasdiqlash uchun maktab nomini kiriting: {name}",
+      "nameMismatch": "Maktab nomi aynan mos kelishi kerak",
+      "password": "Parolingiz",
+      "passwordHint": "Xavfsizlik uchun amalni o'z parolingiz bilan tasdiqlang",
+      "passwordRequired": "Parolni kiriting",
+      "acknowledge": "Bu amalni qaytarib bo'lmasligini tushunaman",
+      "submit": "Butunlay o'chirish",
+      "done": "Maktab butunlay o'chirildi",
+      "wrongPassword": "Parol noto'g'ri",
+      "rateLimited": "Parol urinishlari juda ko'p. Birozdan so'ng qayta urinib ko'ring."
+    }
   },
   "superadmins": {
     "title": "Superadminlar",

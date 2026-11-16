@@ -2,6 +2,7 @@ export type Role = 'superadmin' | 'school_admin' | 'teacher'
 
 export type ErrorCode =
   | 'VALIDATION_ERROR'
+  | 'INVALID_PASSWORD'
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
@@ -128,7 +129,32 @@ export interface School {
   logoUrl: string | null
   hasUploadedLogo?: boolean
   isActive: boolean
+  /** Butunlay o'chirish boshlangan vaqt (yarim yo'lda to'xtagan bo'lsa); aks holda null */
+  deletingAt?: string | null
   createdAt: string
+}
+
+/** Maktabni butunlay o'chirishdan oldingi ko'rinish: nimalar o'chishi (sonlar) */
+export interface SchoolDeletePreview {
+  school: { id: string; name: string; slug: string; isActive: boolean; deletingAt: string | null }
+  items: { key: string; label: string; count: number }[]
+  total: number
+  users: { teachers: number; schoolAdmins: number }
+  superadminsSkipped: number
+}
+
+export interface SchoolDeletePayload {
+  confirmName: string
+  password: string
+  acknowledge: true
+}
+
+export interface SchoolDeleteResult {
+  deleted: true
+  school: { id: string; name: string }
+  counts: Record<string, number>
+  total: number
+  resumed: boolean
 }
 
 export interface BrandingIcons {

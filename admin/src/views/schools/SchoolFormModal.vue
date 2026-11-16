@@ -10,13 +10,15 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import LogoUploader from '@/components/ui/LogoUploader.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { applyServerErrors, errorMessage } from '@/utils/errors'
 import { slugify } from '@/utils/slug'
 import { schoolSchema } from '@/validation/schemas'
+import SchoolDeleteModal from './SchoolDeleteModal.vue'
 
 const props = defineProps<{ open: boolean; school: School | null }>()
-const emit = defineEmits<{ close: []; saved: [school: School] }>()
+const emit = defineEmits<{ close: []; saved: [school: School]; deleted: [id: string] }>()
 
 const { t } = useI18n()
 const toast = useToast()
@@ -26,6 +28,15 @@ const isEdit = computed(() => !!props.school)
 // Yuklangan logo (tahrirlashda): URL maydoni o'rniga yuklagich ko'rsatiladi
 const current = ref<School | null>(null)
 const hasUploaded = computed(() => !!current.value?.hasUploadedLogo)
+
+// Xavfli hudud: maktabni butunlay o'chirish (faqat superadmin, faqat nofaol maktab uchun)
+const auth = useAuthStore()
+const deleteOpen = ref(false)
+const canDelete = computed(() => !!props.school && !props.school.isActive)
+function onDeleted(id: string) {
+  emit('deleted', id)
+  emit('close')
+}
 
 const { errors, defineField, handleSubmit, resetForm, setErrors, setFieldValue } = useForm({
   validationSchema: toTypedSchema(schoolSchema(t)),
@@ -169,6 +180,30 @@ const onSubmit = handleSubmit(async (values) => {
         :error="errors.logoUrl"
       />
     </form>
+    <section
+      v-if="isEdit && school && auth.isSuperadmin"
+      class="mt-6 rounded-lg border border-danger/60 p-4"
+      data-testid="school-danger-zone"
+    >
+      <h3 class="text-sm font-semibold text-danger">{{ t('schools.danger.title') }}</h3>
+      <p class="mt-1 text-sm text-fg-muted">{{ t('schools.danger.text') }}</p>
+      <p v-if="school.deletingAt" class="mt-1 text-sm text-danger">
+        {{ t('schools.danger.inProgress') }}
+      </p>
+      <p v-if="!canDelete" class="mt-1 text-xs text-fg-muted">
+        {{ t('schools.danger.needInactive') }}
+      </p>
+      <BaseButton
+        class="mt-3"
+        variant="danger"
+        :disabled="!canDelete"
+        :title="canDelete ? undefined : t('schools.danger.needInactive')"
+        data-testid="school-delete-open"
+        @click="deleteOpen = true"
+      >
+        {{ t('schools.danger.button') }}
+      </BaseButton>
+    </section>
     <template #footer>
       <BaseButton variant="secondary" @click="emit('close')">{{ t('common.cancel') }}</BaseButton>
       <BaseButton type="submit" form="school-form" :loading="submitting">
@@ -176,4 +211,10 @@ const onSubmit = handleSubmit(async (values) => {
       </BaseButton>
     </template>
   </BaseModal>
+  <SchoolDeleteModal
+    :open="deleteOpen"
+    :school="school"
+    @close="deleteOpen = false"
+    @deleted="onDeleted"
+  />
 </template>

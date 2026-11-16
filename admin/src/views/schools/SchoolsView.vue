@@ -85,6 +85,13 @@ async function onSaved() {
   schoolCtx.loadSchools().catch(() => undefined)
 }
 
+/** Maktab butunlay o'chirildi: ro'yxat va switcher yangilanadi, tanlangan bo'lsa tanlov tozalanadi */
+async function onDeleted(id: string) {
+  if (schoolCtx.schoolId === id) schoolCtx.select(null)
+  await list.load()
+  schoolCtx.loadSchools().catch(() => undefined)
+}
+
 async function toggleActive(school: School) {
   const next = !school.isActive
   const ok = await confirm({
@@ -203,5 +210,6 @@ async function toggleActive(school: School) {
     :school="editing"
     @close="modalOpen = false"
     @saved="onSaved"
+    @deleted="onDeleted"
   />
 </template>

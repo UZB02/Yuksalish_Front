@@ -2,6 +2,9 @@ import { deleteData, getData, getPage, postFile, sendData } from './http'
 import type {
   Paginated,
   School,
+  SchoolDeletePayload,
+  SchoolDeletePreview,
+  SchoolDeleteResult,
   SchoolListParams,
   SchoolPayload,
   SchoolUpdatePayload,
@@ -15,4 +18,9 @@ export const schoolsApi = {
     sendData<School>('patch', `/schools/${id}`, payload),
   uploadLogo: (id: string, file: File) => postFile<School>(`/schools/${id}/logo`, file),
   deleteLogo: (id: string) => deleteData<School>(`/schools/${id}/logo`),
+  /** Xavfli: maktabni butunlay o'chirishdan oldin nimalar o'chishini ko'rsatadi (faqat superadmin) */
+  deletePreview: (id: string) => getData<SchoolDeletePreview>(`/schools/${id}/delete-preview`),
+  /** Xavfli: maktab va barcha ma'lumotlarini butunlay o'chiradi (nom + parol + tasdiq) */
+  remove: (id: string, payload: SchoolDeletePayload) =>
+    sendData<SchoolDeleteResult>('post', `/schools/${id}/delete`, payload),
 }
