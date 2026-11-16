@@ -82,8 +82,13 @@ function setPage(p: number) {
   page.value = p
   void load()
 }
+// Qoralama: asosiy amal "Davom ettirish" (ustani server ma'lumotlari bilan ochadi)
 const open = (s: ExamSessionItem) =>
-  void router.push({ name: 'exam-session', params: { id: s.id } })
+  void router.push(
+    s.status === 'draft'
+      ? { name: 'exam-session-edit', params: { id: s.id } }
+      : { name: 'exam-session', params: { id: s.id } },
+  )
 </script>
 
 <template>
@@ -167,6 +172,12 @@ const open = (s: ExamSessionItem) =>
               <span v-if="s.code" class="font-mono text-fg">{{ s.code }}</span>
               <BaseBadge :tone="STATUS_TONE[s.status]" data-testid="session-status">
                 {{ t(`examSessions.status.${s.status}`) }}
+              </BaseBadge>
+              <BaseBadge v-if="s.status === 'draft'" tone="primary" data-testid="session-resume">
+                {{ t('examSessions.wizard.resume') }}
+              </BaseBadge>
+              <BaseBadge v-if="s.timeUp" tone="danger" data-testid="session-time-up">
+                {{ t('examSessions.detail.timeUp') }}
               </BaseBadge>
             </div>
           </button>

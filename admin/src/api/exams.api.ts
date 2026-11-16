@@ -4,6 +4,10 @@ import type {
   ApiSuccess,
   BulkStatusResult,
   ExamAssetInfo,
+  ExamAnalysis,
+  ExamAttemptsResponse,
+  ExamResultDetail,
+  ExamResultsResponse,
   ExamCandidate,
   ExamCandidateBody,
   ExamClassOption,
@@ -159,6 +163,33 @@ export const examsApi = {
     sendData<ExamSession>('post', `${SID(id)}/reject`, { reason }),
   cancelSession: (id: string, reason?: string) =>
     sendData<ExamSession>('post', `${SID(id)}/cancel`, reason ? { reason } : {}),
+  reopenSession: (id: string, body: { reason: string; newEnd: string }) =>
+    sendData<ExamSession & { codeChanged: boolean }>('post', `${SID(id)}/reopen`, body),
+  extendSession: (id: string, body: { minutes: number; reason?: string }) =>
+    sendData<ExamSession>('post', `${SID(id)}/extend`, body),
+  sessionResults: (id: string) => getData<ExamResultsResponse>(`${SID(id)}/results`),
+  resultDetail: (id: string, key: string) => getData<ExamResultDetail>(`${SID(id)}/results/${key}`),
+  gradeEssay: (id: string, key: string, qid: string, body: { points: number; comment: string }) =>
+    sendData<{ earned: number; max: number; essayPending: number }>(
+      'put',
+      `${SID(id)}/results/${key}/essays/${qid}`,
+      body,
+    ),
+  publishResults: (id: string, body: { published: boolean; confirmPending?: boolean }) =>
+    sendData<{ published: boolean; publishedAt: string | null }>(
+      'post',
+      `${SID(id)}/results/publish`,
+      body,
+    ),
+  resultsAnalysis: (id: string) => getData<ExamAnalysis>(`${SID(id)}/results/analysis`),
+  downloadResults: (id: string, format: 'xlsx' | 'pdf') =>
+    downloadFile(`${SID(id)}/results/export`, {
+      params: { format },
+      fallbackName: `natijalar.${format}`,
+    }),
+  sessionAttempts: (id: string) => getData<ExamAttemptsResponse>(`${SID(id)}/attempts`),
+  allowReentry: (id: string, key: string) =>
+    sendData<{ allowReentry: boolean }>('post', `${SID(id)}/participants/${key}/allow-reentry`),
   downloadPinSheet: (id: string, className?: string) =>
     downloadFile(`${SID(id)}/pin-sheet`, {
       params: className ? { class: className } : undefined,

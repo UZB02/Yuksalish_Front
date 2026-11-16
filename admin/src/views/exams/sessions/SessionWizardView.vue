@@ -1,7 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { useConfirm } from '@/composables/useConfirm'
+import { useDirtySource } from '@/composables/useDirtyRegistry'
+import { useAuthStore } from '@/stores/auth'
+import { useSchoolContextStore } from '@/stores/school-context'
+import {
+  clearDraft,
+  draftKey,
+  firstIncompleteStep,
+  loadDraft,
+  saveDraft as saveLocalDraft,
+  type WizardDraft,
+  type WizardFormState,
+} from '@/utils/examWizardDraft'
 import { examsApi } from '@/api/exams.api'
 import type {
   ExamClassOption,
@@ -37,7 +50,10 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const { confirm } = useConfirm()
 const needsSchool = useNeedsSchool()
+const auth = useAuthStore()
+const schoolCtx = useSchoolContextStore()
 
 const STEPS = ['basic', 'questions', 'time', 'participants', 'review'] as const
 const step = ref(0)
@@ -52,6 +68,26 @@ const session = ref<ExamSession | null>(null)
 const preview = ref<ExamSectionsPreview | null>(null)
 const errors = reactive<Record<string, string>>({})
 const saveTemplate = ref(false)
+
+// ---- Brauzerdagi avtosaqlash va chiqishdan himoya ----
+/** Tahrirlanayotgan server qoralamasi id si (/exams/sessions/:id/edit yoki ?id=) */
+const editId = computed(() =>
+  typeof route.params.id === 'string'
+    ? route.params.id
+    : typeof route.query.id === 'string'
+      ? route.query.id
+      : '',
+)
+const isEdit = computed(() => !!editId.value)
+const userId = computed(() => auth.user?.id ?? '')
+const schoolKey = computed(() => schoolCtx.schoolId ?? auth.user?.schoolId ?? '')
+const keyFor = (draftId: string | null) => draftKey(userId.value, schoolKey.value, draftId)
+const pendingLocal = ref<WizardDraft | null>(null)
+/** Oxirgi serverga saqlangan/yuklangan holat (shundan farq = saqlanmagan o'zgarish) */
+const synced = ref('')
+const ready = ref(false)
+const done = ref(false)
+let autosaveTimer: ReturnType<typeof setTimeout> | null = null
 const templateName = ref('')
 
 const form = reactive({
@@ -66,6 +102,7 @@ const form = reactive({
   shuffleQuestions: true,
   shuffleOptions: true,
   resultsMode: 'score' as ExamResultsMode,
+  passPercent: '',
   supervisorIds: [] as string[],
 })
 
@@ -112,6 +149,7 @@ function applySession(s: ExamSession) {
   form.shuffleQuestions = s.shuffleQuestions
   form.shuffleOptions = s.shuffleOptions
   form.resultsMode = s.resultsMode
+  form.passPercent = s.passPercent ? String(s.passPercent) : ''
   form.supervisorIds = s.supervisors.map((x) => x.id)
 }
 
@@ -129,21 +167,99 @@ async function init() {
     subjects.value = subs.subjects.map((s) => ({ id: s.id, name: s.name }))
     templates.value = tpls
     form.type = m.allowedTypes[0] ?? 'quiz'
-    const id = typeof route.query.id === 'string' ? route.query.id : ''
-    if (id) {
-      const s = await examsApi.getSession(id)
-      if (s.status === 'draft') applySession(s)
-    } else if (subs.subjects.length === 1 && isTeacher.value) {
-      form.subjectId = subs.subjects[0]!.id
+    if (isEdit.value) {
+      const s = await examsApi.getSession(editId.value)
+      if (s.status !== 'draft') {
+        toast.error(t('examSessions.wizard.notDraft'))
+        done.value = true // yo'naltirishda chiqish tasdig'i so'ralmasin
+        void router.replace({ name: 'exam-session', params: { id: s.id } })
+        return
+      }
+      applySession(s)
+      await loadClasses()
+      synced.value = formSnapshot()
+      step.value = firstIncompleteStep({
+        title: s.title,
+        sectionsOk: s.sections.length > 0,
+        participants: s.participants.length,
+      })
+      // Brauzerdagi saqlanmagan o'zgarishlar serverdagidan yangi: ular ustun turadi
+      const local = loadDraft(keyFor(s.id))
+      if (local) {
+        restore(local)
+        toast.info(t('examSessions.wizard.localRestored'))
+      }
+    } else {
+      if (subs.subjects.length === 1 && isTeacher.value) form.subjectId = subs.subjects[0]!.id
+      await loadClasses()
+      synced.value = formSnapshot()
+      const local = loadDraft(keyFor(null))
+      if (local) pendingLocal.value = local
     }
-    await loadClasses()
   } catch (e) {
     loadError.value = errorMessage(e, t)
   } finally {
     loading.value = false
+    ready.value = true
   }
 }
 onMounted(init)
+
+const formSnapshot = () => JSON.stringify(form)
+const dirty = computed(() => ready.value && !done.value && formSnapshot() !== synced.value)
+
+function restore(d: WizardDraft) {
+  Object.assign(form, JSON.parse(JSON.stringify(d.form)) as WizardFormState)
+  step.value = d.step
+  // Eski sinf/fan tanlovi hozirgi maktabga mos kelmasa loadClasses o'zi filtrlaydi
+  void loadClasses()
+}
+function resumeLocal() {
+  if (!pendingLocal.value) return
+  restore(pendingLocal.value)
+  pendingLocal.value = null
+}
+function discardLocal() {
+  clearDraft(keyFor(null))
+  pendingLocal.value = null
+}
+
+function persistLocal() {
+  if (!ready.value || done.value || pendingLocal.value) return
+  const k = keyFor(session.value?.id ?? null)
+  if (!dirty.value) clearDraft(k)
+  else saveLocalDraft(k, step.value, form)
+}
+watch([() => JSON.stringify(form), step, () => session.value?.id], () => {
+  if (autosaveTimer) clearTimeout(autosaveTimer)
+  autosaveTimer = setTimeout(persistLocal, 500)
+})
+onBeforeUnmount(() => {
+  if (autosaveTimer) {
+    clearTimeout(autosaveTimer)
+    persistLocal() // chiqishda oxirgi holat ham yoziladi
+  }
+})
+
+useDirtySource(() => dirty.value)
+onBeforeRouteLeave(async () => {
+  if (!dirty.value) return true
+  return confirm({
+    title: t('examSessions.wizard.leaveTitle'),
+    message: t('examSessions.wizard.leaveText'),
+    confirmText: t('examSessions.wizard.leave'),
+    cancelText: t('examSessions.wizard.stay'),
+  })
+})
+const beforeUnload = (e: BeforeUnloadEvent) => {
+  if (dirty.value) {
+    persistLocal()
+    e.preventDefault()
+    e.returnValue = ''
+  }
+}
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 watch(
   () => form.subjectId,
   () => {
@@ -205,6 +321,10 @@ function validate(s: number): boolean {
     }
     if (!Number.isInteger(dur) || dur < 5 || dur > 600)
       errors.duration = t('examSessions.errors.durationRange')
+    const pp = form.passPercent.trim()
+    if (pp && (!/^\d+$/.test(pp) || Number(pp) < 1 || Number(pp) > 100)) {
+      errors.passPercent = t('examSessions.wizard.passPercentRange')
+    }
   }
   if (s === 3 && (session.value?.participants.length ?? 0) === 0) {
     errors.participants = t('examSessions.errors.participantsRequired')
@@ -223,15 +343,21 @@ const body = () => ({
   shuffleQuestions: form.shuffleQuestions,
   shuffleOptions: form.shuffleOptions,
   resultsMode: form.resultsMode,
+  passPercent: form.passPercent.trim() ? Number(form.passPercent) : null,
   supervisorIds: form.supervisorIds,
 })
 
 async function saveDraft(): Promise<boolean> {
   saving.value = true
   try {
+    const wasNew = !session.value
     session.value = session.value
       ? await examsApi.updateSession(session.value.id, body())
       : await examsApi.createSession(body())
+    synced.value = formSnapshot()
+    // Server qoralamasi yaratildi: mahalliy nusxa endi uning id si ostida yuritiladi
+    if (wasNew) clearDraft(keyFor(null))
+    clearDraft(keyFor(session.value.id))
     return true
   } catch (e) {
     toast.error(errorMessage(e, t))
@@ -294,6 +420,10 @@ async function submit() {
           : 'examSessions.toast.scheduled',
       ),
     )
+    done.value = true
+    if (autosaveTimer) clearTimeout(autosaveTimer)
+    clearDraft(keyFor(null))
+    clearDraft(keyFor(s.id))
     void router.replace({ name: 'exam-session', params: { id: s.id } })
   } catch (e) {
     toast.error(errorMessage(e, t))
@@ -348,6 +478,33 @@ const classNames = computed(() =>
         {{ i + 1 }}. {{ t(`examSessions.wizard.steps.${s}`) }}
       </li>
     </ol>
+
+    <div
+      v-if="pendingLocal"
+      class="mb-4 rounded-lg border border-warning bg-warning-soft p-4 text-sm"
+      data-testid="resume-banner"
+    >
+      <p class="font-medium text-fg">
+        {{ t('examSessions.wizard.resumeTitle') }}
+        <span class="font-normal text-fg-muted">
+          ({{ pendingLocal.form.title || t('examSessions.wizard.untitled') }},
+          {{ fmtDateTime(pendingLocal.savedAt) }})
+        </span>
+      </p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <BaseButton size="sm" data-testid="resume-continue" @click="resumeLocal">
+          {{ t('examSessions.wizard.resumeContinue') }}
+        </BaseButton>
+        <BaseButton
+          size="sm"
+          variant="secondary"
+          data-testid="resume-discard"
+          @click="discardLocal"
+        >
+          {{ t('examSessions.wizard.resumeDiscard') }}
+        </BaseButton>
+      </div>
+    </div>
 
     <div class="card space-y-5 p-4 sm:p-6">
       <!-- 1: asosiy -->
@@ -480,6 +637,17 @@ const classNames = computed(() =>
           :options="resultsOptions"
           data-testid="wz-results"
         />
+        <BaseInput
+          v-model="form.passPercent"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          max="100"
+          :label="t('examSessions.wizard.passPercent')"
+          :error="errors.passPercent"
+          data-testid="wz-pass"
+        />
+        <p class="-mt-2 text-xs text-fg-muted">{{ t('examSessions.wizard.passPercentHint') }}</p>
         <fieldset>
           <legend class="mb-1.5 text-sm font-medium text-fg">
             {{ t('examSessions.wizard.supervisors') }}

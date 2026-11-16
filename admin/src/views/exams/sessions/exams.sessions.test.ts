@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
@@ -7,6 +7,7 @@ import uz from '@/locales/uz.json'
 import type { ExamSession, ExamSessionMeta, User } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 
 const api = {
   sessionMeta: vi.fn(),
@@ -26,6 +27,10 @@ const api = {
   cancelSession: vi.fn(),
   removeSession: vi.fn(),
   downloadPinSheet: vi.fn(),
+  sessionAttempts: vi.fn(),
+  reopenSession: vi.fn(),
+  extendSession: vi.fn(),
+  allowReentry: vi.fn(),
   grantTime: vi.fn(),
   regeneratePin: vi.fn(),
   removeParticipant: vi.fn(),
@@ -105,6 +110,12 @@ const session = (over: Partial<ExamSession> = {}): ExamSession => ({
   canCancel: true,
   canPrint: true,
   canDelete: false,
+  canReopen: false,
+  canExtend: false,
+  canViewResults: false,
+  timeUp: false,
+  passPercent: null,
+  resultsPublished: false,
   templateId: null,
   sections: [],
   participants: [
@@ -145,6 +156,8 @@ async function mountView(
       { path: '/exams/sessions', name: 'exam-sessions', component: empty },
       { path: '/exams/sessions/new', name: 'exam-session-new', component: empty },
       { path: '/exams/sessions/:id', name: 'exam-session', component: empty },
+      { path: '/exams/sessions/:id/results', name: 'exam-session-results', component: empty },
+      { path: '/exams/sessions/:id/edit', name: 'exam-session-edit', component: empty },
       { path: '/exams/topics/:topicId', name: 'exam-topic', component: empty },
     ],
   })
@@ -154,12 +167,19 @@ async function mountView(
     { template: '<RouterView />' },
     { global: { plugins: [pinia, i18n, router] }, attachTo: document.body },
   )
+  mounted.push(w)
   await flushPromises()
   return { w, router }
 }
 
+const mounted: { unmount: () => void }[] = []
+afterEach(() => {
+  while (mounted.length) mounted.pop()!.unmount()
+})
+
 beforeEach(() => {
   document.body.innerHTML = ''
+  localStorage.clear()
   vi.clearAllMocks()
   api.sessionMeta.mockResolvedValue(meta())
   api.subjects.mockResolvedValue({ scope: 'own', subjects: [{ id: 'math', name: 'Matematika' }] })
@@ -350,6 +370,9 @@ describe('SessionWizardView (imtihon yaratish ustasi)', () => {
     const { w } = await mountView(SessionWizardView, '/exams/sessions/new?id=e1')
     // qoralama id bilan ochiladi va maydonlar to'ldiriladi
     expect(api.getSession).toHaveBeenCalledWith('e1')
+    // sarlavha bor, savollar yo'q: birinchi to'ldirilmagan qadam (2)
+    expect(w.find('[data-testid="step-questions"]').exists()).toBe(true)
+    await w.get('[data-testid="wz-back"]').trigger('click')
     expect((w.get('[data-testid="wz-title"]').element as HTMLInputElement).value).toBe('Nazorat 1')
   })
 
@@ -499,6 +522,116 @@ describe('SessionDetailView (imtihon sahifasi)', () => {
     expect(api.grantTime).toHaveBeenCalledWith('e1', 'k1', { fullTime: true, extraMinutes: 10 })
   })
 
+  it('urinishlar: holat, javoblar soni, ogohlantirishlar va kirish urinishlari ogohlantirishi; qayta kirishga ruxsat', async () => {
+    api.sessionAttempts.mockResolvedValue({
+      items: [
+        {
+          key: 'k1',
+          status: 'in_progress',
+          answered: 3,
+          total: 6,
+          startedAt: null,
+          submittedAt: null,
+          deadline: null,
+          lastSeenAt: null,
+          warnings: 4,
+          reconnects: 1,
+          allowReentry: false,
+        },
+      ],
+      joinAlert: { failures: 210, lastAt: null, alertAt: '2026-12-01T05:00:00.000Z' },
+    })
+    api.allowReentry.mockResolvedValue({ allowReentry: true })
+    const { w } = await at('school_admin')
+    expect(w.get('[data-testid="attempt-status"]').text()).toBe(
+      uz.examSessions.attempt.statuses.in_progress,
+    )
+    expect(w.get('[data-testid="attempt-answered"]').text()).toBe('3 / 6')
+    expect(w.get('[data-testid="attempt-warnings"]').text()).toBe('4')
+    expect(w.get('[data-testid="join-alert"]').text()).toContain('210')
+    const c = useConfirm()
+    await w.get('[data-testid="allow-reentry"]').trigger('click')
+    await flushPromises()
+    expect(c.state.open).toBe(true)
+    c.settle(true)
+    await flushPromises()
+    expect(api.allowReentry).toHaveBeenCalledWith('e1', 'k1')
+  })
+
+  it('urinishlar yuklanmasa jadval holat ustunlarisiz ko`rinadi', async () => {
+    api.sessionAttempts.mockRejectedValue(new Error('x'))
+    const { w } = await at('school_admin')
+    expect(w.find('[data-testid="attempt-status"]').exists()).toBe(false)
+    expect(w.find('[data-testid="participant-row"]').exists()).toBe(true)
+  })
+
+  it('Natijalar tugmasi canViewResults ga bog`liq; bosilganda natijalar sahifasiga o`tadi', async () => {
+    api.getSession.mockResolvedValue(session({ canViewResults: false }))
+    const a = await at('school_admin')
+    expect(a.w.find('[data-testid="act-results"]').exists()).toBe(false)
+    api.getSession.mockResolvedValue(session({ canViewResults: true }))
+    const { w, router } = await at('school_admin')
+    await router.isReady()
+    await w.get('[data-testid="act-results"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('exam-session-results')
+  })
+
+  it('"Vaqti tugagan" belgisi faqat timeUp bo`lganda', async () => {
+    api.getSession.mockResolvedValue(session({ status: 'open', timeUp: false }))
+    expect((await at('school_admin')).w.find('[data-testid="time-up"]').exists()).toBe(false)
+    api.getSession.mockResolvedValue(session({ status: 'open', timeUp: true }))
+    const { w } = await at('school_admin')
+    expect(w.get('[data-testid="time-up"]').text()).toBe(uz.examSessions.detail.timeUp)
+    expect(w.get('[data-testid="detail-status"]').text()).toBe(uz.examSessions.status.open)
+  })
+
+  it('Qayta ochish: faqat canReopen; sabab va kelajakdagi vaqt majburiy; yangi kod haqida xabar', async () => {
+    api.getSession.mockResolvedValue(session({ status: 'closed', canReopen: false }))
+    expect((await at('school_admin')).w.find('[data-testid="act-reopen"]').exists()).toBe(false)
+    api.getSession.mockResolvedValue(session({ status: 'closed', canReopen: true }))
+    api.reopenSession.mockResolvedValue({
+      ...session({ status: 'open', code: '654321' }),
+      codeChanged: true,
+    })
+    const { w } = await at('school_admin')
+    await w.get('[data-testid="act-reopen"]').trigger('click')
+    await flushPromises()
+    await click($('reopen-confirm'))
+    expect(api.reopenSession).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain(uz.examSessions.errors.reasonRequired)
+    await setIn('reopen-reason', 'Internet uzilgan')
+    await setIn('reopen-end', '2020-01-01T10:00')
+    await click($('reopen-confirm'))
+    expect(document.body.textContent).toContain(uz.examSessions.errors.newEndPast)
+    expect(api.reopenSession).not.toHaveBeenCalled()
+    await setIn('reopen-end', '2099-01-01T10:00')
+    await click($('reopen-confirm'))
+    expect(api.reopenSession).toHaveBeenCalledWith('e1', {
+      reason: 'Internet uzilgan',
+      newEnd: '2099-01-01T10:00:00+05:00',
+    })
+    expect(JSON.stringify(useToast().toasts)).toContain('654321')
+  })
+
+  it('Hammaga vaqt qo`shish: faqat canExtend; 1..180 tekshiriladi', async () => {
+    api.getSession.mockResolvedValue(session({ status: 'open', canExtend: false }))
+    expect((await at('school_admin')).w.find('[data-testid="act-extend"]').exists()).toBe(false)
+    api.getSession.mockResolvedValue(session({ status: 'open', canExtend: true }))
+    api.extendSession.mockResolvedValue(session({ status: 'open' }))
+    const { w } = await at('school_admin')
+    await w.get('[data-testid="act-extend"]').trigger('click')
+    await flushPromises()
+    await setIn('extend-minutes', '500')
+    await click($('extend-confirm'))
+    expect(api.extendSession).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain(uz.examSessions.errors.minutesRange)
+    await setIn('extend-minutes', '20')
+    await setIn('extend-reason', 'Nosozlik')
+    await click($('extend-confirm'))
+    expect(api.extendSession).toHaveBeenCalledWith('e1', { minutes: 20, reason: 'Nosozlik' })
+  })
+
   it('PIN ni yangilash tasdiq bilan', async () => {
     api.regeneratePin.mockResolvedValue({ regenerated: true })
     const { w } = await at('school_admin')
@@ -569,5 +702,258 @@ describe('CandidatesView (nomzodlar)', () => {
         parentPhone: '+998901234567',
       }),
     )
+  })
+})
+
+describe('Usta: avtosaqlash, tiklash va chiqishdan himoya', () => {
+  const KEY = 'exam.wizard.v1:u1:s1:new'
+  const validDraft = (over: Record<string, unknown> = {}) => ({
+    v: 1,
+    savedAt: new Date().toISOString(),
+    step: 2,
+    form: {
+      type: 'quiz',
+      title: 'Saqlangan nazorat',
+      subjectId: 'math',
+      classIds: ['c1'],
+      templateId: '',
+      sections: [{ title: 'B', items: [{ kind: 'manual', questionIds: ['q1'] }] }],
+      start: '2099-01-01T10:00',
+      durationMin: '45',
+      shuffleQuestions: true,
+      shuffleOptions: false,
+      resultsMode: 'score',
+      passPercent: '60',
+      supervisorIds: [],
+    },
+    ...over,
+  })
+  const seed = (d: unknown, key = KEY) =>
+    localStorage.setItem(key, typeof d === 'string' ? d : JSON.stringify(d))
+  const stored = (key = KEY) =>
+    localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key)!) : null
+
+  it('o`zgarishlar 500 ms debounce bilan qadam va maydonlar bilan saqlanadi', async () => {
+    const { w } = await mountView(SessionWizardView, '/exams/sessions/new')
+    expect(stored()).toBeNull() // o'zgarishsiz yozilmaydi
+    await w.get('[data-testid="wz-title"]').setValue('Yangi nazorat')
+    await w.get('[data-testid="wz-class-c1"] input').setValue(true)
+    expect(stored()).toBeNull() // debounce
+    await sleep(650)
+    expect(stored()).toMatchObject({
+      v: 1,
+      step: 0,
+      form: { title: 'Yangi nazorat', classIds: ['c1'] },
+    })
+    await w.get('[data-testid="wz-next"]').trigger('click')
+    await sleep(650)
+    expect(stored().step).toBe(1)
+    // asl holatga qaytsa yozuv o'chadi
+    await w.get('[data-testid="wz-back"]').trigger('click')
+    await w.get('[data-testid="wz-title"]').setValue('')
+    await w.get('[data-testid="wz-class-c1"] input').setValue(false)
+    await sleep(650)
+    expect(stored()).toBeNull()
+  })
+
+  it('saqlangan qoralama bor: banner; "Davom ettirish" qadam va maydonlarni tiklaydi', async () => {
+    seed(validDraft())
+    const { w } = await mountView(SessionWizardView, '/exams/sessions/new')
+    expect(w.get('[data-testid="resume-banner"]').text()).toContain('Saqlangan nazorat')
+    expect(w.find('[data-testid="wz-title"]').exists()).toBe(true)
+    await w.get('[data-testid="resume-continue"]').trigger('click')
+    await flushPromises()
+    expect(w.find('[data-testid="resume-banner"]').exists()).toBe(false)
+    expect(w.find('[data-testid="step-time"]').exists()).toBe(true) // 3-qadam (indeks 2)
+    expect((w.get('[data-testid="wz-start"]').element as HTMLInputElement).value).toBe(
+      '2099-01-01T10:00',
+    )
+    expect((w.get('[data-testid="wz-duration"]').element as HTMLInputElement).value).toBe('45')
+    expect((w.get('[data-testid="wz-pass"]').element as HTMLInputElement).value).toBe('60')
+    await w.get('[data-testid="wz-back"]').trigger('click')
+    await w.get('[data-testid="wz-back"]').trigger('click')
+    expect((w.get('[data-testid="wz-title"]').element as HTMLInputElement).value).toBe(
+      'Saqlangan nazorat',
+    )
+  })
+
+  it('"Yangidan boshlash" mahalliy qoralamani o`chiradi', async () => {
+    seed(validDraft())
+    const { w } = await mountView(SessionWizardView, '/exams/sessions/new')
+    await w.get('[data-testid="resume-discard"]').trigger('click')
+    expect(w.find('[data-testid="resume-banner"]').exists()).toBe(false)
+    expect(stored()).toBeNull()
+    expect((w.get('[data-testid="wz-title"]').element as HTMLInputElement).value).toBe('')
+  })
+
+  it('buzilgan, eski versiya, muddati o`tgan yoki noto`g`ri tuzilmali ma`lumot e`tiborsiz qoldiriladi va o`chiriladi', async () => {
+    const old = new Date(Date.now() - 8 * 86_400_000).toISOString()
+    const cases: unknown[] = [
+      '{not json',
+      validDraft({ v: 0 }),
+      validDraft({ v: 99 }),
+      validDraft({ savedAt: old }),
+      validDraft({ step: 9 }),
+      { v: 1, savedAt: new Date().toISOString(), step: 1, form: { title: 5 } },
+      validDraft({ form: { ...validDraft().form, sections: [{ title: 1, items: [] }] } }),
+    ]
+    for (const c of cases) {
+      localStorage.clear()
+      seed(c)
+      const { w } = await mountView(SessionWizardView, '/exams/sessions/new')
+      expect(w.find('[data-testid="resume-banner"]').exists(), JSON.stringify(c).slice(0, 60)).toBe(
+        false,
+      )
+      expect(localStorage.getItem(KEY)).toBeNull()
+      w.unmount()
+    }
+  })
+
+  it('boshqa foydalanuvchi/maktab kaliti ostidagi qoralama ko`rinmaydi', async () => {
+    seed(validDraft(), 'exam.wizard.v1:other-user:s1:new')
+    const { w } = await mountView(SessionWizardView, '/exams/sessions/new')
+    expect(w.find('[data-testid="resume-banner"]').exists()).toBe(false)
+  })
+
+  it('chiqishdan himoya: o`zgarish bo`lsa tasdiq so`raladi (Qolish/Chiqish); o`zgarishsiz so`ralmaydi', async () => {
+    const { w, router } = await mountView(SessionWizardView, '/exams/sessions/new')
+    await router.push('/exams/sessions')
+    await flushPromises()
+    expect(useConfirm().state.open).toBe(false) // o'zgarish yo'q
+    await router.push('/exams/sessions/new')
+    await flushPromises()
+    const w2 = mount(
+      { template: '<RouterView />' },
+      { global: { plugins: [router, i18n] }, attachTo: document.body },
+    )
+    await flushPromises()
+    void w
+    await w2.get('[data-testid="wz-title"]').setValue('Yozilgan')
+    const nav = router.push('/exams/sessions')
+    await flushPromises()
+    const c = useConfirm()
+    expect(c.state.open).toBe(true)
+    expect(c.state.options.message).toContain('Imtihon hali saqlanmagan')
+    c.settle(false) // Qolish
+    await nav
+    expect(router.currentRoute.value.path).toBe('/exams/sessions/new')
+    const nav2 = router.push('/exams/sessions')
+    await flushPromises()
+    c.settle(true) // Chiqish
+    await nav2
+    expect(router.currentRoute.value.path).toBe('/exams/sessions')
+    await sleep(100)
+    expect(stored()).toMatchObject({ form: { title: 'Yozilgan' } }) // chiqishda mahalliy nusxa saqlanib qoladi
+  })
+
+  it('beforeunload: o`zgarish bo`lsa ogohlantiradi', async () => {
+    const { w } = await mountView(SessionWizardView, '/exams/sessions/new')
+    const clean = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(clean)
+    expect(clean.defaultPrevented).toBe(false)
+    await w.get('[data-testid="wz-title"]').setValue('X')
+    const dirtyEv = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(dirtyEv)
+    expect(dirtyEv.defaultPrevented).toBe(true)
+  })
+
+  it('server qoralamasini tahrirlash: qadam (ishtirokchi yo`q -> 4-qadam, bor -> tekshirish), PATCH ishlatiladi, POST emas', async () => {
+    api.getSession.mockResolvedValue(
+      session({
+        status: 'draft',
+        sections: [{ title: 'B', items: [{ kind: 'manual', questionIds: ['q1'] }] }],
+        participants: [],
+        code: null,
+        canEdit: true,
+      }),
+    )
+    api.updateSession.mockResolvedValue(session({ status: 'draft', participants: [], code: null }))
+    const { w } = await mountView(
+      SessionWizardView,
+      '/exams/sessions/e1/edit',
+      'teacher',
+      '/exams/sessions/:id/edit',
+    )
+    expect(api.getSession).toHaveBeenCalledWith('e1')
+    expect(w.find('[data-testid="step-participants"]').exists()).toBe(true)
+    expect(w.find('[data-testid="resume-banner"]').exists()).toBe(false)
+    await w.get('[data-testid="wz-back"]').trigger('click') // vaqt
+    await w.get('[data-testid="wz-duration"]').setValue('50')
+    await w.get('[data-testid="wz-next"]').trigger('click')
+    await flushPromises()
+    expect(api.updateSession).toHaveBeenCalledWith(
+      'e1',
+      expect.objectContaining({ durationMin: 50, title: 'Nazorat 1' }),
+    )
+    expect(api.createSession).not.toHaveBeenCalled()
+    // ishtirokchi bor -> tekshirish qadami
+    api.getSession.mockResolvedValue(
+      session({
+        status: 'draft',
+        sections: [{ title: 'B', items: [{ kind: 'manual', questionIds: ['q1'] }] }],
+        code: null,
+      }),
+    )
+    const m = await mountView(
+      SessionWizardView,
+      '/exams/sessions/e1/edit',
+      'teacher',
+      '/exams/sessions/:id/edit',
+    )
+    expect(m.w.find('[data-testid="step-review"]').exists()).toBe(true)
+  })
+
+  it('tahrirlash: mahalliy (yangiroq) o`zgarishlar server ma`lumotlari ustidan tiklanadi; yuborilgach tozalanadi', async () => {
+    api.getSession.mockResolvedValue(session({ status: 'draft', code: null }))
+    api.sessionAction.mockResolvedValue(session({ status: 'scheduled' }))
+    seed(
+      validDraft({ step: 4, form: { ...validDraft().form, title: 'Mahalliy sarlavha' } }),
+      'exam.wizard.v1:u1:s1:e1',
+    )
+    const { w } = await mountView(
+      SessionWizardView,
+      '/exams/sessions/e1/edit',
+      'teacher',
+      '/exams/sessions/:id/edit',
+    )
+    expect(w.find('[data-testid="step-review"]').exists()).toBe(true)
+    expect(w.get('[data-testid="step-review"]').text()).toContain('Mahalliy sarlavha')
+    expect(JSON.stringify(useToast().toasts)).toContain('tiklandi')
+    await w.get('[data-testid="wz-submit"]').trigger('click')
+    await flushPromises()
+    expect(api.sessionAction).toHaveBeenCalledWith('e1', 'submit')
+    await sleep(700)
+    expect(stored('exam.wizard.v1:u1:s1:e1')).toBeNull()
+    expect(stored()).toBeNull()
+  })
+
+  it('qoralama emas sessiya tahrirlanmaydi: tafsilotga yo`naltiriladi', async () => {
+    api.getSession.mockResolvedValue(session({ status: 'scheduled' }))
+    const { router } = await mountView(
+      SessionWizardView,
+      '/exams/sessions/e1/edit',
+      'teacher',
+      '/exams/sessions/:id/edit',
+    )
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('exam-session')
+  })
+
+  it('ro`yxatda qoralama qatori "Davom ettirish": usta tahrirlash rejimida ochiladi', async () => {
+    api.listSessions.mockResolvedValue({
+      items: [
+        session({ id: 'd1', status: 'draft', title: 'Qoralama imtihon', code: null }),
+        session({ id: 'e2' }),
+      ],
+      meta: { page: 1, limit: 20, total: 2, totalPages: 1 },
+    })
+    const { w, router } = await mountView(SessionsView, '/exams/sessions')
+    const rows = w.findAll('[data-testid="session-row"]')
+    expect(rows[0]!.find('[data-testid="session-resume"]').text()).toBe('Davom ettirish')
+    expect(rows[1]!.find('[data-testid="session-resume"]').exists()).toBe(false)
+    await rows[0]!.trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('exam-session-edit')
+    expect(router.currentRoute.value.params.id).toBe('d1')
   })
 })

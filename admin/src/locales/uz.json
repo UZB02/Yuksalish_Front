@@ -2037,6 +2037,14 @@
       "ratingResults": {
         "label": "Reyting yakunlari",
         "hint": "Reyting davri natijasi e'lon qilinganda maktab ma'muriyatiga va tanlagan superadminlarga"
+      },
+      "examResults": {
+        "label": "Imtihon yakunlari",
+        "hint": "Imtihon yopilganda maktab ma'muriyatiga xulosa, tekshirilmagan esse bo'lsa tekshiruvchilarga eslatma"
+      },
+      "examReminders": {
+        "label": "Imtihon eslatmasi",
+        "hint": "Imtihon boshlanishidan 30 daqiqa oldin nazoratchilarga"
       }
     },
     "errors": {
@@ -2517,13 +2525,22 @@
           "reject": "Imtihonni rad etdi",
           "open": "Imtihonni ochdi",
           "close": "Imtihonni yopdi",
-          "cancel": "Imtihonni bekor qildi"
+          "cancel": "Imtihonni bekor qildi",
+          "allow_reentry": "Boshqa qurilmadan qayta kirishga ruxsat berdi",
+          "auto_close": "Imtihon vaqti tugagani uchun avtomatik yopildi",
+          "reopen": "Yopilgan imtihonni qayta ochdi",
+          "extend": "Imtihonga hammaga vaqt qo'shdi",
+          "publish": "Imtihon natijalarini e'lon qilish holatini o'zgartirdi",
+          "export": "Imtihon natijalarini yuklab oldi"
         },
         "candidate": {
           "create": "Nomzod qo'shdi",
           "update": "Nomzodni o'zgartirdi",
           "delete": "Nomzodni o'chirdi",
           "pii_purge": "Nomzodlarning shaxsiy ma'lumotlarini muddati tugagani uchun tozaladi"
+        },
+        "attempt": {
+          "grade": "Esse javobiga ball qo'ydi"
         }
       },
       "telegram": {
@@ -3360,7 +3377,21 @@
       "back": "Orqaga",
       "next": "Keyingi",
       "submit": "Rejalashtirish",
-      "submitApproval": "Tasdiqqa yuborish"
+      "submitApproval": "Tasdiqqa yuborish",
+      "passPercent": "O'tish bali, % (ixtiyoriy)",
+      "passPercentHint": "Natijalarda \"o'tdi / o'tmadi\" shu ball bo'yicha belgilanadi",
+      "passPercentRange": "1 dan 100 gacha butun son kiriting",
+      "notDraft": "Bu imtihon qoralama emas, uni tahrirlab bo'lmaydi",
+      "localRestored": "Brauzerda saqlanmagan o'zgarishlar tiklandi",
+      "leaveTitle": "Imtihon hali saqlanmagan",
+      "leaveText": "Imtihon hali saqlanmagan. Chiqsangiz, kiritilgan ma'lumotlar qoralama sifatida shu brauzerda saqlanib qoladi va keyin davom ettirishingiz mumkin.",
+      "leave": "Chiqish",
+      "stay": "Qolish",
+      "resumeTitle": "Saqlanmagan imtihon bor",
+      "resumeContinue": "Davom ettirish",
+      "resumeDiscard": "Yangidan boshlash",
+      "untitled": "nomsiz",
+      "resume": "Davom ettirish"
     },
     "errors": {
       "titleRequired": "Nomni kiriting",
@@ -3373,7 +3404,10 @@
       "startPast": "Imtihon vaqti o'tib ketgan: kelajakdagi vaqtni tanlang",
       "durationRange": "5 dan 600 gacha butun son kiriting",
       "participantsRequired": "Kamida bitta ishtirokchi qo'shing",
-      "reasonRequired": "Sababni kiriting"
+      "reasonRequired": "Sababni kiriting",
+      "newEndRequired": "Yangi tugash vaqtini kiriting",
+      "newEndPast": "Yangi tugash vaqti kelajakda bo'lishi kerak",
+      "minutesRange": "1 dan 180 gacha butun son kiriting"
     },
     "participants": {
       "title": "Ishtirokchilar",
@@ -3432,7 +3466,10 @@
       "opened": "Imtihon ochildi",
       "closed": "Imtihon yopildi",
       "pinRegenerated": "PIN qayta yaratildi",
-      "granted": "Vaqt saqlandi"
+      "granted": "Vaqt saqlandi",
+      "reentry": "Qayta kirishga ruxsat berildi",
+      "reopened": "Imtihon qayta ochildi",
+      "extended": "Vaqt qo'shildi"
     },
     "detail": {
       "toList": "Imtihonlar ro'yxatiga",
@@ -3458,7 +3495,36 @@
       "pending": "Imtihon ma'muriyat tasdig'ini kutmoqda.",
       "printFor": "Kimlar uchun",
       "printPins": "PIN kartochkalarini chop etish",
-      "printHint": "Kartochkalar PDF ko'rinishida yuklanadi, kesib berish uchun mo'ljallangan."
+      "printHint": "Kartochkalar PDF ko'rinishida yuklanadi, kesib berish uchun mo'ljallangan.",
+      "results": "Natijalar",
+      "reopen": "Qayta ochish",
+      "extend": "Hammaga vaqt qo'shish",
+      "timeUp": "Vaqti tugagan",
+      "reopenTitle": "Imtihonni qayta ochish",
+      "reopenHint": "Topshirganlar qayta topshira olmaydi. Boshlamaganlar va jarayondagilar yangi tugash vaqtigacha kira oladi.",
+      "reopenReason": "Sabab (majburiy)",
+      "reopenEnd": "Yangi tugash vaqti (Toshkent)",
+      "reopenedCode": "Imtihon qayta ochildi. Yangi kod: {code}",
+      "extendTitle": "Hammaga vaqt qo'shish",
+      "extendMinutes": "Qo'shiladigan daqiqa (1 dan 180 gacha)",
+      "extendReason": "Sabab (ixtiyoriy)",
+      "extendHint": "Umumiy tugash vaqti va davom etayotgan barcha urinishlar (to'liq vaqt berilganlar ham) shuncha uzayadi."
+    },
+    "attempt": {
+      "status": "Imtihon holati",
+      "answered": "Javoblar",
+      "warnings": "Ogohlantirish",
+      "statuses": {
+        "not_started": "Kirmagan",
+        "joined": "Kirgan",
+        "in_progress": "Topshirmoqda",
+        "submitted": "Topshirgan",
+        "auto_submitted": "Vaqt tugadi"
+      },
+      "reentry": "Boshqa qurilmaga ruxsat",
+      "reentryTitle": "Qayta kirishga ruxsat",
+      "reentryText": "{name} boshqa qurilmadan kira oladi (bir marta). Eski qurilmadagi sessiya yopiladi.",
+      "joinAlert": "Kirishda juda ko'p noto'g'ri kod/PIN urinishi bo'ldi ({n} ta). Begona shaxs urinayotgan bo'lishi mumkin."
     }
   },
   "examCandidates": {
@@ -3491,5 +3557,108 @@
     "deleteTitle": "Nomzodni o'chirish",
     "deleteText": "{name} o'chirilsinmi?",
     "inUse": "Nomzod imtihonga qo'shilgan, o'chirib bo'lmaydi"
+  },
+  "examResults": {
+    "title": "Natijalar",
+    "breadcrumbRoot": "Imtihonlar",
+    "loadFailed": "Natijalarni yuklab bo'lmadi",
+    "tabs": {
+      "results": "Natijalar",
+      "analysis": "Savollar tahlili"
+    },
+    "summary": {
+      "participants": "Ishtirokchilar",
+      "submitted": "Topshirgan",
+      "average": "O'rtacha",
+      "max": "Eng yuqori",
+      "min": "Eng past",
+      "passRate": "O'tganlar ({percent}%)",
+      "essayPending": "Tekshirilmagan esse"
+    },
+    "cols": {
+      "rank": "O'rin",
+      "name": "F.I.Sh.",
+      "cls": "Sinf / manba",
+      "status": "Holat",
+      "score": "Ball",
+      "percent": "%",
+      "passed": "O'tdi",
+      "answered": "Javoblar",
+      "time": "Vaqt",
+      "warnings": "Ogohlantirish"
+    },
+    "status": {
+      "not_started": "Kirmagan",
+      "joined": "Kirgan",
+      "in_progress": "Yechyapti",
+      "submitted": "Topshirgan",
+      "auto_submitted": "Avtomatik topshirilgan"
+    },
+    "filters": {
+      "search": "Ism bo'yicha qidirish",
+      "cls": "Sinf",
+      "status": "Holat",
+      "allClasses": "Barcha sinflar",
+      "allStatuses": "Barcha holatlar"
+    },
+    "yes": "Ha",
+    "no": "Yo'q",
+    "essayN": "{n} ta esse",
+    "empty": "Ishtirokchilar yo'q",
+    "noMatch": "Filtrga mos ishtirokchi topilmadi",
+    "export": {
+      "xlsx": "Excel",
+      "pdf": "PDF",
+      "failed": "Faylni yuklab bo'lmadi"
+    },
+    "publish": {
+      "title": "Natijalarni e'lon qilish",
+      "modeInfo": "Bu imtihonda natija o'quvchiga e'lon qilingandan keyin ko'rinadi.",
+      "published": "E'lon qilingan",
+      "notPublished": "E'lon qilinmagan",
+      "publish": "Natijalarni e'lon qilish",
+      "unpublish": "E'lonni qaytarib olish",
+      "confirmTitle": "Tekshirilmagan esse bor",
+      "confirmText": "{n} ta esse hali tekshirilmagan. Baribir e'lon qilinsinmi? (Ball keyin baholanganda yangilanadi.)",
+      "confirmButton": "Baribir e'lon qilish",
+      "toastPublished": "Natijalar e'lon qilindi",
+      "toastUnpublished": "E'lon qaytarib olindi",
+      "immediate": {
+        "score": "O'quvchilar faqat ballini darhol ko'radi.",
+        "score_answers": "O'quvchilar ball va to'g'ri javoblarni darhol ko'radi.",
+        "never": "O'quvchilarga natija ko'rsatilmaydi."
+      }
+    },
+    "detail": {
+      "title": "Ishtirokchi natijasi",
+      "notStarted": "Bu ishtirokchi imtihonga kirmagan.",
+      "question": "Savol {n}",
+      "given": "Javobi",
+      "noAnswer": "Javob berilmagan",
+      "correct": "To'g'ri javob",
+      "points": "Ball",
+      "essay": "Esse javobi",
+      "rubric": "Tekshirish mezoni",
+      "pointsInput": "Ball (0 dan {max} gacha, 0.5 qadam)",
+      "comment": "Izoh",
+      "save": "Bahoni saqlash",
+      "saved": "Baho saqlandi",
+      "pointsRange": "0 dan {max} gacha, 0.5 qadam bilan kiriting",
+      "gradedBy": "Baholagan: {name}",
+      "pending": "Tekshirilmagan",
+      "close": "Yopish"
+    },
+    "analysis": {
+      "empty": "Tahlil uchun topshirilgan ish yo'q.",
+      "shown": "Ko'rsatilgan",
+      "correctPercent": "To'g'ri, %",
+      "averagePoints": "O'rtacha ball",
+      "chosen": "Tanlangan",
+      "flags": {
+        "too_easy": "Juda oson",
+        "too_hard": "Juda qiyin",
+        "distractor": "Chalg'ituvchi variant ko'p tanlangan"
+      }
+    }
   }
 }

@@ -84,6 +84,8 @@ describe('TelegramFields', () => {
       dailyReport: false,
       weeklyReport: false,
       ratingResults: true,
+      examResults: true,
+      examReminders: true,
     })
   })
 
@@ -110,9 +112,7 @@ describe('TelegramFields', () => {
     expect(
       validateTelegramSettings({ ...base, workdays: [1, 2], weeklyReportDay: 5 }, t),
     ).toHaveProperty('weeklyReportDay')
-    expect(validateTelegramSettings({ ...base, workdays: null, weeklyReportDay: 7 }, t)).toEqual(
-      {},
-    )
+    expect(validateTelegramSettings({ ...base, workdays: null, weeklyReportDay: 7 }, t)).toEqual({})
     expect(toggleWorkday([1, 3], 2)).toEqual([1, 2, 3])
     expect(toggleWorkday([1, 2, 3], 2)).toEqual([1, 3])
   })

@@ -105,6 +105,26 @@ const router = createRouter({
           },
         },
         {
+          path: 'exams/sessions/:id/edit',
+          name: 'exam-session-edit',
+          component: () => import('@/views/exams/sessions/SessionWizardView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'examSessions.wizard.title',
+          },
+        },
+        {
+          path: 'exams/sessions/:id/results',
+          name: 'exam-session-results',
+          component: () => import('@/views/exams/sessions/ExamResultsView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'examResults.title',
+          },
+        },
+        {
           path: 'exams/sessions/:id',
           name: 'exam-session',
           component: () => import('@/views/exams/sessions/SessionDetailView.vue'),

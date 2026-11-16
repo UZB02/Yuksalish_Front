@@ -1,0 +1,63 @@
+@import 'katex/dist/katex.min.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --page: 244 246 250;
+  --surface: 255 255 255;
+  --muted: 233 237 244;
+  --line: 214 220 230;
+  --fg: 20 27 40;
+  --fg-soft: 90 100 120;
+  --brand: 37 99 235;
+  --brand-fg: 255 255 255;
+  --ok: 22 163 74;
+  --warn: 217 119 6;
+  --bad: 220 38 38;
+}
+:root.dark {
+  --page: 11 15 25;
+  --surface: 20 26 40;
+  --muted: 31 39 58;
+  --line: 52 62 84;
+  --fg: 235 239 247;
+  --fg-soft: 160 170 190;
+  --brand: 96 140 250;
+  --brand-fg: 10 15 30;
+  --ok: 74 222 128;
+  --warn: 251 191 36;
+  --bad: 248 113 113;
+}
+
+html,
+body {
+  background: rgb(var(--page));
+  color: rgb(var(--fg));
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  font-size: 17px;
+  line-height: 1.5;
+  overscroll-behavior-y: contain;
+}
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.btn {
+  @apply inline-flex min-h-12 items-center justify-center rounded-xl px-5 text-base font-semibold transition-colors disabled:opacity-50;
+}
+.btn-primary {
+  @apply btn bg-brand text-brand-fg;
+}
+.btn-ghost {
+  @apply btn border border-line bg-surface text-fg;
+}
+.card {
+  @apply rounded-xl border border-line bg-surface p-4 shadow-sm sm:p-6;
+}
+.input {
+  @apply min-h-14 w-full rounded-xl border border-line bg-surface px-4 text-xl text-fg outline-none focus:border-brand focus:ring-2 focus:ring-brand/30;
+}

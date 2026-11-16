@@ -1639,6 +1639,8 @@ export interface TelegramNotifyToggles {
   dailyReport: boolean
   weeklyReport: boolean
   ratingResults: boolean
+  examResults: boolean
+  examReminders: boolean
 }
 
 /** Maktabning bot xabarlari sozlamalari (null = avtomatik) */
@@ -1958,6 +1960,12 @@ export interface ExamSessionItem {
   canCancel: boolean
   canPrint: boolean
   canDelete: boolean
+  canReopen: boolean
+  canExtend: boolean
+  canViewResults: boolean
+  timeUp: boolean
+  passPercent: number | null
+  resultsPublished: boolean
 }
 export interface ExamSession extends ExamSessionItem {
   templateId: string | null
@@ -1977,6 +1985,7 @@ export interface ExamSessionBody {
   shuffleOptions: boolean
   resultsMode: ExamResultsMode
   supervisorIds: string[]
+  passPercent?: number | null
 }
 export interface ExamSessionMeta {
   pinSecretConfigured: boolean
@@ -2021,4 +2030,122 @@ export interface BulkStatusResult {
   updated: number
   unchanged: number
   skipped: { id: string; reason: string }[]
+}
+
+export type ExamAttemptStatus =
+  'not_started' | 'joined' | 'in_progress' | 'submitted' | 'auto_submitted'
+export interface ExamAttemptRow {
+  key: string
+  status: ExamAttemptStatus
+  answered: number
+  total: number
+  startedAt: string | null
+  submittedAt: string | null
+  deadline: string | null
+  lastSeenAt: string | null
+  warnings: number
+  reconnects: number
+  allowReentry: boolean
+}
+export interface ExamAttemptsResponse {
+  items: ExamAttemptRow[]
+  joinAlert: { failures: number; lastAt: string | null; alertAt: string | null }
+}
+
+// ---- Natijalar (E6) ----
+export interface ExamResultRow {
+  key: string
+  kind: ExamParticipantKind
+  fullName: string
+  className: string | null
+  status: ExamAttemptStatus
+  earned: number | null
+  max: number | null
+  percent: number | null
+  passed: boolean | null
+  answered: number
+  total: number
+  timeSpentSec: number | null
+  warnings: number
+  essayPending: number
+  rank: number | null
+}
+export interface ExamResultSummary {
+  participants: number
+  started: number
+  submitted: number
+  averagePercent: number | null
+  maxPercent: number | null
+  minPercent: number | null
+  passPercent: number | null
+  passRate: number | null
+  passedCount: number
+  essayPending: number
+}
+export interface ExamResultsResponse {
+  session: {
+    id: string
+    title: string
+    status: ExamSessionStatus
+    resultsMode: ExamResultsMode
+    resultsPublished: boolean
+    publishedAt: string | null
+    passPercent: number | null
+    scheduledStart: string
+    endsAt: string
+  }
+  summary: ExamResultSummary
+  rows: ExamResultRow[]
+}
+export interface ExamResultQuestion {
+  id: string
+  index: number
+  type: QuestionType
+  points: number
+  content: QuestionBlock[]
+  options: { id: string; content: QuestionBlock[] }[]
+  given: string | string[] | null
+  flagged: boolean
+  correct: { optionIds?: string[]; texts?: string[]; rubric?: string }
+  got: number | null
+  ok: boolean | null
+  graded: boolean | null
+  grade: { points: number; comment: string; by: string | null; at: string } | null
+}
+export interface ExamResultDetail {
+  participant: {
+    key: string
+    fullName: string
+    className: string | null
+    kind?: ExamParticipantKind
+  }
+  status: ExamAttemptStatus
+  startedAt?: string | null
+  submittedAt?: string | null
+  score: { earned: number; max: number; essayPending: number } | null
+  percent?: number | null
+  questions: ExamResultQuestion[]
+}
+export interface ExamAnalysisQuestion {
+  id: string
+  index: number
+  type: QuestionType
+  points: number
+  content: QuestionBlock[]
+  shown: number
+  answered: number
+  correctPercent: number | null
+  averagePoints: number | null
+  options: {
+    id: string
+    content: QuestionBlock[]
+    chosen: number
+    percent: number
+    correct: boolean
+  }[]
+  flags: ('too_easy' | 'too_hard' | 'distractor')[]
+}
+export interface ExamAnalysis {
+  submittedAttempts: number
+  questions: ExamAnalysisQuestion[]
 }

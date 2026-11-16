@@ -281,7 +281,12 @@ const typeValue = (v: QuestionType | null | undefined) => v ?? ''
                 }}
               </p>
               <a
-                v-if="infoOf(si, ii) && !infoOf(si, ii)!.ok && infoOf(si, ii)!.draft && infoOf(si, ii)!.topicId"
+                v-if="
+                  infoOf(si, ii) &&
+                  !infoOf(si, ii)!.ok &&
+                  infoOf(si, ii)!.draft &&
+                  infoOf(si, ii)!.topicId
+                "
                 :href="topicHref(infoOf(si, ii)!.topicId!)"
                 target="_blank"
                 rel="noopener"

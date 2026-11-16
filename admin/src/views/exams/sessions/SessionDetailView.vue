@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { Printer } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
-import type { ExamSession, ExamSessionMeta, ExamSessionParticipant } from '@/api/types'
+import type {
+  ExamAttemptRow,
+  ExamAttemptsResponse,
+  ExamSession,
+  ExamSessionMeta,
+  ExamSessionParticipant,
+} from '@/api/types'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -21,7 +27,9 @@ import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { useToast } from '@/composables/useToast'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
-import { STATUS_TONE, fmtDateTime } from '@/utils/examSessions'
+import { useAuthStore } from '@/stores/auth'
+import { clearDraftById } from '@/utils/examWizardDraft'
+import { STATUS_TONE, fmtDateTime, localToIso, nowLocal } from '@/utils/examSessions'
 import ParticipantsPanel from './ParticipantsPanel.vue'
 
 /** Imtihon sahifasi: ma'lumot, holat amallari, tasdiq/rad, ishtirokchilar jadvali (PIN holati), PIN kartochkalari */
@@ -32,6 +40,7 @@ const toast = useToast()
 const { confirm } = useConfirm()
 const needsSchool = useNeedsSchool()
 const { schoolId } = storeToRefs(useSchoolContextStore())
+const auth = useAuthStore()
 
 const id = computed(() => String(route.params.id))
 const s = ref<ExamSession | null>(null)
@@ -45,6 +54,106 @@ const printClass = ref('')
 const rejectOpen = ref(false)
 const rejectReason = ref('')
 const rejectError = ref('')
+
+// ---- Urinishlar (o'quvchi imtihon topshirish holati): E5 da nazoratchi ekrani kengayadi ----
+const attempts = ref<ExamAttemptsResponse | null>(null)
+const attemptByKey = computed(
+  () => new Map<string, ExamAttemptRow>((attempts.value?.items ?? []).map((a) => [a.key, a])),
+)
+let attemptsTimer: ReturnType<typeof setInterval> | null = null
+async function loadAttempts() {
+  if (!s.value || !['scheduled', 'open', 'closed'].includes(s.value.status)) return
+  try {
+    attempts.value = await examsApi.sessionAttempts(id.value)
+  } catch {
+    /* jadval holat ustunlarisiz ko'rinadi */
+  }
+}
+async function allowReentry(p: ExamSessionParticipant) {
+  const ok = await confirm({
+    title: t('examSessions.attempt.reentryTitle'),
+    message: t('examSessions.attempt.reentryText', { name: p.fullName }),
+    confirmText: t('examSessions.attempt.reentry'),
+  })
+  if (ok) {
+    await run(() => examsApi.allowReentry(id.value, p.key), 'examSessions.toast.reentry')
+    await loadAttempts()
+  }
+}
+onBeforeUnmount(() => {
+  if (attemptsTimer) clearInterval(attemptsTimer)
+})
+
+// ---- Qayta ochish va hammaga vaqt qo'shish ----
+const reopenOpen = ref(false)
+const reopenReason = ref('')
+const reopenEnd = ref('')
+const reopenError = ref<Record<string, string>>({})
+function openReopen() {
+  reopenReason.value = ''
+  reopenEnd.value = nowLocal(60)
+  reopenError.value = {}
+  reopenOpen.value = true
+}
+async function doReopen() {
+  reopenError.value = {}
+  if (!reopenReason.value.trim()) reopenError.value.reason = t('examSessions.errors.reasonRequired')
+  if (!reopenEnd.value) reopenError.value.end = t('examSessions.errors.newEndRequired')
+  else if (new Date(localToIso(reopenEnd.value)).getTime() <= Date.now()) {
+    reopenError.value.end = t('examSessions.errors.newEndPast')
+  }
+  if (Object.keys(reopenError.value).length) return
+  busy.value = true
+  try {
+    const r = await examsApi.reopenSession(id.value, {
+      reason: reopenReason.value.trim(),
+      newEnd: localToIso(reopenEnd.value),
+    })
+    reopenOpen.value = false
+    toast.success(
+      r.codeChanged
+        ? t('examSessions.detail.reopenedCode', { code: r.code ?? '' })
+        : t('examSessions.toast.reopened'),
+    )
+    await refresh()
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    busy.value = false
+  }
+}
+
+const extendOpen = ref(false)
+const extendMinutes = ref('15')
+const extendReason = ref('')
+const extendError = ref('')
+function openExtend() {
+  extendMinutes.value = '15'
+  extendReason.value = ''
+  extendError.value = ''
+  extendOpen.value = true
+}
+async function doExtend() {
+  const n = Number(extendMinutes.value)
+  if (!Number.isInteger(n) || n < 1 || n > 180) {
+    extendError.value = t('examSessions.errors.minutesRange')
+    return
+  }
+  busy.value = true
+  try {
+    await examsApi.extendSession(id.value, {
+      minutes: n,
+      reason: extendReason.value.trim() || undefined,
+    })
+    extendOpen.value = false
+    toast.success(t('examSessions.toast.extended'))
+    await refresh()
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    busy.value = false
+  }
+}
 
 const grantFor = ref<ExamSessionParticipant | null>(null)
 const grantFull = ref(false)
@@ -69,6 +178,9 @@ async function load() {
     const [x, m] = await Promise.all([examsApi.getSession(id.value), examsApi.sessionMeta()])
     s.value = x
     meta.value = m
+    void loadAttempts()
+    if (attemptsTimer) clearInterval(attemptsTimer)
+    attemptsTimer = setInterval(() => void loadAttempts(), 15_000)
   } catch (e) {
     s.value = null
     error.value = errorMessage(e, t)
@@ -79,6 +191,7 @@ async function load() {
 async function refresh() {
   try {
     s.value = await examsApi.getSession(id.value)
+    void loadAttempts()
   } catch (e) {
     toast.error(errorMessage(e, t))
   }
@@ -123,6 +236,7 @@ async function remove() {
   if (!ok) return
   try {
     await examsApi.removeSession(id.value)
+    clearDraftById(auth.user?.id ?? '', schoolId.value ?? auth.user?.schoolId ?? '', id.value)
     toast.success(t('examSessions.toast.deleted'))
     void router.replace({ name: 'exam-sessions' })
   } catch (e) {
@@ -207,6 +321,17 @@ async function doGrant() {
   )
 }
 
+const ATTEMPT_TONE: Record<
+  string,
+  'neutral' | 'success' | 'danger' | 'warning' | 'primary' | 'info'
+> = {
+  not_started: 'neutral',
+  joined: 'info',
+  in_progress: 'warning',
+  submitted: 'success',
+  auto_submitted: 'primary',
+}
+
 const phaseText = computed(() => (s.value?.phase ? t(`examSessions.phase.${s.value.phase}`) : ''))
 const editable = computed(() => !!s.value?.canManageParticipants)
 </script>
@@ -233,6 +358,9 @@ const editable = computed(() => !!s.value?.canManageParticipants)
       <template #actions>
         <BaseBadge :tone="STATUS_TONE[s.status]" data-testid="detail-status">
           {{ t(`examSessions.status.${s.status}`) }}
+        </BaseBadge>
+        <BaseBadge v-if="s.timeUp" tone="danger" data-testid="time-up">
+          {{ t('examSessions.detail.timeUp') }}
         </BaseBadge>
       </template>
     </PageHeader>
@@ -301,7 +429,7 @@ const editable = computed(() => !!s.value?.canManageParticipants)
         v-if="s.canEdit"
         variant="secondary"
         data-testid="act-edit"
-        @click="router.push({ name: 'exam-session-new', query: { id: s.id } })"
+        @click="router.push({ name: 'exam-session-edit', params: { id: s.id } })"
       >
         {{ t('common.edit') }}
       </BaseButton>
@@ -334,6 +462,30 @@ const editable = computed(() => !!s.value?.canManageParticipants)
       >
         {{ t('examSessions.detail.open') }}
       </BaseButton>
+      <BaseButton
+        v-if="s.canViewResults"
+        variant="secondary"
+        data-testid="act-results"
+        @click="router.push({ name: 'exam-session-results', params: { id: s.id } })"
+      >
+        {{ t('examSessions.detail.results') }}
+      </BaseButton>
+      <BaseButton
+        v-if="s.canExtend"
+        variant="secondary"
+        data-testid="act-extend"
+        @click="openExtend"
+      >
+        {{ t('examSessions.detail.extend') }}
+      </BaseButton>
+      <BaseButton
+        v-if="s.canReopen"
+        variant="secondary"
+        data-testid="act-reopen"
+        @click="openReopen"
+      >
+        {{ t('examSessions.detail.reopen') }}
+      </BaseButton>
       <BaseButton v-if="s.canClose" variant="secondary" data-testid="act-close" @click="closeNow">
         {{ t('examSessions.detail.close') }}
       </BaseButton>
@@ -364,6 +516,14 @@ const editable = computed(() => !!s.value?.canManageParticipants)
       <p class="text-xs text-fg-muted sm:ml-2">{{ t('examSessions.detail.printHint') }}</p>
     </section>
 
+    <p
+      v-if="attempts?.joinAlert.alertAt"
+      class="mb-4 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-sm text-danger"
+      data-testid="join-alert"
+    >
+      {{ t('examSessions.attempt.joinAlert', { n: attempts.joinAlert.failures }) }}
+    </p>
+
     <section class="card mb-5 p-4">
       <div class="mb-3 flex items-center justify-between gap-2">
         <h2 class="text-base font-semibold text-fg">
@@ -387,7 +547,7 @@ const editable = computed(() => !!s.value?.canManageParticipants)
         {{ t('examSessions.participants.empty') }}
       </p>
       <div v-else class="overflow-x-auto">
-        <table class="w-full min-w-[640px] text-left text-sm" data-testid="participants-table">
+        <table class="w-full min-w-[960px] text-left text-sm" data-testid="participants-table">
           <thead class="text-xs uppercase text-fg-muted">
             <tr>
               <th class="py-2 pr-3">{{ t('examSessions.participants.name') }}</th>
@@ -395,6 +555,9 @@ const editable = computed(() => !!s.value?.canManageParticipants)
               <th class="py-2 pr-3">{{ t('examSessions.participants.kind') }}</th>
               <th class="py-2 pr-3">{{ t('examSessions.participants.pin') }}</th>
               <th class="py-2 pr-3">{{ t('examSessions.participants.time') }}</th>
+              <th v-if="attempts" class="py-2 pr-3">{{ t('examSessions.attempt.status') }}</th>
+              <th v-if="attempts" class="py-2 pr-3">{{ t('examSessions.attempt.answered') }}</th>
+              <th v-if="attempts" class="py-2 pr-3">{{ t('examSessions.attempt.warnings') }}</th>
               <th class="py-2 text-right">{{ t('examSessions.participants.actions') }}</th>
             </tr>
           </thead>
@@ -423,8 +586,43 @@ const editable = computed(() => !!s.value?.canManageParticipants)
                 >
                 <template v-if="!p.fullTimeGranted && !p.extraMinutes">—</template>
               </td>
+              <template v-if="attempts">
+                <td class="py-2 pr-3" data-testid="attempt-status">
+                  <BaseBadge :tone="ATTEMPT_TONE[attemptByKey.get(p.key)?.status ?? 'not_started']">
+                    {{
+                      t(
+                        `examSessions.attempt.statuses.${attemptByKey.get(p.key)?.status ?? 'not_started'}`,
+                      )
+                    }}
+                  </BaseBadge>
+                </td>
+                <td class="py-2 pr-3 text-fg-muted" data-testid="attempt-answered">
+                  <template v-if="(attemptByKey.get(p.key)?.total ?? 0) > 0">
+                    {{ attemptByKey.get(p.key)!.answered }} / {{ attemptByKey.get(p.key)!.total }}
+                  </template>
+                  <template v-else>—</template>
+                </td>
+                <td class="py-2 pr-3" data-testid="attempt-warnings">
+                  <BaseBadge v-if="(attemptByKey.get(p.key)?.warnings ?? 0) > 0" tone="warning">
+                    {{ attemptByKey.get(p.key)!.warnings }}
+                  </BaseBadge>
+                  <span v-else class="text-fg-muted">0</span>
+                </td>
+              </template>
               <td class="py-2 text-right">
-                <div class="flex flex-wrap justify-end gap-1">
+                <div class="flex min-w-[230px] flex-wrap justify-end gap-1">
+                  <BaseButton
+                    v-if="
+                      s.canClose &&
+                      ['joined', 'in_progress'].includes(attemptByKey.get(p.key)?.status ?? '')
+                    "
+                    size="sm"
+                    variant="ghost"
+                    data-testid="allow-reentry"
+                    @click="allowReentry(p)"
+                  >
+                    {{ t('examSessions.attempt.reentry') }}
+                  </BaseButton>
                   <BaseButton
                     v-if="s.canGrant"
                     size="sm"
@@ -459,6 +657,74 @@ const editable = computed(() => !!s.value?.canManageParticipants)
         </table>
       </div>
     </section>
+
+    <BaseModal
+      :open="reopenOpen"
+      :title="t('examSessions.detail.reopenTitle')"
+      persistent
+      @close="reopenOpen = false"
+    >
+      <div class="space-y-4">
+        <p class="text-sm text-fg-muted">{{ t('examSessions.detail.reopenHint') }}</p>
+        <BaseInput
+          v-model="reopenReason"
+          :label="t('examSessions.detail.reopenReason')"
+          :error="reopenError.reason"
+          :maxlength="500"
+          data-testid="reopen-reason"
+        />
+        <BaseInput
+          v-model="reopenEnd"
+          type="datetime-local"
+          :label="t('examSessions.detail.reopenEnd')"
+          :error="reopenError.end"
+          data-testid="reopen-end"
+        />
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="reopenOpen = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton :loading="busy" data-testid="reopen-confirm" @click="doReopen">{{
+          t('examSessions.detail.reopen')
+        }}</BaseButton>
+      </template>
+    </BaseModal>
+
+    <BaseModal
+      :open="extendOpen"
+      :title="t('examSessions.detail.extendTitle')"
+      persistent
+      @close="extendOpen = false"
+    >
+      <div class="space-y-4">
+        <p class="text-sm text-fg-muted">{{ t('examSessions.detail.extendHint') }}</p>
+        <BaseInput
+          v-model="extendMinutes"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          max="180"
+          :label="t('examSessions.detail.extendMinutes')"
+          :error="extendError"
+          data-testid="extend-minutes"
+        />
+        <BaseInput
+          v-model="extendReason"
+          :label="t('examSessions.detail.extendReason')"
+          :maxlength="500"
+          data-testid="extend-reason"
+        />
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="extendOpen = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton :loading="busy" data-testid="extend-confirm" @click="doExtend">{{
+          t('examSessions.detail.extend')
+        }}</BaseButton>
+      </template>
+    </BaseModal>
 
     <BaseModal
       :open="rejectOpen"
