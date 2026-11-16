@@ -1671,6 +1671,7 @@ export interface TelegramLinkInfo {
 export interface ExamsSettings {
   enabled: boolean
   teachersCanCreateQuizzes: boolean
+  teacherQuizNeedsApproval: boolean
   candidateRetentionDays: number
 }
 
@@ -1858,4 +1859,166 @@ export interface ExamImportResult {
   excluded: number
   total: number
   replay?: boolean
+}
+
+// ---- Imtihonlar (shablon, sessiya, nomzod) ----
+export type ExamSessionType = 'quiz' | 'quarter' | 'annual' | 'trial' | 'admission'
+export type ExamSessionStatus =
+  'draft' | 'pending_approval' | 'scheduled' | 'open' | 'closed' | 'cancelled'
+export type ExamResultsMode = 'score' | 'score_answers' | 'after_publish' | 'never'
+export type ExamParticipantKind = 'student' | 'guest' | 'candidate'
+
+export type ExamSectionItem =
+  | { kind: 'manual'; questionIds: string[] }
+  | {
+      kind: 'rule'
+      topicId: string
+      count: number
+      difficulty?: number | null
+      type?: QuestionType | null
+    }
+export interface ExamSection {
+  title: string
+  items: ExamSectionItem[]
+}
+export interface ExamItemInfo {
+  kind: 'manual' | 'rule'
+  available: number
+  requested: number
+  ok: boolean
+  topicName?: string | null
+  /** Qoida: mavzu id (faollashtirish havolasi uchun) */
+  topicId?: string
+  /** Mos keladigan, lekin QORALAMA holatidagi savollar soni */
+  draft?: number
+}
+export interface ExamSectionsPreview {
+  sections: { title: string; items: ExamItemInfo[] }[]
+  errors: string[]
+  poolSize: number
+  questionsPerParticipant: number
+  ok: boolean
+}
+export interface ExamTemplate {
+  id: string
+  title: string
+  subjectId: string | null
+  sections: ExamSection[]
+  shuffleQuestions: boolean
+  shuffleOptions: boolean
+  createdAt: string
+}
+export interface ExamSessionParticipant {
+  key: string
+  kind: ExamParticipantKind
+  fullName: string
+  className: string | null
+  grade: number | null
+  origin: string | null
+  hasPin: boolean
+  fullTimeGranted: boolean
+  extraMinutes: number
+}
+export interface ExamSessionItem {
+  id: string
+  title: string
+  type: ExamSessionType
+  status: ExamSessionStatus
+  phase: 'upcoming' | 'running' | 'ended' | null
+  subjectId: string | null
+  subjectName: string | null
+  classes: { id: string; name: string }[]
+  scheduledStart: string
+  durationMin: number
+  endsAt: string
+  code: string | null
+  resultsMode: ExamResultsMode
+  shuffleQuestions: boolean
+  shuffleOptions: boolean
+  participantsCount: number
+  supervisors: { id: string; fullName: string }[]
+  approval: {
+    status: 'none' | 'pending' | 'approved' | 'rejected'
+    reason: string
+    at: string | null
+  }
+  pool: { frozen: boolean; frozenAt: string | null }
+  createdBy: string
+  createdByName: string | null
+  isMine: boolean
+  cancelReason: string
+  createdAt: string
+  canEdit: boolean
+  canSubmit: boolean
+  canApprove: boolean
+  canManageParticipants: boolean
+  canGrant: boolean
+  canOpen: boolean
+  canClose: boolean
+  canCancel: boolean
+  canPrint: boolean
+  canDelete: boolean
+}
+export interface ExamSession extends ExamSessionItem {
+  templateId: string | null
+  sections: ExamSection[]
+  participants: ExamSessionParticipant[]
+}
+export interface ExamSessionBody {
+  title: string
+  type: ExamSessionType
+  subjectId?: string | null
+  classIds: string[]
+  templateId?: string | null
+  sections?: ExamSection[]
+  scheduledStart: string
+  durationMin: number
+  shuffleQuestions: boolean
+  shuffleOptions: boolean
+  resultsMode: ExamResultsMode
+  supervisorIds: string[]
+}
+export interface ExamSessionMeta {
+  pinSecretConfigured: boolean
+  isAdministration: boolean
+  teachersCanCreateQuizzes: boolean
+  teacherQuizNeedsApproval: boolean
+  allowedTypes: ExamSessionType[]
+  supervisors: { id: string; fullName: string; role: string }[]
+}
+export interface ExamClassOption {
+  id: string
+  name: string
+  grade: number
+  studentsCount: number
+}
+export interface ExamParticipantsBody {
+  classIds?: string[]
+  studentIds?: string[]
+  guests?: { fullName: string; origin: string }[]
+  candidateIds?: string[]
+}
+export interface ExamCandidate {
+  id: string
+  fullName: string
+  targetGrade: number | null
+  birthDate: string | null
+  hasBirthDate: boolean
+  parentPhone: string | null
+  notes: string
+  piiPurged: boolean
+  createdAt: string
+}
+export interface ExamCandidateBody {
+  fullName: string
+  birthDate?: string | null
+  targetGrade?: number | null
+  parentPhone?: string | null
+  notes?: string
+}
+
+export interface BulkStatusResult {
+  updated: number
+  unchanged: number
+  skipped: { id: string; reason: string }[]
 }

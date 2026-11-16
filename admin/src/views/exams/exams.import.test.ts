@@ -234,9 +234,31 @@ describe('QuestionImportView: yuklash, oldindan ko`rish, import', () => {
     )
     await w.get('[data-testid="import-commit"]').trigger('click')
     await flushPromises()
-    expect(api.importCommit).toHaveBeenCalledWith('sess1', { exclude: [2, 3], overrides: [] })
+    expect(api.importCommit).toHaveBeenCalledWith('sess1', {
+      exclude: [2, 3],
+      overrides: [],
+      status: 'draft',
+    })
     expect(w.get('[data-testid="done-summary"]').text()).toContain("Qo'shildi: 1")
     expect(w.get('[data-testid="import-done"]').text()).toContain(uz.exams.import.draftNote)
+  })
+
+  it("'Darhol faol' belgisi: commit status=active yuboradi va natija izohi o'zgaradi", async () => {
+    api.importPreview.mockResolvedValue(preview([item(1)]))
+    api.importCommit.mockResolvedValue({ created: 1, failed: [], excluded: 0, total: 1 })
+    const { w } = await mountView()
+    await upload(w)
+    expect(w.get('[data-testid="import-actions"]').text()).toContain('qoralama')
+    await w.get('[data-testid="import-active"] input').setValue(true)
+    expect(w.get('[data-testid="import-actions"]').text()).toContain('faol holatda')
+    await w.get('[data-testid="import-commit"]').trigger('click')
+    await flushPromises()
+    expect(api.importCommit).toHaveBeenCalledWith('sess1', {
+      exclude: [],
+      overrides: [],
+      status: 'active',
+    })
+    expect(w.get('[data-testid="done-note"]').text()).toBe(uz.exams.import.activeNote)
   })
 
   it("xatoni joyida tuzatish: to'g'ri javob tanlansa xato yo'qoladi, tuzatma override sifatida ketadi", async () => {
@@ -254,6 +276,7 @@ describe('QuestionImportView: yuklash, oldindan ko`rish, import', () => {
     expect(api.importCommit).toHaveBeenCalledWith('sess1', {
       exclude: [],
       overrides: [{ row: 2, answer: { optionId: 'a' } }],
+      status: 'draft',
     })
   })
 
@@ -275,6 +298,7 @@ describe('QuestionImportView: yuklash, oldindan ko`rish, import', () => {
     expect(api.importCommit).toHaveBeenCalledWith('sess1', {
       exclude: [],
       overrides: [{ row: 1, difficulty: 3, points: 2.5 }],
+      status: 'draft',
     })
   })
 
@@ -297,6 +321,7 @@ describe('QuestionImportView: yuklash, oldindan ko`rish, import', () => {
         { row: 1, points: 2.5 },
         { row: 2, points: 2.5 },
       ],
+      status: 'draft',
     })
   })
 

@@ -34,6 +34,7 @@ import { useDebounce } from '@/composables/useDebounce'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { usePagination } from '@/composables/usePagination'
 import { useToast } from '@/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 import { DIFFICULTIES, QUESTION_TYPES } from '@/utils/examQuestion'
@@ -46,6 +47,7 @@ const toast = useToast()
 const { confirm } = useConfirm()
 const needsSchool = useNeedsSchool()
 const { schoolId } = storeToRefs(useSchoolContextStore())
+const auth = useAuthStore()
 
 /** 3-daraja: tanlangan MAVZU ichidagi savollar */
 const topicId = computed(() => String(route.params.topicId))
@@ -116,6 +118,109 @@ const STATUS_TONE: Record<QuestionStatus, 'neutral' | 'success' | 'warning'> = {
 }
 const DIFFICULTY_TONE = { 1: 'success', 2: 'info', 3: 'danger' } as const
 
+// ---- Ommaviy tanlash va holat o'zgartirish ----
+const selected = ref<Set<string>>(new Set())
+/** "Barcha N ta savol" rejimi: tanlov serverda mavzu (+holat filtri) bo'yicha */
+const allMode = ref(false)
+const bulkBusy = ref(false)
+const draftCount = ref(0)
+
+const isAdministration = computed(
+  () => auth.user?.role !== 'teacher' || auth.hasPermission('exams.manage'),
+)
+const editable = computed(() => list.items.value.filter((q) => q.canEdit))
+const allPageSelected = computed(
+  () => editable.value.length > 0 && editable.value.every((q) => selected.value.has(q.id)),
+)
+/** Qidiruv/tur/qiyinlik/muallif filtrlarini serverdagi ommaviy amal bilvosita qo'llay olmaydi */
+const onlyStatusFilter = computed(
+  () => !(filters.search || filters.type || filters.difficulty || filters.mine || filters.shared),
+)
+const canSelectAllFiltered = computed(
+  () =>
+    allPageSelected.value && list.total.value > list.items.value.length && onlyStatusFilter.value,
+)
+const selectedCount = computed(() => (allMode.value ? list.total.value : selected.value.size))
+
+function clearSelection() {
+  selected.value = new Set()
+  allMode.value = false
+}
+function togglePage(on: boolean) {
+  allMode.value = false
+  selected.value = on ? new Set(editable.value.map((q) => q.id)) : new Set()
+}
+function toggleOne(id: string, on: boolean) {
+  allMode.value = false
+  const s = new Set(selected.value)
+  if (on) s.add(id)
+  else s.delete(id)
+  selected.value = s
+}
+// Sahifa/filtr o'zgarsa tanlov tozalanadi
+watch(
+  () => list.items.value,
+  () => clearSelection(),
+)
+
+async function loadDraftCount() {
+  try {
+    const r = await examsApi.listQuestions({
+      topicId: topicId.value,
+      status: 'draft',
+      limit: 1,
+      mine: isAdministration.value ? undefined : true,
+    })
+    draftCount.value = r.meta.total
+  } catch {
+    draftCount.value = 0
+  }
+}
+
+async function runBulk(
+  toStatus: 'active' | 'draft' | 'archived',
+  scope: 'selection' | 'drafts' = 'selection',
+) {
+  if (toStatus === 'archived') {
+    const ok = await confirm({
+      title: t('exams.bulk.archiveTitle'),
+      message: t('exams.bulk.archiveText', { n: selectedCount.value }),
+      confirmText: t('exams.actions.archive'),
+      variant: 'danger',
+    })
+    if (!ok) return
+  } else if (scope === 'drafts') {
+    const ok = await confirm({
+      title: t('exams.bulk.activateAllTitle'),
+      message: t('exams.bulk.activateAllText', { n: draftCount.value }),
+      confirmText: t('exams.bulk.activate'),
+    })
+    if (!ok) return
+  }
+  const body =
+    scope === 'drafts'
+      ? { topicId: topicId.value, fromStatus: 'draft' as const, toStatus }
+      : allMode.value
+        ? { topicId: topicId.value, fromStatus: filters.status || undefined, toStatus }
+        : { ids: [...selected.value], toStatus }
+  bulkBusy.value = true
+  try {
+    const r = await examsApi.bulkStatus(body)
+    const msg = t('exams.bulk.done', { updated: r.updated })
+    if (r.skipped.length) {
+      toast.error(
+        `${msg} ${t('exams.bulk.skipped', { n: r.skipped.length })}: ${[...new Set(r.skipped.map((x) => x.reason))].slice(0, 3).join('; ')}`,
+      )
+    } else toast.success(msg)
+    clearSelection()
+    await Promise.all([list.load(), loadDraftCount()])
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    bulkBusy.value = false
+  }
+}
+
 async function loadTopic() {
   topicLoading.value = true
   topicForbidden.value = false
@@ -132,7 +237,10 @@ async function loadTopic() {
 async function reload() {
   if (needsSchool.value) return
   await loadTopic()
-  if (topic.value) await list.reset()
+  if (topic.value) {
+    await list.reset()
+    void loadDraftCount()
+  }
 }
 
 onMounted(reload)
@@ -263,6 +371,15 @@ async function onAction(q: QuestionListItem, key: string) {
       :description="topic.description || t('exams.questions.description')"
     >
       <template #actions>
+        <BaseButton
+          v-if="draftCount > 0"
+          variant="secondary"
+          :loading="bulkBusy"
+          data-testid="activate-all-drafts"
+          @click="runBulk('active', 'drafts')"
+        >
+          {{ t('exams.bulk.activateAllDrafts', { n: draftCount }) }}
+        </BaseButton>
         <RouterLink :to="{ name: 'exam-question-import', query: { topicId } }">
           <BaseButton variant="secondary" data-testid="import-questions"
             ><Upload class="h-4 w-4" aria-hidden="true" />
@@ -356,7 +473,67 @@ async function onAction(q: QuestionListItem, key: string) {
         </RouterLink>
       </EmptyState>
 
-      <ul v-else class="divide-y divide-border" :aria-busy="list.loading.value">
+      <div
+        v-else-if="editable.length > 0"
+        class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-4 py-2.5"
+        data-testid="bulk-bar"
+      >
+        <BaseCheckbox
+          :model-value="allPageSelected"
+          :label="t('exams.bulk.selectAll')"
+          data-testid="select-page"
+          @update:model-value="togglePage"
+        />
+        <template v-if="selectedCount > 0">
+          <span class="text-sm text-fg-muted" data-testid="selected-count">
+            {{ t('exams.bulk.selected', { n: selectedCount }) }}
+          </span>
+          <BaseButton
+            size="sm"
+            :loading="bulkBusy"
+            data-testid="bulk-active"
+            @click="runBulk('active')"
+          >
+            {{ t('exams.bulk.activate') }}
+          </BaseButton>
+          <BaseButton
+            size="sm"
+            variant="secondary"
+            :loading="bulkBusy"
+            data-testid="bulk-draft"
+            @click="runBulk('draft')"
+          >
+            {{ t('exams.bulk.toDraft') }}
+          </BaseButton>
+          <BaseButton
+            size="sm"
+            variant="secondary"
+            :loading="bulkBusy"
+            data-testid="bulk-archive"
+            @click="runBulk('archived')"
+          >
+            {{ t('exams.actions.archive') }}
+          </BaseButton>
+          <BaseButton size="sm" variant="ghost" @click="clearSelection">{{
+            t('common.cancel')
+          }}</BaseButton>
+        </template>
+        <BaseButton
+          v-if="canSelectAllFiltered && !allMode"
+          size="sm"
+          variant="ghost"
+          data-testid="select-all-filtered"
+          @click="allMode = true"
+        >
+          {{ t('exams.bulk.selectAllN', { n: list.total.value }) }}
+        </BaseButton>
+      </div>
+
+      <ul
+        v-if="!list.error.value && list.items.value.length > 0"
+        class="divide-y divide-border"
+        :aria-busy="list.loading.value"
+      >
         <li
           v-for="q in list.items.value"
           :key="q.id"
@@ -364,6 +541,14 @@ async function onAction(q: QuestionListItem, key: string) {
           :class="list.loading.value ? 'opacity-60' : ''"
           data-testid="question-row"
         >
+          <BaseCheckbox
+            class="mt-0.5 shrink-0"
+            :model-value="selected.has(q.id)"
+            :disabled="!q.canEdit"
+            :aria-label="t('exams.bulk.selectOne')"
+            :data-testid="`select-${q.id}`"
+            @update:model-value="toggleOne(q.id, $event)"
+          />
           <button
             type="button"
             class="min-w-0 flex-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600"

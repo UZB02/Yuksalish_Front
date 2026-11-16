@@ -27,18 +27,25 @@ describe('Imtihon sozlamalari (tab maydonlari)', () => {
     expect(DEFAULT_EXAMS_FORM).toEqual({
       enabled: false,
       teachersCanCreateQuizzes: true,
+      teacherQuizNeedsApproval: false,
       candidateRetentionDays: 365,
     })
-    expect(EXAMS_KEYS).toEqual(['enabled', 'teachersCanCreateQuizzes', 'candidateRetentionDays'])
+    expect(EXAMS_KEYS).toEqual([
+      'enabled',
+      'teachersCanCreateQuizzes',
+      'teacherQuizNeedsApproval',
+      'candidateRetentionDays',
+    ])
   })
 
-  it("superadmin 3 ta maydonni (o'zbekcha yorliq va izoh bilan) ko'radi", () => {
+  it("superadmin 4 ta maydonni (o'zbekcha yorliq va izoh bilan) ko'radi", () => {
     const w = mountFields(DEFAULT_EXAMS_FORM)
     const rows = w.findAll('[data-testid="setting-row"]')
-    expect(rows).toHaveLength(3)
+    expect(rows).toHaveLength(4)
     const text = w.text()
     expect(text).toContain('Imtihon moduli yoqilgan')
     expect(text).toContain("O'qituvchilar nazorat ishi yarata oladi")
+    expect(text).toContain("O'qituvchi nazorat ishi tasdiq talab qiladi")
     expect(text).toContain("Nomzod ma'lumotlarini saqlash muddati")
     expect(text).toContain("Faqat superadmin o'zgartiradi")
     expect(text).toContain('1 dan 3650 gacha')
@@ -46,7 +53,7 @@ describe('Imtihon sozlamalari (tab maydonlari)', () => {
 
   it("maktab admini (ownSchool): 'Imtihon moduli yoqilgan' maydoni yo'q, modul o'chiq bo'lsa izoh bor", () => {
     const w = mountFields(DEFAULT_EXAMS_FORM, { ownSchool: true })
-    expect(w.findAll('[data-testid="setting-row"]')).toHaveLength(2)
+    expect(w.findAll('[data-testid="setting-row"]')).toHaveLength(3)
     expect(w.find('[data-testid="exams-switch-enabled"]').exists()).toBe(false)
     expect(w.text()).not.toContain('Imtihon moduli yoqilgan')
     expect(w.find('[data-testid="exams-disabled-note"]').exists()).toBe(true)
@@ -69,7 +76,12 @@ describe('Imtihon sozlamalari (tab maydonlari)', () => {
 
   it('maktab rejimida "alohida sozlash" belgisi va global qiymat matni', () => {
     const w = mountFields(DEFAULT_EXAMS_FORM, {
-      flags: { enabled: false, teachersCanCreateQuizzes: true, candidateRetentionDays: false },
+      flags: {
+        enabled: false,
+        teachersCanCreateQuizzes: true,
+        teacherQuizNeedsApproval: false,
+        candidateRetentionDays: false,
+      },
       globalValues: { ...DEFAULT_EXAMS_FORM, candidateRetentionDays: 200 },
     })
     expect(w.findAll('[data-testid="row-badge"]')).toHaveLength(1)

@@ -85,6 +85,46 @@ const router = createRouter({
           },
         },
         {
+          path: 'exams/sessions',
+          name: 'exam-sessions',
+          component: () => import('@/views/exams/sessions/SessionsView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'nav.examSessions',
+          },
+        },
+        {
+          path: 'exams/sessions/new',
+          name: 'exam-session-new',
+          component: () => import('@/views/exams/sessions/SessionWizardView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'examSessions.wizard.title',
+          },
+        },
+        {
+          path: 'exams/sessions/:id',
+          name: 'exam-session',
+          component: () => import('@/views/exams/sessions/SessionDetailView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'nav.examSessions',
+          },
+        },
+        {
+          path: 'exams/candidates',
+          name: 'exam-candidates',
+          component: () => import('@/views/exams/sessions/CandidatesView.vue'),
+          meta: {
+            permission: PERMISSIONS.EXAMS_MANAGE,
+            feature: 'exams',
+            titleKey: 'nav.examCandidates',
+          },
+        },
+        {
           path: 'exams/subjects/:subjectId',
           name: 'exam-subject',
           component: () => import('@/views/exams/SubjectTopicsView.vue'),

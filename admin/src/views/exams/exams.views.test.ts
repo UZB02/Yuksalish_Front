@@ -6,6 +6,8 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import uz from '@/locales/uz.json'
 import type { Question, QuestionListItem, User } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
+import { useConfirm } from '@/composables/useConfirm'
+import { useToast } from '@/composables/useToast'
 
 const api = {
   subjects: vi.fn(),
@@ -13,6 +15,7 @@ const api = {
   listTopics: vi.fn(),
   createTopic: vi.fn(),
   listQuestions: vi.fn(),
+  bulkStatus: vi.fn(),
   getQuestion: vi.fn(),
   createQuestion: vi.fn(),
   updateQuestion: vi.fn(),
@@ -406,5 +409,109 @@ describe('Ulashish (sharing)', () => {
     await flushPromises()
     expect(api.duplicateQuestion).toHaveBeenCalledWith('q1')
     expect(router.currentRoute.value.params.id).toBe('copy1')
+  })
+})
+
+describe('QuestionsView: ommaviy holat o`zgartirish', () => {
+  const $ = (id: string) => document.body.querySelector(`[data-testid="${id}"]`) as HTMLElement
+  const click = async (el: Element | null) => {
+    ;(el as HTMLElement).click()
+    await flushPromises()
+  }
+  const pageOf = (items: QuestionListItem[], total = items.length) => ({
+    items,
+    meta: { page: 1, limit: 20, total, totalPages: Math.ceil(total / 20) || 1 },
+  })
+  /** Ro'yxat so'rovi va qoralamalar soni (limit 1) uchun alohida javob */
+  const setup = (items: QuestionListItem[], total = items.length, drafts = 0) =>
+    api.listQuestions.mockImplementation(async (p: { status?: string; limit?: number }) =>
+      p.status === 'draft' && p.limit === 1 ? pageOf([], drafts) : pageOf(items, total),
+    )
+
+  beforeEach(() => {
+    document.body.innerHTML = ''
+    api.bulkStatus.mockResolvedValue({ updated: 2, unchanged: 0, skipped: [] })
+  })
+
+  it('faqat tahrirlanadigan savollar belgilanadi; "Faol qilish" tanlangan id lar bilan chaqiriladi', async () => {
+    setup([item({ id: 'q1' }), item({ id: 'q2' }), item({ id: 'q3', canEdit: false })])
+    await mountAt('/exams/topics/topic1')
+    expect(($('select-q3').querySelector('input') as HTMLInputElement).disabled).toBe(true)
+    expect($('selected-count')).toBeNull()
+    await click($('select-page').querySelector('input'))
+    expect($('selected-count').textContent?.trim()).toBe('Tanlangan: 2')
+    await click($('bulk-active'))
+    expect(api.bulkStatus).toHaveBeenCalledWith({ ids: ['q1', 'q2'], toStatus: 'active' })
+    expect($('selected-count')).toBeNull()
+  })
+
+  it('qoralama qilish tasdiqsiz, arxivlash tasdiq bilan', async () => {
+    setup([item({ id: 'q1' }), item({ id: 'q2' })])
+    await mountAt('/exams/topics/topic1')
+    await click($('select-q1').querySelector('input'))
+    await click($('bulk-draft'))
+    expect(api.bulkStatus).toHaveBeenLastCalledWith({ ids: ['q1'], toStatus: 'draft' })
+    await click($('select-q2').querySelector('input'))
+    await click($('bulk-archive'))
+    const c = useConfirm()
+    expect(c.state.open).toBe(true)
+    expect(api.bulkStatus).toHaveBeenCalledTimes(1)
+    c.settle(true)
+    await flushPromises()
+    expect(api.bulkStatus).toHaveBeenLastCalledWith({ ids: ['q2'], toStatus: 'archived' })
+  })
+
+  it('"Barcha N ta"ni belgilash: serverda mavzu bo`yicha; boshqa filtr bo`lsa taklif yo`q', async () => {
+    setup([item({ id: 'q1' }), item({ id: 'q2' })], 45)
+    const { w } = await mountAt('/exams/topics/topic1')
+    expect($('select-all-filtered')).toBeNull()
+    await click($('select-page').querySelector('input'))
+    expect($('select-all-filtered').textContent).toContain('45')
+    await click($('select-all-filtered'))
+    expect($('selected-count').textContent?.trim()).toBe('Tanlangan: 45')
+    await click($('bulk-active'))
+    expect(api.bulkStatus).toHaveBeenCalledWith({
+      topicId: 'topic1',
+      fromStatus: undefined,
+      toStatus: 'active',
+    })
+    await w.get('[data-testid="filter-search"]').setValue('kasr')
+    await new Promise((r) => setTimeout(r, 450))
+    await flushPromises()
+    await click($('select-page').querySelector('input'))
+    expect($('select-all-filtered')).toBeNull()
+  })
+
+  it('tezkor tugma: qoralamalar soni bilan, tasdiqdan keyin topicId+fromStatus=draft; o`qituvchi uchun faqat o`ziniki sanaladi', async () => {
+    setup([item({ id: 'q1', status: 'draft' })], 1, 3)
+    await mountAt('/exams/topics/topic1')
+    expect($('activate-all-drafts').textContent).toContain('3 ta')
+    expect(api.listQuestions).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'draft', limit: 1, mine: true }),
+    )
+    await click($('activate-all-drafts'))
+    const c = useConfirm()
+    expect(c.state.open).toBe(true)
+    c.settle(true)
+    await flushPromises()
+    expect(api.bulkStatus).toHaveBeenCalledWith({
+      topicId: 'topic1',
+      fromStatus: 'draft',
+      toStatus: 'active',
+    })
+  })
+
+  it('qoralama yo`q bo`lsa tezkor tugma ko`rinmaydi; o`tkazib yuborilganlar sababi xabarda', async () => {
+    setup([item({ id: 'q1' })], 1, 0)
+    api.bulkStatus.mockResolvedValue({
+      updated: 0,
+      unchanged: 0,
+      skipped: [{ id: 'q1', reason: "To'g'ri javob belgilanmagan" }],
+    })
+    await mountAt('/exams/topics/topic1')
+    expect($('activate-all-drafts')).toBeNull()
+    await click($('select-q1').querySelector('input'))
+    await click($('bulk-active'))
+    expect(JSON.stringify(useToast().toasts)).toContain("To'g'ri javob belgilanmagan")
   })
 })

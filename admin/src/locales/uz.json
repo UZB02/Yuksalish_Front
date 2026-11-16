@@ -114,7 +114,9 @@
       "results": "Natijalar",
       "reference": "Ma'lumotnomalar",
       "system": "Tizim"
-    }
+    },
+    "examSessions": "Imtihonlar",
+    "examCandidates": "Nomzodlar"
   },
   "theme": {
     "light": "Yorug' mavzu",
@@ -1619,6 +1621,10 @@
       "candidateRetentionDays": {
         "label": "Nomzod ma'lumotlarini saqlash muddati (kun)",
         "hint": "Kirish imtihoni nomzodlarining telefoni va tug'ilgan sanasi shuncha kundan keyin o'chiriladi (1 dan 3650 gacha)."
+      },
+      "teacherQuizNeedsApproval": {
+        "label": "O'qituvchi nazorat ishi tasdiq talab qiladi",
+        "hint": "Yoqilsa, o'qituvchi yaratgan nazorat ishi ma'muriyat tasdiqlamaguncha ochilmaydi. O'chiq bo'lsa to'g'ridan-to'g'ri rejalashtiriladi."
       }
     },
     "retentionRange": "{min} dan {max} gacha butun son kiriting",
@@ -1757,7 +1763,10 @@
       "doneTitle": "Import yakunlandi",
       "doneText": "Qo'shildi: {created}, xato: {failed}, chiqarib tashlangan: {excluded}",
       "draftNote": "Savollar qoralama holatida, faqat siz ko'rasiz (ulashilmagan). Ularni tekshirib faollashtiring.",
-      "toBank": "Savollar bankiga o‘tish"
+      "toBank": "Savollar bankiga o‘tish",
+      "importActive": "Savollarni darhol faol holatda qo'shish",
+      "willImportActive": "{n} ta savol faol holatda qo'shiladi",
+      "activeNote": "Savollar faol holatda qo'shildi: ularni imtihonlarga darhol tanlash mumkin (faqat siz ko'rasiz, ulashilmagan)."
     },
     "points": "{n} ball",
     "types": {
@@ -1918,6 +1927,21 @@
       "correctMulti": "Kamida bitta to'g'ri variantni belgilang",
       "acceptedMin": "Kamida bitta to'g'ri javob kiriting",
       "sharingUsers": "Kamida bitta o'qituvchini tanlang"
+    },
+    "bulk": {
+      "selectAll": "Hammasini belgilash",
+      "selectOne": "Savolni belgilash",
+      "selectAllN": "Barcha {n} ta savolni belgilash",
+      "selected": "Tanlangan: {n}",
+      "activate": "Faol qilish",
+      "toDraft": "Qoralama qilish",
+      "archiveTitle": "Savollarni arxivlash",
+      "archiveText": "{n} ta savol arxivga o'tkaziladi. Arxivdagi savollar yangi imtihonlarga qo'shilmaydi. Davom etasizmi?",
+      "activateAllDrafts": "Barcha qoralamalarni faollashtirish ({n} ta)",
+      "activateAllTitle": "Qoralamalarni faollashtirish",
+      "activateAllText": "Bu mavzudagi {n} ta qoralama savol faollashtiriladi (to'liq bo'lmaganlari o'tkazib yuboriladi). Davom etasizmi?",
+      "done": "O'zgartirildi: {updated}.",
+      "skipped": "O'tkazib yuborildi: {n}"
     }
   },
   "settingsTimetable": {
@@ -2449,7 +2473,10 @@
       "exam_question": "Imtihon savoli",
       "exam_asset": "Savol rasmi",
       "exam_import": "Savollar importi",
-      "exam_topic": "Imtihon mavzusi"
+      "exam_topic": "Imtihon mavzusi",
+      "exam_template": "Imtihon shabloni",
+      "exam_session": "Imtihon",
+      "exam_candidate": "Imtihon nomzodi"
     },
     "actions": {
       "exam": {
@@ -2460,7 +2487,8 @@
           "restore": "Imtihon savolini arxivdan tikladi",
           "duplicate": "Imtihon savolidan nusxa oldi",
           "delete": "Imtihon savolini o'chirdi",
-          "import": "Savollarni Word/Excel'dan import qildi"
+          "import": "Savollarni Word/Excel'dan import qildi",
+          "bulk_status": "Savollar holatini ommaviy o'zgartirdi"
         },
         "topic": {
           "create": "Imtihon mavzusi qo'shdi",
@@ -2469,6 +2497,33 @@
         },
         "asset": {
           "upload": "Savol rasmini yukladi"
+        },
+        "template": {
+          "create": "Imtihon shablonini yaratdi",
+          "update": "Imtihon shablonini o'zgartirdi",
+          "delete": "Imtihon shablonini o'chirdi"
+        },
+        "session": {
+          "create": "Imtihon yaratdi",
+          "update": "Imtihonni o'zgartirdi",
+          "delete": "Imtihonni o'chirdi",
+          "participants_add": "Imtihonga ishtirokchi qo'shdi",
+          "participant_remove": "Imtihondan ishtirokchini olib tashladi",
+          "pin_regenerate": "Ishtirokchi PIN kodini qayta yaratdi",
+          "pin_sheet": "PIN kartochkalarini chop etdi",
+          "grant": "Ishtirokchiga individual vaqt berdi",
+          "submit": "Imtihonni yubordi",
+          "approve": "Imtihonni tasdiqladi",
+          "reject": "Imtihonni rad etdi",
+          "open": "Imtihonni ochdi",
+          "close": "Imtihonni yopdi",
+          "cancel": "Imtihonni bekor qildi"
+        },
+        "candidate": {
+          "create": "Nomzod qo'shdi",
+          "update": "Nomzodni o'zgartirdi",
+          "delete": "Nomzodni o'chirdi",
+          "pii_purge": "Nomzodlarning shaxsiy ma'lumotlarini muddati tugagani uchun tozaladi"
         }
       },
       "telegram": {
@@ -3190,5 +3245,251 @@
       "confirm": "Bekor qilish",
       "keep": "Qoldirish"
     }
+  },
+  "examSessions": {
+    "title": "Imtihonlar",
+    "description": "Nazorat ishi, chorak, yillik, sinov va kirish imtihonlarini rejalashtiring.",
+    "create": "Yangi imtihon",
+    "pinSecretMissing": "EXAM_PIN_SECRET serverda sozlanmagan: ishtirokchilarga PIN yaratib bo'lmaydi. Administrator server sozlamasini to'ldirishi kerak.",
+    "filters": {
+      "allStatuses": "Barcha holatlar",
+      "allTypes": "Barcha turlar",
+      "status": "Holat",
+      "type": "Tur"
+    },
+    "status": {
+      "draft": "Qoralama",
+      "pending_approval": "Tasdiq kutilmoqda",
+      "scheduled": "Rejalashtirilgan",
+      "open": "Ochiq",
+      "closed": "Yopilgan",
+      "cancelled": "Bekor qilingan"
+    },
+    "type": {
+      "quiz": "Nazorat ishi",
+      "quarter": "Chorak imtihoni",
+      "annual": "Yillik imtihon",
+      "trial": "Sinov imtihoni",
+      "admission": "Kirish imtihoni"
+    },
+    "phase": {
+      "upcoming": "hali boshlanmagan",
+      "running": "davom etmoqda",
+      "ended": "vaqti tugagan"
+    },
+    "results": {
+      "score": "Faqat ball (darhol)",
+      "score_answers": "Ball va to'g'ri javoblar (darhol)",
+      "after_publish": "Ma'muriyat e'lon qilgandan keyin",
+      "never": "O'quvchiga ko'rsatilmaydi"
+    },
+    "minutes": "{n} daqiqa",
+    "participantsN": "{n} ishtirokchi",
+    "emptyTitle": "Imtihonlar yo'q",
+    "emptyText": "Yangi imtihon yaratish uchun yuqoridagi tugmani bosing.",
+    "rule": {
+      "anyDifficulty": "Istalgan qiyinlik",
+      "anyType": "Istalgan tur",
+      "topic": "Mavzu",
+      "count": "Savollar soni",
+      "difficulty": "Qiyinlik",
+      "type": "Savol turi",
+      "available": "Mavjud: {available}, kerak: {requested}",
+      "availableDraft": "Faol: {available} ta ({draft} ta qoralamada), kerak: {requested}",
+      "activateLink": "Mavzuni ochib faollashtirish"
+    },
+    "section": {
+      "defaultTitle": "{n}-bo'lim",
+      "title": "Bo'lim nomi",
+      "remove": "Bo'limni o'chirish",
+      "add": "Bo'lim qo'shish"
+    },
+    "item": {
+      "manual": "Qo'lda tanlangan savollar",
+      "selectedN": "{n} ta tanlangan",
+      "pick": "Savollarni tanlash",
+      "remove": "Elementni olib tashlash",
+      "manualInfo": "Faol va ko'rinadigan: {available} / {requested}",
+      "addManual": "Savollarni qo'lda tanlash",
+      "addRule": "Qoida qo'shish (mavzu bo'yicha)",
+      "manualDraft": "{n} tasi qoralamada"
+    },
+    "preview": {
+      "perParticipant": "Har ishtirokchiga {n} ta savol",
+      "pool": "Savollar to'plami: {n} ta"
+    },
+    "picker": {
+      "title": "Savollarni tanlash",
+      "topic": "Mavzu",
+      "empty": "Bu mavzuda faol savol yo'q.",
+      "selectAll": "Hammasini belgilash",
+      "noText": "(matnsiz savol)",
+      "selected": "Tanlangan: {n}"
+    },
+    "wizard": {
+      "title": "Yangi imtihon",
+      "description": "Besh qadamda imtihon tuzing: umumiy ma'lumot, savollar, vaqt, ishtirokchilar va yuborish.",
+      "forbidden": "Sizga imtihon yaratish ruxsat etilmagan. Ma'muriyatga murojaat qiling.",
+      "steps": {
+        "basic": "Umumiy",
+        "questions": "Savollar",
+        "time": "Vaqt",
+        "participants": "Ishtirokchilar",
+        "review": "Tekshirish"
+      },
+      "type": "Imtihon turi",
+      "name": "Nomi",
+      "subject": "Fan",
+      "noSubject": "Fan tanlanmagan",
+      "classes": "Sinflar",
+      "template": "Shablondan boshlash",
+      "noTemplate": "Shablonsiz",
+      "saveAsTemplate": "Shablon sifatida saqlash",
+      "templateName": "Shablon nomi",
+      "templateSaved": "Shablon saqlandi",
+      "start": "Boshlanish vaqti (Toshkent)",
+      "duration": "Davomiyligi (daqiqa)",
+      "timeHint": "Imtihon boshlanish vaqtidan davomiylik o'tgach tugaydi. Kechikkan o'quvchi faqat qolgan vaqtni oladi; to'liq vaqtni superadmin yoki nazoratchi bera oladi.",
+      "shuffleQuestions": "Savollar tartibini aralashtirish",
+      "shuffleOptions": "Variantlar tartibini aralashtirish",
+      "resultsMode": "Natijani ko'rsatish",
+      "supervisors": "Nazoratchilar",
+      "supervisorsHint": "Siz avtomatik nazoratchi bo'lasiz. Boshqa xodimlarni ham tanlashingiz mumkin.",
+      "questionsPerParticipant": "Har ishtirokchiga savollar",
+      "needsApproval": "Imtihon ma'muriyat tasdiqlagandan keyin rejalashtiriladi.",
+      "back": "Orqaga",
+      "next": "Keyingi",
+      "submit": "Rejalashtirish",
+      "submitApproval": "Tasdiqqa yuborish"
+    },
+    "errors": {
+      "titleRequired": "Nomni kiriting",
+      "subjectRequired": "Fanni tanlang",
+      "classesRequired": "Kamida bitta sinfni tanlang",
+      "sectionsIncomplete": "Har bo'limda nom va kamida bitta to'liq to'ldirilgan element bo'lishi kerak",
+      "sectionsChecking": "Savollar tekshirilmoqda, bir ozdan keyin qayta urinib ko'ring",
+      "sectionsInvalid": "Savollar yetarli emas yoki ko'rinmaydi: yuqoridagi xabarlarni ko'ring",
+      "startRequired": "Boshlanish vaqtini kiriting",
+      "startPast": "Imtihon vaqti o'tib ketgan: kelajakdagi vaqtni tanlang",
+      "durationRange": "5 dan 600 gacha butun son kiriting",
+      "participantsRequired": "Kamida bitta ishtirokchi qo'shing",
+      "reasonRequired": "Sababni kiriting"
+    },
+    "participants": {
+      "title": "Ishtirokchilar",
+      "total": "Jami ishtirokchilar: {n}",
+      "added": "Qo'shildi: {added}, takror: {skipped}",
+      "classes": "Sinflar",
+      "noClasses": "Mos sinf topilmadi",
+      "studentsN": "{n} o'quvchi",
+      "pickStudents": "Tanlash",
+      "addAll": "Hammasini qo'shish",
+      "addSelected": "Tanlanganlarni qo'shish ({n})",
+      "guest": "Mehmon",
+      "guestName": "F.I.Sh.",
+      "guestOrigin": "Qayerdan kelgan (maktab/manzil)",
+      "addGuest": "Mehmon qo'shish",
+      "guestRequired": "Ism va qayerdan kelganini kiriting",
+      "candidates": "Nomzodlar",
+      "noCandidates": "Nomzodlar yo'q. Avval \"Nomzodlar\" bo'limida qo'shing.",
+      "add": "Ishtirokchi qo'shish",
+      "empty": "Hali ishtirokchi yo'q.",
+      "name": "F.I.Sh.",
+      "classOrigin": "Sinf / manba",
+      "kind": "Turi",
+      "pin": "PIN",
+      "time": "Vaqt",
+      "actions": "Amallar",
+      "kinds": {
+        "student": "O'quvchi",
+        "guest": "Mehmon",
+        "candidate": "Nomzod"
+      },
+      "pinReady": "Tayyor",
+      "pinMissing": "Yo'q",
+      "fullTime": "To'liq vaqt",
+      "min": "daq.",
+      "grant": "Vaqt berish",
+      "regen": "PIN ni yangilash",
+      "remove": "Olib tashlash",
+      "regenTitle": "PIN ni qayta yaratish",
+      "regenText": "{name} uchun yangi PIN yaratiladi, eskisi ishlamaydi. Kartochkani qayta chop eting.",
+      "removeTitle": "Ishtirokchini olib tashlash",
+      "removeText": "{name} imtihondan olib tashlansinmi?",
+      "grantTitle": "Individual vaqt: {name}",
+      "grantFull": "To'liq davomiylik berish",
+      "grantFullHint": "Kechikkan ishtirokchi o'zi boshlagan paytdan boshlab to'liq davomiylikni oladi.",
+      "grantExtra": "Qo'shimcha daqiqalar (0 dan 240 gacha)",
+      "extraRange": "0 dan 240 gacha butun son kiriting"
+    },
+    "toast": {
+      "pending": "Imtihon tasdiqqa yuborildi",
+      "scheduled": "Imtihon rejalashtirildi",
+      "cancelled": "Imtihon bekor qilindi",
+      "deleted": "Imtihon o'chirildi",
+      "approved": "Imtihon tasdiqlandi",
+      "rejected": "Imtihon rad etildi",
+      "opened": "Imtihon ochildi",
+      "closed": "Imtihon yopildi",
+      "pinRegenerated": "PIN qayta yaratildi",
+      "granted": "Vaqt saqlandi"
+    },
+    "detail": {
+      "toList": "Imtihonlar ro'yxatiga",
+      "allClasses": "Barcha sinflar",
+      "ends": "Tugash vaqti",
+      "code": "Imtihon kodi",
+      "author": "Muallif",
+      "submit": "Rejalashtirish",
+      "approve": "Tasdiqlash",
+      "reject": "Rad etish",
+      "open": "Hozir ochish",
+      "close": "Yopish",
+      "cancel": "Bekor qilish",
+      "cancelTitle": "Imtihonni bekor qilish",
+      "cancelText": "Imtihon bekor qilinadi. Davom etasizmi?",
+      "deleteTitle": "Imtihonni o'chirish",
+      "deleteText": "Imtihon butunlay o'chiriladi.",
+      "closeTitle": "Imtihonni yopish",
+      "closeText": "Imtihon muddatidan oldin yopiladi va yangi kirishlar to'xtatiladi.",
+      "rejectTitle": "Imtihonni rad etish",
+      "reason": "Sabab",
+      "rejected": "Imtihon rad etilgan. Sabab: {reason}",
+      "pending": "Imtihon ma'muriyat tasdig'ini kutmoqda.",
+      "printFor": "Kimlar uchun",
+      "printPins": "PIN kartochkalarini chop etish",
+      "printHint": "Kartochkalar PDF ko'rinishida yuklanadi, kesib berish uchun mo'ljallangan."
+    }
+  },
+  "examCandidates": {
+    "title": "Nomzodlar",
+    "description": "Kirish imtihoniga keluvchilar ro'yxati. Telefon va tug'ilgan sana saqlash muddatidan keyin avtomatik o'chiriladi.",
+    "add": "Nomzod qo'shish",
+    "addTitle": "Yangi nomzod",
+    "editTitle": "Nomzodni tahrirlash",
+    "search": "Ism bo'yicha qidirish",
+    "emptyTitle": "Nomzodlar yo'q",
+    "emptyText": "Kirish imtihoni uchun nomzod qo'shing.",
+    "gradeN": "{n}-sinfga",
+    "purged": "Shaxsiy ma'lumot tozalangan",
+    "fullName": "F.I.Sh.",
+    "birthDate": "Tug'ilgan sana",
+    "targetGrade": "Qaysi sinfga (1 dan 11 gacha)",
+    "parentPhone": "Ota-ona telefoni",
+    "notes": "Izoh",
+    "retentionHint": "Telefon va tug'ilgan sana oxirgi imtihondan keyin sozlamadagi muddat o'tgach o'chiriladi; ism va natija qoladi.",
+    "errors": {
+      "name": "F.I.Sh. kamida 2 belgi bo'lsin",
+      "grade": "1 dan 11 gacha butun son kiriting",
+      "phone": "Telefon raqami noto'g'ri"
+    },
+    "toast": {
+      "created": "Nomzod qo'shildi",
+      "updated": "Nomzod saqlandi",
+      "deleted": "Nomzod o'chirildi"
+    },
+    "deleteTitle": "Nomzodni o'chirish",
+    "deleteText": "{name} o'chirilsinmi?",
+    "inUse": "Nomzod imtihonga qo'shilgan, o'chirib bo'lmaydi"
   }
 }

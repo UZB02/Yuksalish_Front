@@ -20,6 +20,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useDirtySource } from '@/composables/useDirtyRegistry'
@@ -56,6 +57,9 @@ const target = ref<ExamTopic | null>(null)
 const loadingTarget = ref(true)
 const uploading = ref(false)
 const committing = ref(false)
+/** Standart: qoralama. Belgilansa to'g'ri qatorlar darhol FAOL holatda qo'shiladi */
+const importActive = ref(false)
+const resultActive = ref(false)
 const preview = ref<ExamImportPreview | null>(null)
 const rows = ref<ImportRowState[]>([])
 const result = ref<ExamImportResult | null>(null)
@@ -232,7 +236,9 @@ async function commit() {
     result.value = await examsApi.importCommit(preview.value.id, {
       exclude: rows.value.filter((r) => r.excluded).map((r) => r.item.row),
       overrides: buildOverrides(rows.value),
+      status: importActive.value ? 'active' : 'draft',
     })
+    resultActive.value = importActive.value
     step.value = 'done'
   } catch (e) {
     toast.error(errorMessage(e, t))
@@ -582,8 +588,17 @@ const letter = (i: number) => String.fromCharCode(65 + i)
       data-testid="import-actions"
     >
       <p class="mr-auto text-sm text-fg-muted">
-        {{ t('exams.import.willImport', { n: importable }) }}
+        {{
+          t(importActive ? 'exams.import.willImportActive' : 'exams.import.willImport', {
+            n: importable,
+          })
+        }}
       </p>
+      <BaseCheckbox
+        v-model="importActive"
+        :label="t('exams.import.importActive')"
+        data-testid="import-active"
+      />
       <BaseButton variant="secondary" @click="reset">{{ t('common.cancel') }}</BaseButton>
       <BaseButton
         :disabled="importable === 0"
@@ -617,7 +632,9 @@ const letter = (i: number) => String.fromCharCode(65 + i)
         </p>
       </div>
     </div>
-    <p class="text-sm text-fg-muted">{{ t('exams.import.draftNote') }}</p>
+    <p class="text-sm text-fg-muted" data-testid="done-note">
+      {{ t(resultActive ? 'exams.import.activeNote' : 'exams.import.draftNote') }}
+    </p>
     <ul v-if="result.failed.length" class="space-y-1" data-testid="done-failed">
       <li
         v-for="f in result.failed"
