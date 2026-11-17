@@ -319,6 +319,56 @@ describe('SessionWizardView (imtihon yaratish ustasi)', () => {
     expect(w.find('[data-testid="step-time"]').exists()).toBe(true)
   })
 
+  it('saqlash xatosi: server sababi ko`rsatiladi va tegishli qadamga qaytariladi', async () => {
+    api.previewSections.mockResolvedValue({
+      sections: [{ title: 'B', items: [{ kind: 'manual', available: 1, requested: 1, ok: true }] }],
+      errors: [],
+      poolSize: 1,
+      questionsPerParticipant: 1,
+      ok: true,
+    })
+    const { ApiError } = await import('@/api/errors')
+    api.createSession
+      .mockRejectedValueOnce(
+        new ApiError('VALIDATION_ERROR', 'x', 400, [
+          {
+            path: 'supervisorIds',
+            message: 'Faqat shu maktabning faol xodimlarini tanlash mumkin',
+          },
+        ]),
+      )
+      .mockRejectedValueOnce(
+        new ApiError('VALIDATION_ERROR', 'x', 400, [
+          { path: 'sections.0.items.0', message: 'Savol boshqa fanga tegishli' },
+        ]),
+      )
+    const { w } = await mountView(SessionWizardView, '/exams/sessions/new')
+    await w.get('[data-testid="wz-title"]').setValue('Nazorat')
+    await w.get('[data-testid="wz-class-c1"] input').setValue(true)
+    await next(w)
+    await w.get('[data-testid="add-section"]').trigger('click')
+    await w.get('[data-testid="add-manual-0"]').trigger('click')
+    await w.get('[data-testid="manual-pick-0-0"]').trigger('click')
+    await flushPromises()
+    await click($('pick-q1').querySelector('input'))
+    await click($('picker-confirm'))
+    await sleep(450)
+    await flushPromises()
+    await next(w)
+    await w.get('[data-testid="wz-start"]').setValue('2099-01-01T10:00')
+    await w.get('[data-testid="wz-duration"]').setValue('45')
+    await next(w)
+    await flushPromises()
+    // Vaqt qadamidagi maydon: shu qadamda qoladi, sabab toast'da
+    expect(JSON.stringify(useToast().toasts)).toContain('faol xodimlarini tanlash mumkin')
+    expect(w.find('[data-testid="step-time"]').exists()).toBe(true)
+    await next(w)
+    await flushPromises()
+    // Savollar xatosi: savollar qadamiga qaytariladi
+    expect(JSON.stringify(useToast().toasts)).toContain('Savol boshqa fanga tegishli')
+    expect(w.find('[data-testid="step-questions"]').exists()).toBe(true)
+  })
+
   it('3-qadam: o`tmishdagi vaqt va noto`g`ri davomiylik rad etiladi; to`g`risida qoralama saqlanadi', async () => {
     api.previewSections.mockResolvedValue({
       sections: [{ title: 'B', items: [{ kind: 'manual', available: 1, requested: 1, ok: true }] }],

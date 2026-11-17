@@ -484,6 +484,34 @@ const body = () => ({
   supervisorIds: form.supervisorIds,
 })
 
+/** Server xatosi: umumiy matn + aniq sabab(lar) (details), aks holda foydalanuvchi nimani tuzatishni bilmaydi */
+function saveErrorText(e: unknown): string {
+  const base = errorMessage(e, t)
+  if (!isApiError(e) || e.details.length === 0) return base
+  const reasons = [...new Set(e.details.map((d) => d.message).filter(Boolean))].slice(0, 3)
+  return reasons.length ? `${base} ${reasons.join('; ')}` : base
+}
+
+/** Xato maydoni qaysi qadamda: 0 umumiy, 1 savollar/bloklar, 2 vaqt */
+function stepForErrorPath(path: string): number | null {
+  const root = path.split('.')[0] ?? ''
+  if (['title', 'type', 'classIds', 'periodId'].includes(root)) return 0
+  if (['blocks', 'sections', 'subjectId', 'scoringMode', 'templateId'].includes(root)) return 1
+  if (
+    [
+      'scheduledStart',
+      'durationMin',
+      'timingMode',
+      'contribDeadline',
+      'passPercent',
+      'supervisorIds',
+      'resultsMode',
+    ].includes(root)
+  )
+    return 2
+  return null
+}
+
 async function saveDraft(): Promise<boolean> {
   saving.value = true
   try {
@@ -497,7 +525,10 @@ async function saveDraft(): Promise<boolean> {
     clearDraft(keyFor(session.value.id))
     return true
   } catch (e) {
-    toast.error(errorMessage(e, t))
+    toast.error(saveErrorText(e))
+    // Xato qaysi qadamga tegishli bo'lsa, o'sha qadamga qaytariladi
+    const target = isApiError(e) ? stepForErrorPath(e.details[0]?.path ?? '') : null
+    if (target !== null && target < step.value) step.value = target
     return false
   } finally {
     saving.value = false
