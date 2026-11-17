@@ -16,14 +16,18 @@ import {
   type WizardFormState,
 } from '@/utils/examWizardDraft'
 import { examsApi } from '@/api/exams.api'
+import { isApiError } from '@/api/errors'
 import type {
+  ExamBlockInput,
   ExamClassOption,
   ExamResultsMode,
+  ExamScoringMode,
   ExamSectionsPreview,
   ExamSession,
   ExamSessionMeta,
   ExamSessionType,
   ExamTemplate,
+  ExamTimingMode,
   ExamSection,
 } from '@/api/types'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
@@ -38,6 +42,7 @@ import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { useToast } from '@/composables/useToast'
 import { errorMessage } from '@/utils/errors'
 import { fmtDateTime, isoToLocal, localToIso, nowLocal } from '@/utils/examSessions'
+import BlocksEditor from './BlocksEditor.vue'
 import ParticipantsPanel from './ParticipantsPanel.vue'
 import SectionsEditor from './SectionsEditor.vue'
 
@@ -96,7 +101,13 @@ const form = reactive({
   subjectId: '',
   classIds: [] as string[],
   templateId: '',
+  /** 'blocks': ma'muriyat (bir yoki bir nechta fan bloki); 'sections': o'qituvchi nazorat ishi va eski qoralamalar */
+  mode: 'blocks' as 'sections' | 'blocks',
   sections: [] as ExamSection[],
+  blocks: [] as ExamBlockInput[],
+  scoringMode: 'points' as ExamScoringMode,
+  timingMode: 'common' as ExamTimingMode,
+  contribDeadline: '',
   start: nowLocal(24 * 60).slice(0, 11) + '09:00',
   durationMin: '40',
   shuffleQuestions: true,
@@ -127,6 +138,30 @@ const needsApproval = computed(
   () => !meta.value?.isAdministration && !!meta.value?.teacherQuizNeedsApproval,
 )
 const isTeacher = computed(() => !!meta.value && !meta.value.isAdministration)
+const useBlocks = computed(() => form.mode === 'blocks')
+const perBlock = computed(() => useBlocks.value && form.timingMode === 'per_block')
+const hasContributors = computed(
+  () => useBlocks.value && form.blocks.some((b) => b.contributorIds.length > 0),
+)
+/** Blokma-blok vaqtda umumiy davomiylik = bloklar yig'indisi */
+const totalDuration = computed(() =>
+  perBlock.value
+    ? form.blocks.reduce((n, b) => n + (Number(b.durationMin) || 0), 0)
+    : Number(form.durationMin),
+)
+const scoringOptions = computed(() =>
+  (['points', 'coefficient'] as const).map((k) => ({
+    value: k,
+    label: t(`examBlocks.scoring.${k}`),
+  })),
+)
+const timingOptions = computed(() =>
+  (['common', 'per_block'] as const).map((k) => ({
+    value: k,
+    label: t(`examBlocks.timing.${k}`),
+  })),
+)
+const blockSubjects = computed(() => subjects.value)
 
 async function loadClasses() {
   try {
@@ -144,6 +179,22 @@ function applySession(s: ExamSession) {
   form.subjectId = s.subjectId ?? ''
   form.classIds = s.classes.map((c) => c.id)
   form.sections = JSON.parse(JSON.stringify(s.sections)) as ExamSection[]
+  // Eski (blokisiz) qoralama bo'limlar bilan tahrirlanadi; haqiqiy bloklar bloklar muharririda
+  const real = (s.blocks ?? []).filter((b) => !b.legacy)
+  form.mode = real.length ? 'blocks' : 'sections'
+  form.blocks = real.map((b) => ({
+    blockId: b.id,
+    subjectId: b.subjectId ?? '',
+    title: b.title,
+    targetCount: b.targetCount,
+    coefficient: b.coefficient,
+    durationMin: b.durationMin,
+    contributorIds: b.contributors.map((c) => c.id),
+    items: JSON.parse(JSON.stringify(b.items)),
+  }))
+  form.scoringMode = s.scoringMode ?? 'points'
+  form.timingMode = s.timingMode ?? 'common'
+  form.contribDeadline = s.contribDeadline ? isoToLocal(s.contribDeadline) : ''
   form.start = isoToLocal(s.scheduledStart)
   form.durationMin = String(s.durationMin)
   form.shuffleQuestions = s.shuffleQuestions
@@ -167,6 +218,21 @@ async function init() {
     subjects.value = subs.subjects.map((s) => ({ id: s.id, name: s.name }))
     templates.value = tpls
     form.type = m.allowedTypes[0] ?? 'quiz'
+    // O'qituvchi nazorat ishi (bitta fan) bo'limlar bilan; ma'muriyat bloklar bilan (bitta blok ham mumkin)
+    form.mode = m.isAdministration ? 'blocks' : 'sections'
+    if (form.mode === 'blocks') {
+      form.blocks = [
+        {
+          subjectId: '',
+          title: '',
+          targetCount: 10,
+          coefficient: 1,
+          durationMin: 30,
+          contributorIds: [],
+          items: [],
+        },
+      ]
+    }
     if (isEdit.value) {
       const s = await examsApi.getSession(editId.value)
       if (s.status !== 'draft') {
@@ -180,9 +246,11 @@ async function init() {
       synced.value = formSnapshot()
       step.value = firstIncompleteStep({
         title: s.title,
-        sectionsOk: s.sections.length > 0,
+        sectionsOk: form.mode === 'blocks' ? form.blocks.length > 0 : s.sections.length > 0,
         participants: s.participants.length,
       })
+      // Nusxa olingan qoralama: sana va nom tekshirilishi uchun birinchi qadamdan boshlanadi
+      if (route.query.copied) step.value = 0
       // Brauzerdagi saqlanmagan o'zgarishlar serverdagidan yangi: ular ustun turadi
       const local = loadDraft(keyFor(s.id))
       if (local) {
@@ -271,9 +339,39 @@ function onTemplate(id: string) {
   form.templateId = id
   const tpl = templates.value.find((x) => x.id === id)
   if (!tpl) return
-  form.sections = JSON.parse(JSON.stringify(tpl.sections)) as ExamSection[]
   form.shuffleQuestions = tpl.shuffleQuestions
   form.shuffleOptions = tpl.shuffleOptions
+  if (useBlocks.value) {
+    if (tpl.blocks?.length) {
+      form.blocks = tpl.blocks.map((b) => ({
+        subjectId: b.subjectId,
+        title: b.title,
+        targetCount: b.targetCount,
+        coefficient: b.coefficient,
+        durationMin: b.durationMin,
+        contributorIds: [],
+        items: JSON.parse(JSON.stringify(b.items)),
+      }))
+      form.scoringMode = tpl.scoringMode ?? 'points'
+      form.timingMode = tpl.timingMode ?? 'common'
+    } else {
+      // Eski (bo'limli) shablon: bitta blok, barcha elementlar ketma-ket
+      const items = tpl.sections.flatMap((s) => JSON.parse(JSON.stringify(s.items)))
+      form.blocks = [
+        {
+          subjectId: tpl.subjectId ?? '',
+          title: '',
+          targetCount: 0,
+          coefficient: 1,
+          durationMin: 30,
+          contributorIds: [],
+          items,
+        },
+      ]
+    }
+    return
+  }
+  form.sections = JSON.parse(JSON.stringify(tpl.sections)) as ExamSection[]
   if (tpl.subjectId && !form.subjectId) form.subjectId = tpl.subjectId
 }
 
@@ -298,7 +396,23 @@ function validate(s: number): boolean {
     if (isTeacher.value && form.classIds.length === 0)
       errors.classes = t('examSessions.errors.classesRequired')
   }
-  if (s === 1) {
+  if (s === 1 && useBlocks.value) {
+    const bad =
+      form.blocks.length === 0 ||
+      form.blocks.some(
+        (b) =>
+          !b.subjectId ||
+          (b.items.length === 0 && b.contributorIds.length === 0) ||
+          b.items.some((i) =>
+            i.kind === 'manual' ? i.questionIds.length === 0 : !i.topicId || i.count < 1,
+          ) ||
+          (form.scoringMode === 'coefficient' && !(b.coefficient > 0)) ||
+          (form.timingMode === 'per_block' && !(Number(b.durationMin) >= 1)),
+      )
+    if (bad) errors.sections = t('examSessions.errors.sectionsIncomplete')
+    else if (!preview.value) errors.sections = t('examSessions.errors.sectionsChecking')
+    else if (!preview.value.ok) errors.sections = t('examSessions.errors.sectionsInvalid')
+  } else if (s === 1) {
     const incomplete =
       form.sections.length === 0 ||
       form.sections.some(
@@ -314,13 +428,21 @@ function validate(s: number): boolean {
     else if (!preview.value.ok) errors.sections = t('examSessions.errors.sectionsInvalid')
   }
   if (s === 2) {
-    const dur = Number(form.durationMin)
+    const dur = totalDuration.value
     if (!form.start) errors.start = t('examSessions.errors.startRequired')
     else if (new Date(localToIso(form.start)).getTime() + dur * 60_000 <= Date.now()) {
       errors.start = t('examSessions.errors.startPast')
     }
-    if (!Number.isInteger(dur) || dur < 5 || dur > 600)
+    if (perBlock.value) {
+      if (dur < 5 || dur > 1440) errors.duration = t('examBlocks.errors.totalRange')
+    } else if (!Number.isInteger(dur) || dur < 5 || dur > 600) {
       errors.duration = t('examSessions.errors.durationRange')
+    }
+    if (hasContributors.value && form.contribDeadline) {
+      if (!form.start || form.contribDeadline > form.start) {
+        errors.contribDeadline = t('examBlocks.errors.deadlineAfterStart')
+      }
+    }
     const pp = form.passPercent.trim()
     if (pp && (!/^\d+$/.test(pp) || Number(pp) < 1 || Number(pp) > 100)) {
       errors.passPercent = t('examSessions.wizard.passPercentRange')
@@ -335,11 +457,26 @@ function validate(s: number): boolean {
 const body = () => ({
   title: form.title.trim(),
   type: form.type,
-  subjectId: form.subjectId || null,
+  ...(useBlocks.value
+    ? {
+        blocks: form.blocks.map((b) => ({
+          ...b,
+          title: (b.title ?? '').trim(),
+          durationMin: form.timingMode === 'per_block' ? Number(b.durationMin) || null : null,
+        })),
+        scoringMode: form.scoringMode,
+        timingMode: form.timingMode,
+        contribDeadline:
+          hasContributors.value && form.contribDeadline ? localToIso(form.contribDeadline) : null,
+        ...(perBlock.value ? {} : { durationMin: Number(form.durationMin) }),
+      }
+    : {
+        subjectId: form.subjectId || null,
+        sections: form.sections,
+        durationMin: Number(form.durationMin),
+      }),
   classIds: form.classIds,
-  sections: form.sections,
   scheduledStart: localToIso(form.start),
-  durationMin: Number(form.durationMin),
   shuffleQuestions: form.shuffleQuestions,
   shuffleOptions: form.shuffleOptions,
   resultsMode: form.resultsMode,
@@ -394,8 +531,18 @@ async function doSaveTemplate() {
   try {
     const tpl = await examsApi.createTemplate({
       title: templateName.value.trim(),
-      subjectId: form.subjectId || null,
-      sections: form.sections,
+      ...(useBlocks.value
+        ? {
+            blocks: form.blocks.map((b) => ({
+              ...b,
+              blockId: undefined,
+              contributorIds: [],
+              durationMin: form.timingMode === 'per_block' ? Number(b.durationMin) || null : null,
+            })),
+            scoringMode: form.scoringMode,
+            timingMode: form.timingMode,
+          }
+        : { subjectId: form.subjectId || null, sections: form.sections }),
       shuffleQuestions: form.shuffleQuestions,
       shuffleOptions: form.shuffleOptions,
     })
@@ -412,7 +559,24 @@ async function submit() {
   if (!session.value) return
   saving.value = true
   try {
-    const s = await examsApi.sessionAction(session.value.id, 'submit')
+    let s: ExamSession
+    try {
+      s = await examsApi.submitSession(session.value.id)
+    } catch (e) {
+      // Ba'zi bloklarda savollar maqsaddan kam: tuzuvchi tasdiqlasa davom etamiz
+      if (isApiError(e) && e.status === 409 && e.details.some((d) => d.path === 'blocks')) {
+        const ok = await confirm({
+          title: t('examBlocks.shortTitle'),
+          message: `${t('examBlocks.shortText')}\n${e.details.map((d) => d.message).join('\n')}`,
+          confirmText: t('examBlocks.shortConfirm'),
+          cancelText: t('examSessions.wizard.back'),
+        })
+        if (!ok) return
+        s = await examsApi.submitSession(session.value.id, true)
+      } else {
+        throw e
+      }
+    }
     toast.success(
       t(
         s.status === 'pending_approval'
@@ -524,6 +688,7 @@ const classNames = computed(() =>
           data-testid="wz-title"
         />
         <BaseSelect
+          v-if="!useBlocks"
           v-model="form.subjectId"
           :label="t('examSessions.wizard.subject')"
           :options="subjectOptions"
@@ -562,7 +727,39 @@ const classNames = computed(() =>
           data-testid="wz-template"
           @update:model-value="onTemplate"
         />
+        <template v-if="useBlocks">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <BaseSelect
+              v-model="form.scoringMode"
+              :label="t('examBlocks.scoringMode')"
+              :options="scoringOptions"
+              data-testid="wz-scoring"
+            />
+            <BaseSelect
+              v-model="form.timingMode"
+              :label="t('examBlocks.timingMode')"
+              :options="timingOptions"
+              data-testid="wz-timing"
+            />
+          </div>
+          <p class="text-xs text-fg-muted">
+            {{ t(`examBlocks.scoringHint.${form.scoringMode}`) }}
+            {{ t(`examBlocks.timingHint.${form.timingMode}`) }}
+          </p>
+          <BlocksEditor
+            v-model="form.blocks"
+            :subjects="blockSubjects"
+            :meta="meta"
+            :scoring-mode="form.scoringMode"
+            :timing-mode="form.timingMode"
+            :server-blocks="session?.blocks"
+            :session-id="session?.id ?? null"
+            @preview="preview = $event"
+            @changed="refreshSession"
+          />
+        </template>
         <SectionsEditor
+          v-else
           v-model="form.sections"
           :subject-id="form.subjectId || null"
           @preview="preview = $event"
@@ -609,6 +806,7 @@ const classNames = computed(() =>
             data-testid="wz-start"
           />
           <BaseInput
+            v-if="!perBlock"
             v-model="form.durationMin"
             type="number"
             inputmode="numeric"
@@ -619,7 +817,23 @@ const classNames = computed(() =>
             required
             data-testid="wz-duration"
           />
+          <div v-else data-testid="wz-duration-total">
+            <p class="mb-1.5 text-sm font-medium text-fg">{{ t('examBlocks.totalDuration') }}</p>
+            <p class="text-sm text-fg">{{ t('examSessions.minutes', { n: totalDuration }) }}</p>
+            <p v-if="errors.duration" class="mt-1 text-sm text-danger">{{ errors.duration }}</p>
+          </div>
         </div>
+        <BaseInput
+          v-if="hasContributors"
+          v-model="form.contribDeadline"
+          type="datetime-local"
+          :label="t('examBlocks.contribDeadline')"
+          :error="errors.contribDeadline"
+          data-testid="wz-contrib-deadline"
+        />
+        <p v-if="hasContributors" class="-mt-2 text-xs text-fg-muted">
+          {{ t('examBlocks.contribDeadlineHint') }}
+        </p>
         <p class="text-xs text-fg-muted">{{ t('examSessions.wizard.timeHint') }}</p>
         <div class="grid gap-3 sm:grid-cols-2">
           <BaseSwitch
@@ -698,7 +912,26 @@ const classNames = computed(() =>
             <dt class="text-fg-muted">{{ t('examSessions.wizard.start') }}</dt>
             <dd class="text-fg">
               {{ fmtDateTime(localToIso(form.start)) }},
-              {{ t('examSessions.minutes', { n: form.durationMin }) }}
+              {{ t('examSessions.minutes', { n: totalDuration }) }}
+            </dd>
+          </div>
+          <div v-if="useBlocks" class="sm:col-span-2" data-testid="review-blocks">
+            <dt class="text-fg-muted">{{ t('examBlocks.title') }}</dt>
+            <dd class="text-fg">
+              {{ t(`examBlocks.scoring.${form.scoringMode}`) }},
+              {{ t(`examBlocks.timing.${form.timingMode}`) }}
+              <ul class="mt-1 list-disc pl-5 text-sm">
+                <li v-for="(b, i) in form.blocks" :key="i">
+                  {{ subjects.find((x) => x.id === b.subjectId)?.name ?? '—' }}:
+                  {{ preview?.blocks?.[i]?.count ?? 0 }}/{{ b.targetCount }}
+                  <template v-if="form.scoringMode === 'coefficient'">
+                    · ×{{ b.coefficient }}
+                  </template>
+                  <template v-if="form.timingMode === 'per_block'">
+                    · {{ t('examSessions.minutes', { n: b.durationMin ?? 0 }) }}
+                  </template>
+                </li>
+              </ul>
             </dd>
           </div>
           <div>

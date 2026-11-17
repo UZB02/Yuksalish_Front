@@ -14,6 +14,14 @@ import type {
   ExamParticipantsBody,
   ExamSection,
   ExamSectionsPreview,
+  ExamBlockInput,
+  ExamCopyResult,
+  ExamDeleteMode,
+  ExamResultListItem,
+  BlockCounts,
+  BlockQuestionList,
+  MyBlockDetail,
+  MyBlockItem,
   ExamSession,
   ExamSessionBody,
   ExamSessionItem,
@@ -121,11 +129,16 @@ export const examsApi = {
   // ---- Shablonlar ----
   previewSections: (sections: ExamSection[]) =>
     sendData<ExamSectionsPreview>('post', '/exams/templates/preview', { sections }),
+  previewBlocks: (blocks: ExamBlockInput[]) =>
+    sendData<ExamSectionsPreview>('post', '/exams/templates/preview', { blocks }),
   listTemplates: () => getData<ExamTemplate[]>('/exams/templates'),
   createTemplate: (body: {
     title: string
     subjectId?: string | null
-    sections: ExamSection[]
+    sections?: ExamSection[]
+    blocks?: ExamBlockInput[]
+    scoringMode?: 'points' | 'coefficient'
+    timingMode?: 'common' | 'per_block'
     shuffleQuestions: boolean
     shuffleOptions: boolean
   }) => sendData<ExamTemplate>('post', '/exams/templates', body),
@@ -145,6 +158,27 @@ export const examsApi = {
   updateSession: (id: string, body: Partial<ExamSessionBody>) =>
     sendData<ExamSession>('patch', SID(id), body),
   removeSession: (id: string) => deleteData<{ id: string; deleted: boolean }>(SID(id)),
+  /** Urinishli imtihon: mode majburiy; with_results uchun confirmTitle = imtihon nomi */
+  async deleteSession(id: string, body: { mode?: ExamDeleteMode; confirmTitle?: string } = {}) {
+    const res = await http.delete<ApiSuccess<{ id: string; deleted: boolean; mode: string }>>(
+      SID(id),
+      { data: body },
+    )
+    return res.data.data
+  },
+  copySession: (id: string) => sendData<ExamCopyResult>('post', `${SID(id)}/copy`),
+  returnToDraft: (id: string) => sendData<ExamSession>('post', `${SID(id)}/return-to-draft`),
+  listResults: (
+    params: {
+      page?: number
+      limit?: number
+      q?: string
+      from?: string
+      to?: string
+      subjectId?: string
+      classId?: string
+    } = {},
+  ): Promise<Paginated<ExamResultListItem>> => getPage('/exams/results', params),
   addParticipants: (id: string, body: ExamParticipantsBody) =>
     sendData<{ added: number; skipped: number; total: number }>(
       'post',
@@ -159,6 +193,66 @@ export const examsApi = {
     sendData<ExamSessionParticipant>('post', `${SID(id)}/participants/${key}/grant`, body),
   sessionAction: (id: string, action: 'submit' | 'approve' | 'open' | 'close') =>
     sendData<ExamSession>('post', `${SID(id)}/${action}`),
+  /** Rejalashtirish; maqsaddan kam savol bo'lsa 409, confirmShort bilan tasdiqlanadi */
+  submitSession: (id: string, confirmShort = false) =>
+    sendData<ExamSession>('post', `${SID(id)}/submit`, confirmShort ? { confirmShort: true } : {}),
+  // ---- Bloklar: tuzuvchi ----
+  composerBlockQuestions: (id: string, blockId: string) =>
+    getData<BlockQuestionList>(`${SID(id)}/blocks/${blockId}/questions`),
+  composerRemoveBlockQuestion: (id: string, blockId: string, qid: string) =>
+    deleteData<BlockCounts & { removed: boolean }>(`${SID(id)}/blocks/${blockId}/questions/${qid}`),
+  setBlockReady: (id: string, blockId: string, ready: boolean) =>
+    sendData<{ blockId: string; status: 'open' | 'ready' }>(
+      'post',
+      `${SID(id)}/blocks/${blockId}/ready`,
+      { ready },
+    ),
+  // ---- Bloklar: biriktirilgan o'qituvchi ----
+  myBlocks: () => getData<MyBlockItem[]>('/exams/my-blocks'),
+  myBlock: (sessionId: string, blockId: string) =>
+    getData<MyBlockDetail>(`/exams/my-blocks/${sessionId}/${blockId}`),
+  addToBlock: (sessionId: string, blockId: string, questionIds: string[]) =>
+    sendData<BlockCounts & { added: number; skipped: number }>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/questions`,
+      { questionIds },
+    ),
+  createInBlock: (sessionId: string, blockId: string, payload: Record<string, unknown>) =>
+    sendData<BlockCounts & { question: { id: string } }>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/questions/new`,
+      payload,
+    ),
+  removeFromBlock: (sessionId: string, blockId: string, qid: string) =>
+    deleteData<BlockCounts & { removed: boolean }>(
+      `/exams/my-blocks/${sessionId}/${blockId}/questions/${qid}`,
+    ),
+  async blockImportPreview(
+    sessionId: string,
+    blockId: string,
+    kind: 'excel' | 'word',
+    file: File,
+  ): Promise<ExamImportPreview> {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await http.post<ApiSuccess<ExamImportPreview>>(
+      `/exams/my-blocks/${sessionId}/${blockId}/import/${kind}`,
+      form,
+      { timeout: 120000 },
+    )
+    return res.data.data
+  },
+  blockImportCommit: (
+    sessionId: string,
+    blockId: string,
+    importId: string,
+    body: { exclude: number[]; overrides: ExamImportOverride[] },
+  ) =>
+    sendData<ExamImportResult & BlockCounts & { addedToBlock: number }>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/import/${importId}/commit`,
+      body,
+    ),
   rejectSession: (id: string, reason: string) =>
     sendData<ExamSession>('post', `${SID(id)}/reject`, { reason }),
   cancelSession: (id: string, reason?: string) =>

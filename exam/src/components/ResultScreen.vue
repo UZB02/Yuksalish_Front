@@ -6,7 +6,10 @@ import RichBlocks from './RichBlocks.vue'
 
 const store = useStore()
 const r = computed(() => store.state.result)
-const questions = computed(() => store.state.questions)
+/** Ko'rilgan barcha savollar (blokma-blok: oldingi bloklar ham) */
+const questions = computed(() => store.state.allQuestions)
+const blockTitle = (id: string | null | undefined) =>
+  store.state.blocks.find((b) => b.id === id)?.title ?? ''
 
 const title = computed(() =>
   r.value?.status === 'auto_submitted'
@@ -57,6 +60,20 @@ const plainOf = (q: ClientQuestion, id: string): string =>
           {{ r.score.essayPending }} ta esse javob o‘qituvchi tomonidan tekshiriladi, ball oshishi
           mumkin.
         </p>
+        <ul
+          v-if="r.blocks?.length"
+          class="mt-3 flex flex-wrap justify-center gap-2 text-sm"
+          data-testid="result-blocks"
+        >
+          <li
+            v-for="b in r.blocks"
+            :key="b.id"
+            class="rounded-lg border border-line px-3 py-1.5"
+            data-testid="result-block"
+          >
+            {{ b.title }}: <b>{{ b.earned }} / {{ b.max }}</b>
+          </li>
+        </ul>
       </div>
       <p v-else class="text-lg" data-testid="result-note">{{ note }}</p>
       <button class="btn-ghost" data-testid="leave" @click="store.leave()">Chiqish</button>
@@ -72,7 +89,12 @@ const plainOf = (q: ClientQuestion, id: string): string =>
         data-testid="review-item"
       >
         <div class="flex justify-between text-sm text-fg-soft">
-          <span>Savol {{ indexOf(it.id) }}</span>
+          <span
+            >Savol {{ indexOf(it.id)
+            }}<template v-if="r.blocks?.length && blockTitle(it.blockId)">
+              · {{ blockTitle(it.blockId) }}</template
+            ></span
+          >
           <span>{{ it.got }} / {{ it.max }}</span>
         </div>
         <RichBlocks v-if="qOf(it.id)" :blocks="qOf(it.id)!.content" />

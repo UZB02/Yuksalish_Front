@@ -116,7 +116,8 @@
       "system": "Tizim"
     },
     "examSessions": "Imtihonlar",
-    "examCandidates": "Nomzodlar"
+    "examCandidates": "Nomzodlar",
+    "examResultsList": "Natijalar"
   },
   "theme": {
     "light": "Yorug' mavzu",
@@ -2531,7 +2532,10 @@
           "reopen": "Yopilgan imtihonni qayta ochdi",
           "extend": "Imtihonga hammaga vaqt qo'shdi",
           "publish": "Imtihon natijalarini e'lon qilish holatini o'zgartirdi",
-          "export": "Imtihon natijalarini yuklab oldi"
+          "export": "Imtihon natijalarini yuklab oldi",
+          "copy": "Imtihondan nusxa oldi",
+          "return_draft": "Imtihonni tahrirlash uchun qoralamaga qaytardi",
+          "purge": "Imtihonni natijalari bilan butunlay o'chirdi"
         },
         "candidate": {
           "create": "Nomzod qo'shdi",
@@ -2541,6 +2545,11 @@
         },
         "attempt": {
           "grade": "Esse javobiga ball qo'ydi"
+        },
+        "block": {
+          "question_add": "Imtihon blokiga savol qo'shdi",
+          "question_remove": "Imtihon blokidan savolni olib tashladi",
+          "ready": "Imtihon blokining tayyorlik holatini o'zgartirdi"
         }
       },
       "telegram": {
@@ -3469,7 +3478,9 @@
       "granted": "Vaqt saqlandi",
       "reentry": "Qayta kirishga ruxsat berildi",
       "reopened": "Imtihon qayta ochildi",
-      "extended": "Vaqt qo'shildi"
+      "extended": "Vaqt qo'shildi",
+      "copied": "Nusxa qoralama sifatida yaratildi",
+      "returned": "Imtihon qoralamaga qaytarildi"
     },
     "detail": {
       "toList": "Imtihonlar ro'yxatiga",
@@ -3508,7 +3519,20 @@
       "extendTitle": "Hammaga vaqt qo'shish",
       "extendMinutes": "Qo'shiladigan daqiqa (1 dan 180 gacha)",
       "extendReason": "Sabab (ixtiyoriy)",
-      "extendHint": "Umumiy tugash vaqti va davom etayotgan barcha urinishlar (to'liq vaqt berilganlar ham) shuncha uzayadi."
+      "extendHint": "Umumiy tugash vaqti va davom etayotgan barcha urinishlar (to'liq vaqt berilganlar ham) shuncha uzayadi.",
+      "copy": "Nusxa olib yangi imtihon",
+      "returnToDraft": "Tahrirlash uchun qaytarish",
+      "returnTitle": "Qoralamaga qaytarish",
+      "returnText": "Imtihon qoralamaga qaytadi: muzlatilgan savollar ro'yxati bekor qilinadi, kod olib tashlanadi va barcha PIN kodlar qayta yaratiladi (eski PIN varaqalari yaroqsiz). Ishtirokchilar saqlanadi. Tahrirdan keyin qayta rejalashtirasiz.",
+      "returnConfirm": "Qaytarish",
+      "deleteChoice": "Imtihonda topshirilgan ishlar bor. O'chirish usulini tanlang:",
+      "deleteExamOnly": "Faqat imtihonni o'chirish",
+      "deleteExamOnlyHint": "\"Natijalar\" bo'limida natijalar saqlanib qoladi.",
+      "deleteWithResults": "Imtihon natijalari bilan birga o'chirish",
+      "deleteWithResultsHint": "Barcha javoblar, natijalar va bildirishnoma yozuvlari butunlay o'chadi.",
+      "deleteIrreversible": "Diqqat: bu amalni QAYTARIB BO'LMAYDI. Natijalar butunlay yo'qoladi.",
+      "deleteTypeTitle": "Tasdiqlash uchun imtihon nomini yozing: «{title}»",
+      "deleteTitleMismatch": "Imtihon nomi aynan mos kelmadi"
     },
     "attempt": {
       "status": "Imtihon holati",
@@ -3660,5 +3684,105 @@
         "distractor": "Chalg'ituvchi variant ko'p tanlangan"
       }
     }
+  },
+  "examBlocks": {
+    "title": "Bloklar",
+    "chooseSubject": "Fanni tanlang",
+    "blockN": "{n}-blok",
+    "ready": "Tayyor",
+    "open": "Ochiq",
+    "removeBlock": "Blokni olib tashlash",
+    "subject": "Fan",
+    "target": "Savollar soni (maqsad)",
+    "coefficient": "Koeffitsiyent",
+    "duration": "Davomiylik (daqiqa)",
+    "titleOptional": "Blok nomi (ixtiyoriy)",
+    "pickSubjectFirst": "Avval blok fanini tanlang.",
+    "contributors": "Biriktirilgan o'qituvchilar",
+    "contributorsHint": "Faqat shu fanni o'qitadigan o'qituvchilar. Ular faqat o'z blokini ko'radi va savol qo'shadi.",
+    "noTeachers": "Bu fanni o'qitadigan o'qituvchi topilmadi.",
+    "questions": "Savollar (tuzuvchi tanlovi)",
+    "progress": "Savollar: {n}/{target}",
+    "fromTeachers": "o'qituvchilar qo'shgan: {n}",
+    "hideList": "O'qituvchi savollarini yashirish",
+    "showList": "O'qituvchilar qo'shgan savollar",
+    "markReady": "Tayyor deb belgilash",
+    "reopen": "Qayta ochish",
+    "you": "Siz",
+    "removeQuestion": "Savolni blokdan olib tashlash",
+    "add": "Blok qo'shish",
+    "scoringMode": "Ball hisobi",
+    "timingMode": "Vaqt rejimi",
+    "scoring": {
+      "points": "Savol ballari yig'indisi",
+      "coefficient": "Blok koeffitsiyenti"
+    },
+    "timing": {
+      "common": "Umumiy vaqt",
+      "per_block": "Blokma-blok"
+    },
+    "scoringHint": {
+      "points": "Blok bali: blokdagi savollar ballari yig'indisi.",
+      "coefficient": "Blok bali: to'g'ri javoblar ulushi (qisman ball va esse baholari ulush bo'yicha) × koeffitsiyent."
+    },
+    "timingHint": {
+      "common": "Bitta davomiylik, bloklar orasida erkin o'tish.",
+      "per_block": "Har blokning o'z vaqti bor; blok tugagach keyingisiga o'tiladi va orqaga qaytilmaydi."
+    },
+    "totalDuration": "Umumiy davomiylik (bloklar yig'indisi)",
+    "contribDeadline": "Savol topshirish muddati",
+    "contribDeadlineHint": "Muddat o'tgach biriktirilgan o'qituvchilar blokni faqat o'qiy oladi; siz tahrirlashda davom etasiz.",
+    "noContributors": "o'qituvchi biriktirilmagan",
+    "shortTitle": "Savollar maqsaddan kam",
+    "shortText": "Ba'zi bloklarda savollar soni maqsadga yetmagan. Shunday bo'lsa ham rejalashtirasizmi?",
+    "shortConfirm": "Baribir rejalashtirish",
+    "errors": {
+      "totalRange": "Bloklar davomiyligi yig'indisi 5 daqiqadan 24 soatgacha bo'lishi kerak",
+      "deadlineAfterStart": "Savol topshirish muddati imtihon boshlanishidan oldin bo'lsin"
+    },
+    "myBlocks": {
+      "title": "Menga biriktirilgan imtihon bloklari",
+      "locked": "Faqat o‘qish",
+      "until": "Muddat: {date}"
+    },
+    "myBlock": {
+      "title": "Imtihon bloki",
+      "back": "Imtihonlar",
+      "progress": "Savollar soni",
+      "pick": "Bankdan tanlash",
+      "write": "Yangi savol yozish",
+      "import": "Word/Excel import",
+      "questions": "Blokdagi savollar ({n})",
+      "empty": "Hali savol yo'q. Bankdan tanlang, yangisini yozing yoki fayldan import qiling.",
+      "missing": "Savol topilmadi (o'chirilgan)",
+      "byComposer": "Tuzuvchi",
+      "rule": "Qoida: {topic} mavzusidan {n} ta",
+      "added": "{n} ta savol qo'shildi",
+      "removeTitle": "Savolni blokdan olib tashlash",
+      "removeText": "Savol bankda qoladi, faqat shu blokdan olib tashlanadi.",
+      "locked": "Bu blok hozir tahrirlash uchun yopiq.",
+      "newInBlock": "Savol «{exam}» imtihonining {subject} blokiga va bankdagi «Imtihon: {exam}» mavzusiga qo'shiladi (faol, faqat sizga ko'rinadi).",
+      "lock": {
+        "status": "Imtihon qoralama holatidan chiqqan: blok faqat o‘qish uchun.",
+        "ready": "Tuzuvchi blokni \"tayyor\" deb belgilagan: faqat o‘qish uchun.",
+        "deadline": "Savol topshirish muddati tugagan: blok faqat o‘qish uchun."
+      }
+    }
+  },
+  "examResultsList": {
+    "title": "Natijalar",
+    "description": "O'tkazilgan imtihonlar natijalari: nom va sana bo'yicha.",
+    "search": "Imtihon nomi",
+    "from": "Sanadan",
+    "to": "Sanagacha",
+    "subject": "Fan",
+    "class": "Sinf",
+    "allSubjects": "Barcha fanlar",
+    "allClasses": "Barcha sinflar",
+    "emptyTitle": "Natijalar yo‘q",
+    "emptyText": "Yopilgan imtihonlar natijalari shu yerda ko‘rinadi.",
+    "blocksN": "{n} blok",
+    "submittedN": "Topshirdi: {n}/{total}",
+    "examDeleted": "Imtihon o‘chirilgan, natijalar saqlangan"
   }
 }

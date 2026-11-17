@@ -1,7 +1,15 @@
-import type { ExamResultsMode, ExamSection, ExamSessionType } from '@/api/types'
+import type {
+  ExamBlockInput,
+  ExamResultsMode,
+  ExamScoringMode,
+  ExamSection,
+  ExamSessionType,
+  ExamTimingMode,
+} from '@/api/types'
 
 /** Imtihon yaratish ustasining brauzerdagi qoralamasi (avtosaqlash). Foydalanuvchi + maktab + qoralama id bo'yicha. */
-export const WIZARD_DRAFT_VERSION = 1
+/** 2: bloklar (blocks, scoringMode, timingMode, contribDeadline) qo'shildi; eski (1) mahalliy qoralamalar jimgina tashlanadi */
+export const WIZARD_DRAFT_VERSION = 2
 export const WIZARD_DRAFT_MAX_AGE_MS = 7 * 24 * 3_600_000
 
 export interface WizardFormState {
@@ -10,7 +18,14 @@ export interface WizardFormState {
   subjectId: string
   classIds: string[]
   templateId: string
+  /** 'blocks': bloklar (ma'muriyat), 'sections': bo'limlar (o'qituvchi nazorat ishi va eski qoralamalar) */
+  mode: 'sections' | 'blocks'
   sections: ExamSection[]
+  blocks: ExamBlockInput[]
+  scoringMode: ExamScoringMode
+  timingMode: ExamTimingMode
+  /** datetime-local qiymati yoki '' */
+  contribDeadline: string
   start: string
   durationMin: string
   shuffleQuestions: boolean
@@ -58,6 +73,24 @@ function validSections(v: unknown): v is ExamSection[] {
   )
 }
 
+function validBlocks(v: unknown): v is ExamBlockInput[] {
+  return (
+    Array.isArray(v) &&
+    v.every((b) => {
+      const x = b as Partial<ExamBlockInput> | null
+      return (
+        !!x &&
+        typeof x === 'object' &&
+        isStr(x.subjectId) &&
+        typeof x.targetCount === 'number' &&
+        typeof x.coefficient === 'number' &&
+        isStrArr(x.contributorIds) &&
+        validSections([{ title: '', items: x.items }])
+      )
+    })
+  )
+}
+
 /** Tuzilmasi noto'g'ri yoki versiyasi boshqa bo'lsa null */
 export function parseDraft(raw: string | null, now = Date.now()): WizardDraft | null {
   if (!raw) return null
@@ -77,7 +110,12 @@ export function parseDraft(raw: string | null, now = Date.now()): WizardDraft | 
       !isStr(f.subjectId) ||
       !isStrArr(f.classIds) ||
       !isStr(f.templateId) ||
+      (f.mode !== 'sections' && f.mode !== 'blocks') ||
       !validSections(f.sections) ||
+      !validBlocks(f.blocks) ||
+      (f.scoringMode !== 'points' && f.scoringMode !== 'coefficient') ||
+      (f.timingMode !== 'common' && f.timingMode !== 'per_block') ||
+      !isStr(f.contribDeadline) ||
       !isStr(f.start) ||
       !isStr(f.durationMin) ||
       typeof f.shuffleQuestions !== 'boolean' ||
@@ -134,6 +172,7 @@ export function clearDraftById(userId: string, schoolId: string, draftId: string
 /** Ustaning birinchi to'ldirilmagan qadami (server qoralamasini ochishda) */
 export function firstIncompleteStep(input: {
   title: string
+  /** Bo'limlar yoki bloklar savollari to'liq */
   sectionsOk: boolean
   participants: number
 }): number {

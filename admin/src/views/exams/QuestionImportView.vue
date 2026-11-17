@@ -53,6 +53,15 @@ const kind = ref<'word' | 'excel'>('word')
 const file = ref<File | null>(null)
 /** Import nishoni: mavzu (?topicId=). Barcha savollar shu mavzuga qo'shiladi */
 const topicId = computed(() => String(route.query.topicId ?? ''))
+/**
+ * Blok rejimi (biriktirilgan o'qituvchi): `?blockSession=&block=`. Mavzu serverda avtomatik ("Imtihon: ‹nomi›"),
+ * savollar FAOL holatda bankka va blokka qo'shiladi.
+ */
+const blockRef = computed(() =>
+  route.query.blockSession && route.query.block
+    ? { sessionId: String(route.query.blockSession), blockId: String(route.query.block) }
+    : null,
+)
 const target = ref<ExamTopic | null>(null)
 const loadingTarget = ref(true)
 const uploading = ref(false)
@@ -118,6 +127,24 @@ useDirtySource(() => dirty.value)
 async function loadTarget() {
   loadingTarget.value = true
   target.value = null
+  if (blockRef.value) {
+    try {
+      const info = await examsApi.myBlock(blockRef.value.sessionId, blockRef.value.blockId)
+      if (!info.block.locked) {
+        importActive.value = true
+        target.value = {
+          id: '',
+          name: `Imtihon: ${info.exam.title}`,
+          subjectName: info.block.subjectName,
+        } as unknown as ExamTopic
+      }
+    } catch {
+      target.value = null
+    } finally {
+      loadingTarget.value = false
+    }
+    return
+  }
   if (!topicId.value) {
     loadingTarget.value = false
     return
@@ -179,7 +206,14 @@ async function upload() {
   if (!file.value) return
   uploading.value = true
   try {
-    const p = await examsApi.importPreview(kind.value, file.value, topicId.value)
+    const p = blockRef.value
+      ? await examsApi.blockImportPreview(
+          blockRef.value.sessionId,
+          blockRef.value.blockId,
+          kind.value,
+          file.value,
+        )
+      : await examsApi.importPreview(kind.value, file.value, topicId.value)
     preview.value = p
     rows.value = toRowStates(p.items)
     // Xatoli qatorlar ochiq turadi
@@ -233,11 +267,19 @@ async function commit() {
   }
   committing.value = true
   try {
-    result.value = await examsApi.importCommit(preview.value.id, {
-      exclude: rows.value.filter((r) => r.excluded).map((r) => r.item.row),
-      overrides: buildOverrides(rows.value),
-      status: importActive.value ? 'active' : 'draft',
-    })
+    const exclude = rows.value.filter((r) => r.excluded).map((r) => r.item.row)
+    result.value = blockRef.value
+      ? await examsApi.blockImportCommit(
+          blockRef.value.sessionId,
+          blockRef.value.blockId,
+          preview.value.id,
+          { exclude, overrides: buildOverrides(rows.value) },
+        )
+      : await examsApi.importCommit(preview.value.id, {
+          exclude,
+          overrides: buildOverrides(rows.value),
+          status: importActive.value ? 'active' : 'draft',
+        })
     resultActive.value = importActive.value
     step.value = 'done'
   } catch (e) {
@@ -254,9 +296,14 @@ const previewOf = (r: ImportRowState) => ({
   points: r.item.points,
 })
 const backTo = computed(() =>
-  target.value
-    ? { name: 'exam-topic', params: { topicId: target.value.id } }
-    : { name: 'exam-questions' },
+  blockRef.value
+    ? {
+        name: 'exam-my-block',
+        params: { sessionId: blockRef.value.sessionId, blockId: blockRef.value.blockId },
+      }
+    : target.value
+      ? { name: 'exam-topic', params: { topicId: target.value.id } }
+      : { name: 'exam-questions' },
 )
 const letter = (i: number) => String.fromCharCode(65 + i)
 </script>
@@ -595,6 +642,7 @@ const letter = (i: number) => String.fromCharCode(65 + i)
         }}
       </p>
       <BaseCheckbox
+        v-if="!blockRef"
         v-model="importActive"
         :label="t('exams.import.importActive')"
         data-testid="import-active"

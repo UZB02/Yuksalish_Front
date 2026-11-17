@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { Printer } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
+import { isApiError } from '@/api/errors'
 import type {
   ExamAttemptRow,
   ExamAttemptsResponse,
@@ -217,6 +218,31 @@ async function run(fn: () => Promise<unknown>, okKey?: string) {
 const act = (a: 'submit' | 'approve' | 'open' | 'close', okKey: string) =>
   run(() => examsApi.sessionAction(id.value, a), okKey)
 
+/** Haqiqiy (blokli) bloklar; eski imtihonda bo'sh */
+const realBlocks = computed(() => (s.value?.blocks ?? []).filter((b) => !b.legacy))
+
+/** Rejalashtirish: maqsaddan kam savol bo'lsa tuzuvchi tasdiqlaydi (409 + details.path=blocks) */
+async function submitSession() {
+  await run(async () => {
+    try {
+      await examsApi.submitSession(id.value)
+    } catch (e) {
+      if (isApiError(e) && e.status === 409 && e.details.some((d) => d.path === 'blocks')) {
+        const ok = await confirm({
+          title: t('examBlocks.shortTitle'),
+          message: `${t('examBlocks.shortText')}\n${e.details.map((d) => d.message).join('\n')}`,
+          confirmText: t('examBlocks.shortConfirm'),
+        })
+        if (!ok) return
+        await examsApi.submitSession(id.value, true)
+      } else {
+        throw e
+      }
+    }
+    toast.success(t('examSessions.toast.scheduled'))
+  })
+}
+
 async function cancel() {
   const ok = await confirm({
     title: t('examSessions.detail.cancelTitle'),
@@ -226,21 +252,95 @@ async function cancel() {
   })
   if (ok) await run(() => examsApi.cancelSession(id.value), 'examSessions.toast.cancelled')
 }
+/** O'chirish: urinishsiz imtihon oddiy tasdiq bilan; urinishli (yopilgan) imtihon uchun ikki variantli oyna */
+const deleteOpen = ref(false)
+const deleteMode = ref<'exam_only' | 'with_results'>('exam_only')
+const deleteTitle = ref('')
+const deleteError = ref('')
 async function remove() {
+  if (s.value?.hasAttempts) {
+    deleteMode.value = 'exam_only'
+    deleteTitle.value = ''
+    deleteError.value = ''
+    deleteOpen.value = true
+    return
+  }
   const ok = await confirm({
     title: t('examSessions.detail.deleteTitle'),
     message: t('examSessions.detail.deleteText'),
     confirmText: t('common.delete'),
     variant: 'danger',
   })
-  if (!ok) return
+  if (ok) await doDelete()
+}
+async function doDelete() {
+  if (!s.value) return
+  if (
+    deleteOpen.value &&
+    deleteMode.value === 'with_results' &&
+    deleteTitle.value !== s.value.title
+  ) {
+    deleteError.value = t('examSessions.detail.deleteTitleMismatch')
+    return
+  }
+  busy.value = true
   try {
-    await examsApi.removeSession(id.value)
+    await examsApi.deleteSession(
+      id.value,
+      deleteOpen.value
+        ? {
+            mode: deleteMode.value,
+            confirmTitle: deleteMode.value === 'with_results' ? deleteTitle.value : undefined,
+          }
+        : {},
+    )
     clearDraftById(auth.user?.id ?? '', schoolId.value ?? auth.user?.schoolId ?? '', id.value)
     toast.success(t('examSessions.toast.deleted'))
+    deleteOpen.value = false
     void router.replace({ name: 'exam-sessions' })
   } catch (e) {
     toast.error(errorMessage(e, t))
+  } finally {
+    busy.value = false
+  }
+}
+
+/** Nusxa olib yangi imtihon: yangi qoralama ustada ochiladi, ogohlantirishlar toast bilan */
+async function copySession() {
+  busy.value = true
+  try {
+    const r = await examsApi.copySession(id.value)
+    toast.success(t('examSessions.toast.copied'))
+    for (const w of r.warnings) toast.info(w)
+    void router.push({
+      name: 'exam-session-edit',
+      params: { id: r.session.id },
+      query: { copied: '1' },
+    })
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    busy.value = false
+  }
+}
+/** Tahrirlash uchun qaytarish (urinish yo'q imtihon): qoralamaga, ustada ochiladi */
+async function returnToDraft() {
+  const ok = await confirm({
+    title: t('examSessions.detail.returnTitle'),
+    message: t('examSessions.detail.returnText'),
+    confirmText: t('examSessions.detail.returnConfirm'),
+  })
+  if (!ok) return
+  busy.value = true
+  try {
+    await examsApi.returnToDraft(id.value)
+    toast.success(t('examSessions.toast.returned'))
+    void router.push({ name: 'exam-session-edit', params: { id: id.value } })
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+    await refresh()
+  } finally {
+    busy.value = false
   }
 }
 async function closeNow() {
@@ -422,7 +522,59 @@ const editable = computed(() => !!s.value?.canManageParticipants)
         <p class="text-fg-muted">{{ t('examSessions.detail.author') }}</p>
         <p class="text-fg">{{ s.createdByName ?? '—' }}</p>
       </div>
+      <template v-if="realBlocks.length">
+        <div>
+          <p class="text-fg-muted">{{ t('examBlocks.scoringMode') }}</p>
+          <p class="text-fg" data-testid="detail-scoring">
+            {{ t(`examBlocks.scoring.${s.scoringMode ?? 'points'}`) }}
+          </p>
+        </div>
+        <div>
+          <p class="text-fg-muted">{{ t('examBlocks.timingMode') }}</p>
+          <p class="text-fg" data-testid="detail-timing">
+            {{ t(`examBlocks.timing.${s.timingMode ?? 'common'}`) }}
+          </p>
+        </div>
+        <div v-if="s.contribDeadline">
+          <p class="text-fg-muted">{{ t('examBlocks.contribDeadline') }}</p>
+          <p class="text-fg" data-testid="detail-contrib-deadline">
+            {{ fmtDateTime(s.contribDeadline) }}
+          </p>
+        </div>
+      </template>
     </div>
+
+    <section v-if="realBlocks.length" class="card mb-5 space-y-2 p-4" data-testid="blocks-panel">
+      <h2 class="text-sm font-semibold text-fg">{{ t('examBlocks.title') }}</h2>
+      <ul class="divide-y divide-border text-sm">
+        <li
+          v-for="(b, i) in realBlocks"
+          :key="b.id"
+          class="flex flex-wrap items-center gap-x-4 gap-y-1 py-2"
+          :data-testid="`detail-block-${i}`"
+        >
+          <span class="min-w-32 font-medium text-fg">{{ b.subjectName ?? b.title }}</span>
+          <span
+            :class="b.count >= b.targetCount ? 'text-success' : 'text-warning'"
+            :data-testid="`detail-block-progress-${i}`"
+          >
+            {{ b.count }}/{{ b.targetCount }}
+          </span>
+          <span v-if="s.scoringMode === 'coefficient'" class="text-fg-muted">
+            ×{{ b.coefficient }}
+          </span>
+          <span v-if="s.timingMode === 'per_block'" class="text-fg-muted">
+            {{ t('examSessions.minutes', { n: b.durationMin ?? 0 }) }}
+          </span>
+          <span class="text-fg-muted">
+            {{ b.contributors.map((c) => c.fullName).join(', ') || t('examBlocks.noContributors') }}
+          </span>
+          <BaseBadge :tone="b.status === 'ready' ? 'success' : 'neutral'">
+            {{ b.status === 'ready' ? t('examBlocks.ready') : t('examBlocks.open') }}
+          </BaseBadge>
+        </li>
+      </ul>
+    </section>
 
     <div class="mb-5 flex flex-wrap gap-2" data-testid="detail-actions">
       <BaseButton
@@ -437,7 +589,7 @@ const editable = computed(() => !!s.value?.canManageParticipants)
         v-if="s.canSubmit"
         :loading="busy"
         data-testid="act-submit"
-        @click="act('submit', 'examSessions.toast.scheduled')"
+        @click="submitSession"
       >
         {{ t('examSessions.detail.submit') }}
       </BaseButton>
@@ -491,6 +643,24 @@ const editable = computed(() => !!s.value?.canManageParticipants)
       </BaseButton>
       <BaseButton v-if="s.canCancel" variant="danger" data-testid="act-cancel" @click="cancel">
         {{ t('examSessions.detail.cancel') }}
+      </BaseButton>
+      <BaseButton
+        v-if="s.canReturnToDraft && !s.hasAttempts"
+        variant="secondary"
+        :loading="busy"
+        data-testid="act-return"
+        @click="returnToDraft"
+      >
+        {{ t('examSessions.detail.returnToDraft') }}
+      </BaseButton>
+      <BaseButton
+        v-if="s.canCopy"
+        variant="secondary"
+        :loading="busy"
+        data-testid="act-copy"
+        @click="copySession"
+      >
+        {{ t('examSessions.detail.copy') }}
       </BaseButton>
       <BaseButton v-if="s.canDelete" variant="danger" data-testid="act-delete" @click="remove">
         {{ t('common.delete') }}
@@ -657,6 +827,70 @@ const editable = computed(() => !!s.value?.canManageParticipants)
         </table>
       </div>
     </section>
+
+    <BaseModal
+      :open="deleteOpen"
+      :title="t('examSessions.detail.deleteTitle')"
+      persistent
+      @close="deleteOpen = false"
+    >
+      <div class="space-y-4" data-testid="delete-dialog">
+        <p class="text-sm text-fg-muted">{{ t('examSessions.detail.deleteChoice') }}</p>
+        <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-border p-3">
+          <input
+            v-model="deleteMode"
+            type="radio"
+            value="exam_only"
+            data-testid="delete-exam-only"
+          />
+          <span class="text-sm">
+            <b class="block text-fg">{{ t('examSessions.detail.deleteExamOnly') }}</b>
+            {{ t('examSessions.detail.deleteExamOnlyHint') }}
+          </span>
+        </label>
+        <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-danger p-3">
+          <input
+            v-model="deleteMode"
+            type="radio"
+            value="with_results"
+            data-testid="delete-with-results"
+          />
+          <span class="text-sm">
+            <b class="block text-danger">{{ t('examSessions.detail.deleteWithResults') }}</b>
+            {{ t('examSessions.detail.deleteWithResultsHint') }}
+          </span>
+        </label>
+        <div
+          v-if="deleteMode === 'with_results'"
+          class="space-y-2"
+          data-testid="delete-confirm-box"
+        >
+          <p class="rounded-lg bg-danger-soft px-3 py-2 text-sm font-medium text-danger">
+            {{ t('examSessions.detail.deleteIrreversible') }}
+          </p>
+          <BaseInput
+            v-model="deleteTitle"
+            :label="t('examSessions.detail.deleteTypeTitle', { title: s?.title ?? '' })"
+            :error="deleteError"
+            data-testid="delete-title"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="deleteOpen = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton
+          variant="danger"
+          :loading="busy"
+          :disabled="deleteMode === 'with_results' && deleteTitle !== s?.title"
+          data-testid="delete-confirm"
+          @click="doDelete"
+        >
+          {{ t('common.delete') }}
+        </BaseButton>
+      </template>
+    </BaseModal>
 
     <BaseModal
       :open="reopenOpen"

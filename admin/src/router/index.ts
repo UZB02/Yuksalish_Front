@@ -95,6 +95,26 @@ const router = createRouter({
           },
         },
         {
+          path: 'exams/results',
+          name: 'exam-results-list',
+          component: () => import('@/views/exams/sessions/ExamResultsListView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'nav.examResultsList',
+          },
+        },
+        {
+          path: 'exams/blocks/:sessionId/:blockId',
+          name: 'exam-my-block',
+          component: () => import('@/views/exams/sessions/MyBlockView.vue'),
+          meta: {
+            anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+            feature: 'exams',
+            titleKey: 'examBlocks.myBlock.title',
+          },
+        },
+        {
           path: 'exams/sessions/new',
           name: 'exam-session-new',
           component: () => import('@/views/exams/sessions/SessionWizardView.vue'),

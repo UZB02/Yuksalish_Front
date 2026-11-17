@@ -7,10 +7,13 @@ import { computeOffset, remainingMs } from './lib/timer'
 import type {
   AnswerEntry,
   AnswerValue,
+  BlockMeta,
+  BlockView,
   ClientQuestion,
   EventType,
   JoinResponse,
   ResultResponse,
+  StartResponse,
 } from './lib/types'
 
 export type Screen = 'loading' | 'join' | 'confirm' | 'exam' | 'result' | 'closed'
@@ -54,7 +57,14 @@ export function createStore(opts: StoreOptions = {}) {
     busy: false,
     error: '',
     join: null as JoinResponse | null,
+    /** Hozir ko'rinadigan savollar (blokma-blok: faqat joriy blok) */
     questions: [] as ClientQuestion[],
+    /** Ko'rsatilgan barcha savollar (natija tahlili uchun; faqat shu qurilmada ko'rilganlar) */
+    allQuestions: [] as ClientQuestion[],
+    blocks: [] as BlockMeta[],
+    /** Blokma-blok: joriy blok holati; null = umumiy vaqt */
+    block: null as BlockView | null,
+    blockRemaining: 0,
     answers: {} as Record<string, AnswerEntry>,
     index: 0,
     deadline: null as string | null,
@@ -73,6 +83,8 @@ export function createStore(opts: StoreOptions = {}) {
   let removeAnti: (() => void) | null = null
   let toastSeq = 0
   let submitting = false
+  let advancing = false
+  let lastAutoAdvance = 0
   let listenersOn = false
 
   const deviceId = (): string => {
@@ -159,6 +171,9 @@ export function createStore(opts: StoreOptions = {}) {
     teardown()
     state.join = null
     state.questions = []
+    state.allQuestions = []
+    state.blocks = []
+    state.block = null
     state.answers = {}
   }
 
@@ -171,36 +186,61 @@ export function createStore(opts: StoreOptions = {}) {
   }
 
   // ---------- Imtihon ----------
+  /**
+   * Server ko'rinishini (start / blok almashishi) holatga qo'llaydi: savollar, javoblar navbati, blok va taymer.
+   * Blokma-blok: har blok uchun alohida navbat (eski blok javoblari yangisiga aralashmaydi).
+   */
+  function applyView(r: StartResponse) {
+    syncClock(r.serverNow)
+    state.questions = r.questions
+    const known = new Set(state.allQuestions.map((q) => q.id))
+    for (const q of r.questions) if (!known.has(q.id)) state.allQuestions.push(q)
+    state.deadline = r.deadline
+    if (r.blocks) state.blocks = r.blocks
+    state.block = r.block ?? null
+    const answers: Record<string, AnswerEntry> = {}
+    queue?.destroy()
+    queue = new AnswerQueue({
+      storage,
+      storageKey: `exam.q.${r.startedAt ?? 'x'}${r.block?.id ? `.${r.block.id}` : ''}`,
+      send: async (body) => {
+        const res = await api.saveAnswers(body)
+        syncClock(res.serverNow)
+        if (res.rejected?.length) void onRejected(res.rejected.length)
+        return res
+      },
+      onStatus: (s) => (state.saveStatus = s),
+      onClosed: () => void onServerClosed(),
+    })
+    queue.hydrate(r.saved, r.clientSeq)
+    for (const q of r.questions) {
+      const e = queue.entries[q.id]
+      if (e) answers[q.id] = { value: e.value, flagged: e.flagged }
+    }
+    state.answers = answers
+    state.index = 0
+    state.screen = 'exam'
+    startRuntime()
+  }
+
+  /** Server bu blokka javob qabul qilmadi (blok yopilgan): holat qayta yuklanadi */
+  async function onRejected(n: number) {
+    toast(`${n} ta javob saqlanmadi: blok vaqti tugagan`, 'warn')
+    try {
+      const st = await api.state()
+      syncClock(st.serverNow)
+      if (st.status === 'submitted' || st.status === 'auto_submitted') await showResult()
+      else if (st.block?.id && st.block.id !== state.block?.id) await start()
+    } catch {
+      /* keyingi heartbeat/tick tuzatadi */
+    }
+  }
+
   async function start() {
     state.busy = true
     state.error = ''
     try {
-      const r = await api.start()
-      syncClock(r.serverNow)
-      state.questions = r.questions
-      state.deadline = r.deadline
-      const answers: Record<string, AnswerEntry> = {}
-      queue?.destroy()
-      queue = new AnswerQueue({
-        storage,
-        storageKey: `exam.q.${r.startedAt ?? 'x'}`,
-        send: async (body) => {
-          const res = await api.saveAnswers(body)
-          syncClock(res.serverNow)
-          return res
-        },
-        onStatus: (s) => (state.saveStatus = s),
-        onClosed: () => void onServerClosed(),
-      })
-      queue.hydrate(r.saved, r.clientSeq)
-      for (const q of r.questions) {
-        const e = queue.entries[q.id]
-        if (e) answers[q.id] = { value: e.value, flagged: e.flagged }
-      }
-      state.answers = answers
-      state.index = 0
-      state.screen = 'exam'
-      startRuntime()
+      applyView(await api.start())
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) await showResult().catch(() => undefined)
       else state.error = errText(e)
@@ -214,10 +254,29 @@ export function createStore(opts: StoreOptions = {}) {
     updateRemaining()
     tickTimer = setInterval(() => {
       updateRemaining()
-      if (state.deadline && state.remaining <= 0 && state.screen === 'exam') void submit(true)
+      if (state.screen !== 'exam') return
+      if (state.block) {
+        // Blokma-blok: blok vaqti tugadi -> keyingi blokka (oxirgi blok bo'lsa topshirish); xatoda 3 s dan keyin qayta
+        if (state.blockRemaining <= 0 && now() - lastAutoAdvance > 3000) {
+          lastAutoAdvance = now()
+          void finishBlock(true)
+        }
+      } else if (state.deadline && state.remaining <= 0) void submit(true)
     }, opts.tickMs ?? 1000)
     beatTimer = setInterval(
-      () => void api.heartbeat().catch(() => undefined),
+      () =>
+        void api
+          .heartbeat()
+          .then((r) => {
+            // Server bloklarni o'zi almashtirgan bo'lsa (vaqt tugagan): yangi blokni yuklaymiz
+            const hb = r as { block?: BlockView | null; status?: string } | undefined
+            if (hb?.status === 'auto_submitted' || hb?.status === 'submitted') {
+              void showResult().catch(() => undefined)
+            } else if (hb?.block?.id && state.block?.id && hb.block.id !== state.block.id) {
+              void start()
+            }
+          })
+          .catch(() => undefined),
       opts.heartbeatMs ?? 30_000,
     )
     removeAnti = installAntiCheat(
@@ -259,6 +318,10 @@ export function createStore(opts: StoreOptions = {}) {
 
   function updateRemaining() {
     if (state.deadline) state.remaining = remainingMs(state.deadline, state.offset, now())
+    // Blokma-blok: asosiy taymer joriy blok vaqtini ko'rsatadi, umumiy tugash `remaining` da qoladi
+    if (state.block?.deadline) {
+      state.blockRemaining = remainingMs(state.block.deadline, state.offset, now())
+    }
   }
 
   async function sendEvent(type: EventType, at: string) {
@@ -305,6 +368,39 @@ export function createStore(opts: StoreOptions = {}) {
 
   function goto(i: number) {
     if (i >= 0 && i < state.questions.length) state.index = i
+  }
+
+  /**
+   * Blokni yakunlash (blokma-blok): joriy blok yopiladi, orqaga qaytilmaydi. Oxirgi blokda imtihon topshiriladi.
+   * auto: blok vaqti tugagan (qayta uriniladi, to'xtamaydi).
+   */
+  async function finishBlock(auto = false): Promise<boolean> {
+    if (!state.block?.id || advancing || submitting) return false
+    advancing = true
+    state.busy = true
+    try {
+      if (queue) {
+        await Promise.race([queue.flushNow(), new Promise<void>((r) => setTimeout(r, 4000))])
+      }
+      const r = await api.finishBlock({ blockId: state.block.id })
+      if (r.finished) {
+        state.result = r
+        finish()
+      } else {
+        applyView(r)
+      }
+      return true
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        await showResult().catch(() => undefined)
+        return true
+      }
+      if (!auto) toast(errText(e, 'Blokni yakunlab bo‘lmadi, qayta urinib ko‘ring'), 'error')
+      return false
+    } finally {
+      advancing = false
+      state.busy = false
+    }
   }
 
   async function onServerClosed() {
@@ -370,6 +466,7 @@ export function createStore(opts: StoreOptions = {}) {
     join,
     start,
     submit,
+    finishBlock,
     leave,
     setAnswer,
     pickOption,

@@ -276,6 +276,14 @@ export const NAV_ITEMS: NavItem[] = [
     activePrefixes: ['/exams/sessions'],
   },
   {
+    name: 'exam-results-list',
+    group: 'exams',
+    labelKey: 'nav.examResultsList',
+    icon: Trophy,
+    anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+    feature: 'exams',
+  },
+  {
     name: 'exam-candidates',
     group: 'exams',
     labelKey: 'nav.examCandidates',

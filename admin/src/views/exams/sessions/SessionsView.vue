@@ -5,7 +5,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { ClipboardList, Plus } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
-import type { ApiMeta, ExamSessionItem, ExamSessionMeta } from '@/api/types'
+import type { ApiMeta, ExamSessionItem, ExamSessionMeta, MyBlockItem } from '@/api/types'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -28,6 +28,8 @@ const { schoolId } = storeToRefs(useSchoolContextStore())
 const items = ref<ExamSessionItem[]>([])
 const meta = ref<ApiMeta | null>(null)
 const info = ref<ExamSessionMeta | null>(null)
+/** Menga biriktirilgan imtihon bloklari (faqat o'z bloklarim) */
+const myBlocks = ref<MyBlockItem[]>([])
 const loading = ref(true)
 const error = ref('')
 const status = ref('')
@@ -61,6 +63,7 @@ async function load() {
     items.value = r.items
     meta.value = r.meta
     info.value = m
+    myBlocks.value = await examsApi.myBlocks().catch(() => [] as MyBlockItem[])
   } catch (e) {
     items.value = []
     error.value = errorMessage(e, t)
@@ -115,6 +118,39 @@ const open = (s: ExamSessionItem) =>
     >
       {{ t('examSessions.pinSecretMissing') }}
     </p>
+
+    <section v-if="myBlocks.length" class="card mb-5 p-4" data-testid="my-blocks">
+      <h2 class="mb-3 text-sm font-semibold text-fg">{{ t('examBlocks.myBlocks.title') }}</h2>
+      <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <li v-for="(b, i) in myBlocks" :key="`${b.sessionId}:${b.blockId}`">
+          <button
+            type="button"
+            class="w-full rounded-lg border border-border p-3 text-left transition-colors hover:bg-surface-muted"
+            :data-testid="`my-block-${i}`"
+            @click="
+              router.push({
+                name: 'exam-my-block',
+                params: { sessionId: b.sessionId, blockId: b.blockId },
+              })
+            "
+          >
+            <p class="truncate text-sm font-medium text-fg">{{ b.examTitle }}</p>
+            <p class="mt-0.5 text-sm text-fg-muted">{{ b.subjectName ?? b.title }}</p>
+            <p class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <BaseBadge :tone="b.count >= b.targetCount ? 'success' : 'warning'">
+                {{ b.count }}/{{ b.targetCount }}
+              </BaseBadge>
+              <BaseBadge v-if="b.locked" tone="neutral">
+                {{ t('examBlocks.myBlocks.locked') }}
+              </BaseBadge>
+              <span v-if="b.contribDeadline" class="text-fg-muted">
+                {{ t('examBlocks.myBlocks.until', { date: fmtDateTime(b.contribDeadline) }) }}
+              </span>
+            </p>
+          </button>
+        </li>
+      </ul>
+    </section>
 
     <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-xl">
       <BaseSelect

@@ -4,6 +4,8 @@ import { useStore } from '../inject'
 
 const store = useStore()
 const j = computed(() => store.state.join)
+const perBlock = computed(() => j.value?.exam.timingMode === 'per_block')
+const blocks = computed(() => j.value?.exam.blocks ?? [])
 const who = computed(() => {
   const p = j.value?.participant
   if (!p) return ''
@@ -23,7 +25,18 @@ const who = computed(() => {
       <li>
         Savollar soni: <b>{{ j.exam.questionCount }}</b>
       </li>
-      <li>
+      <li v-if="blocks.length > 1" data-testid="confirm-blocks">
+        Bloklar:
+        <span v-for="(b, i) in blocks" :key="b.id"
+          >{{ i ? ', ' : '' }}<b>{{ b.title }}</b> ({{ b.questionCount
+          }}<template v-if="perBlock && b.durationMin">, {{ b.durationMin }} daq.</template>)</span
+        >
+      </li>
+      <li v-if="perBlock" data-testid="confirm-per-block">
+        Bloklar ketma-ket yechiladi, har birining o‘z vaqti bor. Blokni yakunlagach yoki vaqti
+        tugagach keyingisiga o‘tiladi va <b>orqaga qaytib bo‘lmaydi</b>.
+      </li>
+      <li v-else>
         Savollar orasida erkin yurish, javobni o‘zgartirish va “Keyinroq qaytaman” belgisi mumkin.
       </li>
       <li>

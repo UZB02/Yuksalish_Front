@@ -23,6 +23,9 @@ const api = {
   getSession: vi.fn(),
   addParticipants: vi.fn(),
   sessionAction: vi.fn(),
+  submitSession: vi.fn(),
+  myBlocks: vi.fn(),
+  previewBlocks: vi.fn(),
   rejectSession: vi.fn(),
   cancelSession: vi.fn(),
   removeSession: vi.fn(),
@@ -188,6 +191,7 @@ beforeEach(() => {
     topics: [{ id: 'tp1', name: 'Kasrlar', questionsCount: 5 }],
   })
   api.listTemplates.mockResolvedValue([])
+  api.myBlocks.mockResolvedValue([])
   api.classOptions.mockResolvedValue([{ id: 'c1', name: '7-A', grade: 7, studentsCount: 25 }])
   api.classStudents.mockResolvedValue([{ id: 's1', fullName: 'Aliyev Vali' }])
   api.previewSections.mockResolvedValue({
@@ -706,9 +710,9 @@ describe('CandidatesView (nomzodlar)', () => {
 })
 
 describe('Usta: avtosaqlash, tiklash va chiqishdan himoya', () => {
-  const KEY = 'exam.wizard.v1:u1:s1:new'
+  const KEY = 'exam.wizard.v2:u1:s1:new'
   const validDraft = (over: Record<string, unknown> = {}) => ({
-    v: 1,
+    v: 2,
     savedAt: new Date().toISOString(),
     step: 2,
     form: {
@@ -717,7 +721,12 @@ describe('Usta: avtosaqlash, tiklash va chiqishdan himoya', () => {
       subjectId: 'math',
       classIds: ['c1'],
       templateId: '',
+      mode: 'sections',
       sections: [{ title: 'B', items: [{ kind: 'manual', questionIds: ['q1'] }] }],
+      blocks: [],
+      scoringMode: 'points',
+      timingMode: 'common',
+      contribDeadline: '',
       start: '2099-01-01T10:00',
       durationMin: '45',
       shuffleQuestions: true,
@@ -741,7 +750,7 @@ describe('Usta: avtosaqlash, tiklash va chiqishdan himoya', () => {
     expect(stored()).toBeNull() // debounce
     await sleep(650)
     expect(stored()).toMatchObject({
-      v: 1,
+      v: 2,
       step: 0,
       form: { title: 'Yangi nazorat', classIds: ['c1'] },
     })
@@ -795,6 +804,10 @@ describe('Usta: avtosaqlash, tiklash va chiqishdan himoya', () => {
       validDraft({ savedAt: old }),
       validDraft({ step: 9 }),
       { v: 1, savedAt: new Date().toISOString(), step: 1, form: { title: 5 } },
+      // Eski (1) versiya: blok maydonlari yo'q, jimgina tashlanadi
+      validDraft({ v: 1 }),
+      validDraft({ form: { ...validDraft().form, mode: 'x' } }),
+      validDraft({ form: { ...validDraft().form, blocks: [{ subjectId: 5 }] } }),
       validDraft({ form: { ...validDraft().form, sections: [{ title: 1, items: [] }] } }),
     ]
     for (const c of cases) {
@@ -810,7 +823,7 @@ describe('Usta: avtosaqlash, tiklash va chiqishdan himoya', () => {
   })
 
   it('boshqa foydalanuvchi/maktab kaliti ostidagi qoralama ko`rinmaydi', async () => {
-    seed(validDraft(), 'exam.wizard.v1:other-user:s1:new')
+    seed(validDraft(), 'exam.wizard.v2:other-user:s1:new')
     const { w } = await mountView(SessionWizardView, '/exams/sessions/new')
     expect(w.find('[data-testid="resume-banner"]').exists()).toBe(false)
   })
@@ -905,10 +918,10 @@ describe('Usta: avtosaqlash, tiklash va chiqishdan himoya', () => {
 
   it('tahrirlash: mahalliy (yangiroq) o`zgarishlar server ma`lumotlari ustidan tiklanadi; yuborilgach tozalanadi', async () => {
     api.getSession.mockResolvedValue(session({ status: 'draft', code: null }))
-    api.sessionAction.mockResolvedValue(session({ status: 'scheduled' }))
+    api.submitSession.mockResolvedValue(session({ status: 'scheduled' }))
     seed(
       validDraft({ step: 4, form: { ...validDraft().form, title: 'Mahalliy sarlavha' } }),
-      'exam.wizard.v1:u1:s1:e1',
+      'exam.wizard.v2:u1:s1:e1',
     )
     const { w } = await mountView(
       SessionWizardView,
@@ -921,9 +934,9 @@ describe('Usta: avtosaqlash, tiklash va chiqishdan himoya', () => {
     expect(JSON.stringify(useToast().toasts)).toContain('tiklandi')
     await w.get('[data-testid="wz-submit"]').trigger('click')
     await flushPromises()
-    expect(api.sessionAction).toHaveBeenCalledWith('e1', 'submit')
+    expect(api.submitSession).toHaveBeenCalledWith('e1')
     await sleep(700)
-    expect(stored('exam.wizard.v1:u1:s1:e1')).toBeNull()
+    expect(stored('exam.wizard.v2:u1:s1:e1')).toBeNull()
     expect(stored()).toBeNull()
   })
 

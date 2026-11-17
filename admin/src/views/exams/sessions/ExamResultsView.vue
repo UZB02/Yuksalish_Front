@@ -42,6 +42,25 @@ const analysisLoading = ref(false)
 const busy = ref(false)
 const openKey = ref<string | null>(null)
 
+/** Blok ustunlari faqat bir nechta blokli imtihonda (eski/yagona blokli: jadval o'zgarmaydi) */
+const blockCols = computed(() => ((data.value?.blocks?.length ?? 0) > 1 ? data.value!.blocks! : []))
+const blockCell = (
+  r: { blocks?: { blockId: string; earned: number; max: number }[] },
+  id: string,
+) => {
+  const b = r.blocks?.find((x) => x.blockId === id)
+  return b ? `${b.earned}/${b.max}` : '—'
+}
+const analysisGroups = computed(() => {
+  const qs = analysis.value?.questions ?? []
+  const heads = analysis.value?.blocks ?? []
+  if (heads.length <= 1) return [{ id: '', title: '', questions: qs }]
+  return heads.map((h) => ({
+    id: h.id,
+    title: h.title || h.subjectName || '',
+    questions: qs.filter((q) => q.blockId === h.id),
+  }))
+})
 const search = ref('')
 const classFilter = ref('')
 const statusFilter = ref('')
@@ -203,8 +222,12 @@ const flagTone = (f: string) =>
   <template v-else>
     <ExamBreadcrumb
       :items="[
-        { label: t('examResults.breadcrumbRoot'), to: { name: 'exam-sessions' } },
-        { label: data.session.title, to: { name: 'exam-session', params: { id } } },
+        data.session.examDeleted
+          ? { label: t('examResultsList.title'), to: { name: 'exam-results-list' } }
+          : { label: t('examResults.breadcrumbRoot'), to: { name: 'exam-sessions' } },
+        data.session.examDeleted
+          ? { label: data.session.title }
+          : { label: data.session.title, to: { name: 'exam-session', params: { id } } },
         { label: t('examResults.title') },
       ]"
     />
@@ -383,6 +406,14 @@ const flagTone = (f: string) =>
               </th>
               <th class="py-2 pr-3">{{ t('examResults.cols.cls') }}</th>
               <th class="py-2 pr-3">{{ t('examResults.cols.status') }}</th>
+              <th
+                v-for="(h, hi) in blockCols"
+                :key="h.id"
+                class="py-2 pr-3"
+                :data-testid="`block-col-${hi}`"
+              >
+                {{ h.title || h.subjectName }}
+              </th>
               <th class="py-2 pr-3">{{ t('examResults.cols.score') }}</th>
               <th class="py-2 pr-3">
                 <button type="button" data-testid="sort-percent" @click="sortBy('percent')">
@@ -420,6 +451,14 @@ const flagTone = (f: string) =>
                 <BaseBadge :tone="statusTone(r.status)" data-testid="cell-status">{{
                   t(`examResults.status.${r.status}`)
                 }}</BaseBadge>
+              </td>
+              <td
+                v-for="(h, hi) in blockCols"
+                :key="h.id"
+                class="py-2 pr-3"
+                :data-testid="`cell-block-${hi}`"
+              >
+                {{ r.earned !== null ? blockCell(r, h.id) : '—' }}
               </td>
               <td class="py-2 pr-3" data-testid="cell-score">
                 <template v-if="r.earned !== null">{{ r.earned }} / {{ r.max }}</template>
@@ -469,54 +508,65 @@ const flagTone = (f: string) =>
         {{ t('examResults.analysis.empty') }}
       </p>
       <template v-else>
-        <article
-          v-for="q in analysis?.questions ?? []"
-          :key="q.id"
-          class="card space-y-2 p-4"
-          data-testid="analysis-question"
-        >
-          <div class="flex flex-wrap items-center gap-2 text-sm text-fg-muted">
-            <span class="font-semibold text-fg">{{
-              t('examResults.detail.question', { n: q.index })
-            }}</span>
-            <span>{{ t('examResults.analysis.shown') }}: {{ q.shown }}</span>
-            <span v-if="q.correctPercent !== null" data-testid="q-correct"
-              >{{ t('examResults.analysis.correctPercent') }}: {{ q.correctPercent }}%</span
-            >
-            <span v-if="q.averagePoints !== null"
-              >{{ t('examResults.analysis.averagePoints') }}: {{ q.averagePoints }} /
-              {{ q.points }}</span
-            >
-            <BaseBadge v-for="f in q.flags" :key="f" :tone="flagTone(f)" data-testid="q-flag">{{
-              t(`examResults.analysis.flags.${f}`)
-            }}</BaseBadge>
-          </div>
-          <BlocksView :blocks="q.content" />
-          <ul v-if="q.options.length" class="space-y-1">
-            <li v-for="o in q.options" :key="o.id" class="text-sm" data-testid="q-option">
-              <div class="flex items-center gap-2">
-                <span
-                  class="min-w-0 flex-1 truncate"
-                  :class="o.correct ? 'font-semibold text-success' : 'text-fg'"
-                >
-                  {{
-                    o.content
-                      .map((b) => (b.type === 'text' ? b.text : b.type === 'math' ? b.tex : ''))
-                      .join(' ') || o.id
-                  }}
-                </span>
-                <span class="w-24 text-right text-fg-muted">{{ o.chosen }} ({{ o.percent }}%)</span>
-              </div>
-              <div class="h-1.5 rounded bg-surface-muted">
-                <div
-                  class="h-1.5 rounded"
-                  :class="o.correct ? 'bg-success' : 'bg-danger'"
-                  :style="{ width: `${Math.min(100, o.percent)}%` }"
-                />
-              </div>
-            </li>
-          </ul>
-        </article>
+        <template v-for="g in analysisGroups" :key="g.id">
+          <h3
+            v-if="g.title"
+            class="pt-2 text-sm font-semibold text-fg"
+            data-testid="analysis-block-title"
+          >
+            {{ g.title }}
+          </h3>
+          <article
+            v-for="q in g.questions"
+            :key="q.id"
+            class="card space-y-2 p-4"
+            data-testid="analysis-question"
+          >
+            <div class="flex flex-wrap items-center gap-2 text-sm text-fg-muted">
+              <span class="font-semibold text-fg">{{
+                t('examResults.detail.question', { n: q.index })
+              }}</span>
+              <span>{{ t('examResults.analysis.shown') }}: {{ q.shown }}</span>
+              <span v-if="q.correctPercent !== null" data-testid="q-correct"
+                >{{ t('examResults.analysis.correctPercent') }}: {{ q.correctPercent }}%</span
+              >
+              <span v-if="q.averagePoints !== null"
+                >{{ t('examResults.analysis.averagePoints') }}: {{ q.averagePoints }} /
+                {{ q.points }}</span
+              >
+              <BaseBadge v-for="f in q.flags" :key="f" :tone="flagTone(f)" data-testid="q-flag">{{
+                t(`examResults.analysis.flags.${f}`)
+              }}</BaseBadge>
+            </div>
+            <BlocksView :blocks="q.content" />
+            <ul v-if="q.options.length" class="space-y-1">
+              <li v-for="o in q.options" :key="o.id" class="text-sm" data-testid="q-option">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="min-w-0 flex-1 truncate"
+                    :class="o.correct ? 'font-semibold text-success' : 'text-fg'"
+                  >
+                    {{
+                      o.content
+                        .map((b) => (b.type === 'text' ? b.text : b.type === 'math' ? b.tex : ''))
+                        .join(' ') || o.id
+                    }}
+                  </span>
+                  <span class="w-24 text-right text-fg-muted"
+                    >{{ o.chosen }} ({{ o.percent }}%)</span
+                  >
+                </div>
+                <div class="h-1.5 rounded bg-surface-muted">
+                  <div
+                    class="h-1.5 rounded"
+                    :class="o.correct ? 'bg-success' : 'bg-danger'"
+                    :style="{ width: `${Math.min(100, o.percent)}%` }"
+                  />
+                </div>
+              </li>
+            </ul>
+          </article>
+        </template>
       </template>
     </div>
 

@@ -16,7 +16,16 @@ import { useTopicOptions } from './useTopicOptions'
  * Bo'limlar muharriri: har bo'limda qo'lda tanlangan savollar va/yoki qoidalar (mavzu, soni, qiyinlik, tur).
  * Har o'zgarishdan keyin server "mavjud savollar" sonini tekshiradi (preview) va yetmasa xato ko'rsatadi.
  */
-const props = defineProps<{ modelValue: ExamSection[]; subjectId?: string | null }>()
+const props = defineProps<{
+  modelValue: ExamSection[]
+  subjectId?: string | null
+  /**
+   * Blok ichidagi elementlar rejimi: bitta yashirin bo'lim (nom, "bo'lim qo'shish" va umumiy xulosa yo'q);
+   * tekshiruv natijasi tashqaridan (`externalPreview`) beriladi, o'zi so'rov yubormaydi.
+   */
+  single?: boolean
+  externalPreview?: ExamSectionsPreview | null
+}>()
 const emit = defineEmits<{
   'update:modelValue': [value: ExamSection[]]
   preview: [value: ExamSectionsPreview | null]
@@ -114,6 +123,7 @@ let timer: ReturnType<typeof setTimeout> | undefined
 let seq = 0
 function schedulePreview() {
   clearTimeout(timer)
+  if (props.single) return
   if (!complete.value) {
     preview.value = null
     previewError.value = ''
@@ -143,7 +153,8 @@ onMounted(async () => {
 })
 onBeforeUnmount(() => clearTimeout(timer))
 
-const infoOf = (si: number, ii: number) => preview.value?.sections[si]?.items[ii] ?? null
+const infoOf = (si: number, ii: number) =>
+  (props.single ? props.externalPreview : preview.value)?.sections[si]?.items[ii] ?? null
 const typeValue = (v: QuestionType | null | undefined) => v ?? ''
 </script>
 
@@ -152,10 +163,10 @@ const typeValue = (v: QuestionType | null | undefined) => v ?? ''
     <section
       v-for="(sec, si) in modelValue"
       :key="si"
-      class="card space-y-3 p-4"
+      :class="single ? 'space-y-3' : 'card space-y-3 p-4'"
       :data-testid="`section-${si}`"
     >
-      <div class="flex items-end gap-2">
+      <div v-if="!single" class="flex items-end gap-2">
         <BaseInput
           class="min-w-0 flex-1"
           :model-value="sec.title"
@@ -331,14 +342,14 @@ const typeValue = (v: QuestionType | null | undefined) => v ?? ''
       </div>
     </section>
 
-    <BaseButton variant="secondary" data-testid="add-section" @click="addSection">
+    <BaseButton v-if="!single" variant="secondary" data-testid="add-section" @click="addSection">
       <Plus class="h-4 w-4" aria-hidden="true" />
       {{ t('examSessions.section.add') }}
     </BaseButton>
 
-    <p v-if="previewError" class="text-sm text-danger">{{ previewError }}</p>
+    <p v-if="previewError && !single" class="text-sm text-danger">{{ previewError }}</p>
     <div
-      v-else-if="preview"
+      v-else-if="preview && !single"
       class="rounded-lg border border-border p-3 text-sm"
       data-testid="preview-summary"
     >

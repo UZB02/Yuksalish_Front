@@ -1896,16 +1896,68 @@ export interface ExamItemInfo {
 }
 export interface ExamSectionsPreview {
   sections: { title: string; items: ExamItemInfo[] }[]
+  /** Blok rejimida: har blok (elementlar holati, savollar soni, maqsad) */
+  blocks?: { title: string; items: ExamItemInfo[]; count: number; target: number; ok: boolean }[]
   errors: string[]
   poolSize: number
   questionsPerParticipant: number
   ok: boolean
+}
+
+// ---- Blokli (bir nechta fanli) imtihon ----
+export type ExamScoringMode = 'points' | 'coefficient'
+export type ExamTimingMode = 'common' | 'per_block'
+/** Tuzuvchi kiritadigan blok */
+export interface ExamBlockInput {
+  /** Mavjud blokni tahrirlashda (o'qituvchilar savollari saqlanadi) */
+  blockId?: string
+  subjectId: string
+  title?: string
+  targetCount: number
+  coefficient: number
+  durationMin?: number | null
+  contributorIds: string[]
+  items: ExamSectionItem[]
+}
+/** Serverdagi blok (tuzuvchi ko'rinishi) */
+export interface ExamBlock {
+  id: string
+  legacy: boolean
+  subjectId: string | null
+  subjectName: string | null
+  title: string
+  targetCount: number
+  coefficient: number
+  durationMin: number | null
+  status: 'open' | 'ready'
+  count: number
+  contributors: { id: string; fullName: string }[]
+  items: ExamSectionItem[]
+  contribQuestions: {
+    questionId: string
+    addedBy: string
+    addedByName: string | null
+    addedAt: string | null
+  }[]
+}
+export interface ExamTemplateBlock {
+  blockId: string
+  subjectId: string
+  title: string
+  targetCount: number
+  coefficient: number
+  durationMin: number | null
+  contributorIds: string[]
+  items: ExamSectionItem[]
 }
 export interface ExamTemplate {
   id: string
   title: string
   subjectId: string | null
   sections: ExamSection[]
+  blocks?: ExamTemplateBlock[]
+  scoringMode?: ExamScoringMode
+  timingMode?: ExamTimingMode
   shuffleQuestions: boolean
   shuffleOptions: boolean
   createdAt: string
@@ -1921,8 +1973,34 @@ export interface ExamSessionParticipant {
   fullTimeGranted: boolean
   extraMinutes: number
 }
+export interface ExamResultListItem {
+  id: string
+  title: string
+  heldAt: string
+  endsAt: string
+  closedAt: string | null
+  subjects: { id: string; name: string }[]
+  classes: { id: string; name: string }[]
+  blocksCount: number
+  scoringMode: ExamScoringMode
+  participants: number
+  submitted: number
+  /** Imtihonning o'zi o'chirilgan, natijalari saqlangan */
+  examDeleted: boolean
+}
+export type ExamDeleteMode = 'exam_only' | 'with_results'
+export interface ExamCopyResult {
+  session: ExamSession
+  warnings: string[]
+}
 export interface ExamSessionItem {
   id: string
+  canCopy?: boolean
+  canReturnToDraft?: boolean
+  scoringMode?: ExamScoringMode
+  timingMode?: ExamTimingMode
+  contribDeadline?: string | null
+  blocksCount?: number
   title: string
   type: ExamSessionType
   status: ExamSessionStatus
@@ -1970,6 +2048,9 @@ export interface ExamSessionItem {
 export interface ExamSession extends ExamSessionItem {
   templateId: string | null
   sections: ExamSection[]
+  /** Urinish bor: qoralamaga qaytarib bo'lmaydi, o'chirishda tanlov kerak */
+  hasAttempts?: boolean
+  blocks?: ExamBlock[]
   participants: ExamSessionParticipant[]
 }
 export interface ExamSessionBody {
@@ -1979,8 +2060,12 @@ export interface ExamSessionBody {
   classIds: string[]
   templateId?: string | null
   sections?: ExamSection[]
+  blocks?: ExamBlockInput[]
+  scoringMode?: ExamScoringMode
+  timingMode?: ExamTimingMode
+  contribDeadline?: string | null
   scheduledStart: string
-  durationMin: number
+  durationMin?: number
   shuffleQuestions: boolean
   shuffleOptions: boolean
   resultsMode: ExamResultsMode
@@ -1994,6 +2079,72 @@ export interface ExamSessionMeta {
   teacherQuizNeedsApproval: boolean
   allowedTypes: ExamSessionType[]
   supervisors: { id: string; fullName: string; role: string }[]
+  /** Blokka biriktirish uchun (faqat ma'muriyat): subjectIds null = istalgan fan (maktab admini) */
+  contributors?: { id: string; fullName: string; role: string; subjectIds: string[] | null }[]
+}
+
+// ---- Biriktirilgan o'qituvchi: blok ----
+export type BlockLockReason = 'status' | 'ready' | 'deadline' | null
+export interface MyBlockItem {
+  sessionId: string
+  blockId: string
+  examTitle: string
+  examStatus: ExamSessionStatus
+  subjectId: string | null
+  subjectName: string | null
+  title: string
+  targetCount: number
+  count: number
+  blockStatus: 'open' | 'ready'
+  contribDeadline: string | null
+  locked: boolean
+  lockReason: BlockLockReason
+}
+export interface BlockQuestionRow {
+  id: string
+  missing: boolean
+  type: QuestionType | null
+  difficulty: number | null
+  points: number | null
+  status: string | null
+  preview: string
+  hasMath: boolean
+  hasImage: boolean
+  authorName: string | null
+  source: 'composer' | 'contributor'
+  addedByName: string | null
+  canRemove: boolean
+}
+export interface BlockRuleRow {
+  topicId: string
+  topicName: string | null
+  count: number
+  difficulty: number | null
+  type: QuestionType | null
+}
+export interface MyBlockDetail {
+  exam: { id: string; title: string; contribDeadline: string | null }
+  block: {
+    id: string
+    subjectId: string | null
+    subjectName: string | null
+    title: string
+    targetCount: number
+    count: number
+    status: 'open' | 'ready'
+    locked: boolean
+    lockReason: BlockLockReason
+  }
+  questions: BlockQuestionRow[]
+  rules: BlockRuleRow[]
+}
+export interface BlockQuestionList {
+  questions: BlockQuestionRow[]
+  rules: BlockRuleRow[]
+}
+export interface BlockCounts {
+  count: number
+  target: number
 }
 export interface ExamClassOption {
   id: string
@@ -2046,6 +2197,7 @@ export interface ExamAttemptRow {
   warnings: number
   reconnects: number
   allowReentry: boolean
+  blockIndex?: number
 }
 export interface ExamAttemptsResponse {
   items: ExamAttemptRow[]
@@ -2069,6 +2221,17 @@ export interface ExamResultRow {
   warnings: number
   essayPending: number
   rank: number | null
+  /** Blok bo'yicha ballar (topshirmagan: bo'sh) */
+  blocks?: { blockId: string; earned: number; max: number }[]
+}
+export interface ExamResultBlockHeader {
+  id: string
+  legacy: boolean
+  subjectId: string | null
+  subjectName?: string | null
+  title: string
+  coefficient: number
+  durationMin: number | null
 }
 export interface ExamResultSummary {
   participants: number
@@ -2093,12 +2256,17 @@ export interface ExamResultsResponse {
     passPercent: number | null
     scheduledStart: string
     endsAt: string
+    scoringMode?: ExamScoringMode
+    timingMode?: ExamTimingMode
+    examDeleted?: boolean
   }
+  blocks?: ExamResultBlockHeader[]
   summary: ExamResultSummary
   rows: ExamResultRow[]
 }
 export interface ExamResultQuestion {
   id: string
+  blockId?: string | null
   index: number
   type: QuestionType
   points: number
@@ -2123,11 +2291,20 @@ export interface ExamResultDetail {
   startedAt?: string | null
   submittedAt?: string | null
   score: { earned: number; max: number; essayPending: number } | null
+  blocks?: ExamResultBlockHeader[]
+  blockScores?: {
+    blockId: string
+    earned: number
+    max: number
+    questions?: number
+    correct?: number
+  }[]
   percent?: number | null
   questions: ExamResultQuestion[]
 }
 export interface ExamAnalysisQuestion {
   id: string
+  blockId?: string
   index: number
   type: QuestionType
   points: number
@@ -2147,5 +2324,6 @@ export interface ExamAnalysisQuestion {
 }
 export interface ExamAnalysis {
   submittedAttempts: number
+  blocks?: ExamResultBlockHeader[]
   questions: ExamAnalysisQuestion[]
 }

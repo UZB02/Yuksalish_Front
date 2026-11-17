@@ -1,6 +1,7 @@
 import type {
   AnswerEntry,
   EventType,
+  FinishBlockResponse,
   JoinResponse,
   ResultResponse,
   SaveResponse,
@@ -39,6 +40,8 @@ export interface ExamApi {
   event(type: EventType, at: string): Promise<unknown>
   heartbeat(): Promise<unknown>
   submit(): Promise<ResultResponse>
+  /** Blokma-blok: joriy blokni yakunlash (blockId joriy blok bo'lmasa server hech narsa o'zgartirmaydi) */
+  finishBlock(body: { blockId: string }): Promise<FinishBlockResponse>
   result(): Promise<ResultResponse>
   asset(id: string): Promise<Blob>
 }
@@ -89,6 +92,7 @@ export function createApi(getToken: () => string | null, fetchFn: typeof fetch =
     event: (type, at) => call('POST', '/events', { type, at }),
     heartbeat: () => call('POST', '/heartbeat'),
     submit: () => call('POST', '/submit'),
+    finishBlock: (b) => call('POST', '/blocks/finish', b),
     result: () => call('GET', '/result'),
     async asset(id) {
       const headers: Record<string, string> = {}

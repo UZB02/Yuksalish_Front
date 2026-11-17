@@ -7,6 +7,8 @@ export type Block =
 
 export interface ClientQuestion {
   id: string
+  /** Blok id (blokli imtihon); eski imtihonda yo'q */
+  blockId?: string
   type: QuestionType
   points: number
   content: Block[]
@@ -23,6 +25,23 @@ export interface AnswerEntry {
 
 export type ResultsMode = 'score' | 'score_answers' | 'after_publish' | 'never'
 
+/** Blok haqida ma'lumot (kalitsiz): nom, savollar soni, davomiylik (blokma-blok vaqtda) */
+export interface BlockMeta {
+  id: string
+  title: string
+  questionCount: number
+  durationMin: number | null
+}
+
+/** Blokma-blok urinishning joriy bloki (server holati) */
+export interface BlockView {
+  index: number
+  total: number
+  id: string | null
+  startedAt: string | null
+  deadline: string | null
+}
+
 export interface JoinResponse {
   token: string
   serverNow: string
@@ -37,7 +56,10 @@ export interface JoinResponse {
     startsAt: string
     endsAt: string
     deadlinePreview: string
+    /** false: blokma-blok (orqaga qaytib bo'lmaydi) */
     freeNavigation: boolean
+    timingMode?: 'common' | 'per_block'
+    blocks?: BlockMeta[]
   }
 }
 
@@ -49,6 +71,10 @@ export interface StartResponse {
   questions: ClientQuestion[]
   saved: { id: string; value: AnswerValue; flagged: boolean }[]
   clientSeq: number
+  timingMode?: 'common' | 'per_block'
+  blocks?: BlockMeta[]
+  /** Blokma-blok: joriy blok (questions faqat shu blokniki). Aks holda null/yo'q */
+  block?: BlockView | null
 }
 
 export interface StateResponse {
@@ -59,6 +85,7 @@ export interface StateResponse {
   answeredCount: number
   total: number
   clientSeq: number
+  block?: BlockView | null
 }
 
 export interface SaveResponse {
@@ -66,10 +93,14 @@ export interface SaveResponse {
   answeredCount: number
   serverNow: string
   stale?: boolean
+  /** Yopilgan (yoki hali ochilmagan) blokka tegishli, saqlanmagan savollar */
+  rejected?: string[]
+  blockId?: string | null
 }
 
 export interface ReviewItem {
   id: string
+  blockId?: string | null
   type: string
   got: number
   max: number
@@ -86,7 +117,13 @@ export interface ResultResponse {
   answeredCount: number
   total: number
   score?: { earned: number; max: number; autoMax: number; essayPending: number }
+  /** Blok bo'yicha ballar (bir nechta blokli imtihonda va natija ko'rsatilsa) */
+  blocks?: { id: string; title: string; earned: number; max: number }[]
   review?: ReviewItem[]
 }
+
+/** Blokni yakunlash javobi: keyingi blok ko'rinishi yoki (oxirgi blok) natija */
+export type FinishBlockResponse =
+  ({ finished: false } & StartResponse) | ({ finished: true } & ResultResponse)
 
 export type EventType = 'blur' | 'fullscreen_exit' | 'visibility_hidden' | 'reconnect'

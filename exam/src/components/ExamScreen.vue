@@ -14,9 +14,28 @@ const q = computed(() => s.questions[s.index])
 const cells = computed(() => gridCells(s.questions, s.answers))
 const unanswered = computed(() => countUnanswered(s.questions, s.answers))
 const flagged = computed(() => countFlagged(s.questions, s.answers))
-const timeText = computed(() => formatRemaining(s.remaining))
-const low = computed(() => isLowTime(s.remaining))
+/** Blokma-blok: asosiy taymer joriy blok vaqti; aks holda umumiy */
+const perBlock = computed(() => !!s.block)
+const shownMs = computed(() => (perBlock.value ? s.blockRemaining : s.remaining))
+const timeText = computed(() => formatRemaining(shownMs.value))
+const totalText = computed(() => formatRemaining(s.remaining))
+const low = computed(() => isLowTime(shownMs.value))
 const confirming = ref(false)
+const lastBlock = computed(() => !!s.block && s.block.index >= s.block.total - 1)
+const blockTitle = (id: string | undefined) => s.blocks.find((b) => b.id === id)?.title ?? ''
+const currentBlockTitle = computed(() =>
+  s.block ? blockTitle(s.block.id ?? undefined) : blockTitle(q.value?.blockId),
+)
+/** Umumiy vaqtda bir nechta blok: blok tablari (blokka o'tish) */
+const chips = computed(() => {
+  if (perBlock.value || s.blocks.length < 2) return []
+  return s.blocks.map((b) => ({
+    id: b.id,
+    title: b.title,
+    first: s.questions.findIndex((x) => x.blockId === b.id),
+    count: s.questions.filter((x) => x.blockId === b.id).length,
+  }))
+})
 
 const saveText = computed(() => {
   switch (s.saveStatus) {
@@ -46,7 +65,8 @@ const cellClass = (state: string, current: boolean) => [
 
 async function doSubmit() {
   confirming.value = false
-  await store.submit(false)
+  if (perBlock.value) await store.finishBlock(false)
+  else await store.submit(false)
 }
 const noCopy = (e: Event) => e.preventDefault()
 </script>
@@ -57,6 +77,10 @@ const noCopy = (e: Event) => e.preventDefault()
       <div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2">
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-semibold">{{ s.join?.exam.title }}</p>
+          <p v-if="perBlock" class="truncate text-xs text-fg-soft" data-testid="block-header">
+            {{ s.block!.index + 1 }}/{{ s.block!.total }}-blok: {{ currentBlockTitle }} · umumiy
+            <span data-testid="total-time">{{ totalText }}</span>
+          </p>
           <p class="text-xs" :class="saveTone" data-testid="save-status">{{ saveText }}</p>
         </div>
         <div
@@ -78,6 +102,26 @@ const noCopy = (e: Event) => e.preventDefault()
     </div>
 
     <div class="mx-auto max-w-3xl space-y-4 px-4 pt-4">
+      <nav
+        v-if="chips.length"
+        class="flex flex-wrap gap-2"
+        aria-label="Bloklar"
+        data-testid="block-tabs"
+      >
+        <button
+          v-for="c in chips"
+          :key="c.id"
+          type="button"
+          class="rounded-full border-2 px-3 py-1 text-sm font-semibold"
+          :class="
+            q?.blockId === c.id ? 'border-brand bg-brand/10 text-fg' : 'border-line text-fg-soft'
+          "
+          :data-testid="`block-tab-${c.id}`"
+          @click="store.goto(c.first)"
+        >
+          {{ c.title }} ({{ c.count }})
+        </button>
+      </nav>
       <section
         class="card no-select space-y-4"
         data-testid="question"
@@ -89,6 +133,9 @@ const noCopy = (e: Event) => e.preventDefault()
           <span data-testid="question-index"
             >Savol {{ s.index + 1 }} / {{ s.questions.length }}</span
           >
+          <span v-if="!perBlock && currentBlockTitle" data-testid="question-block">{{
+            currentBlockTitle
+          }}</span>
           <span>{{ q.points }} ball</span>
         </div>
         <RichBlocks :blocks="q.content" class="text-lg" />
@@ -166,7 +213,7 @@ const noCopy = (e: Event) => e.preventDefault()
           :disabled="s.busy"
           @click="confirming = true"
         >
-          Topshirish
+          {{ perBlock && !lastBlock ? 'Blokni yakunlash' : 'Topshirish' }}
         </button>
       </div>
     </div>
@@ -179,13 +226,20 @@ const noCopy = (e: Event) => e.preventDefault()
       data-testid="submit-dialog"
     >
       <div class="card w-full max-w-md space-y-4">
-        <h2 class="text-xl font-bold">Imtihonni topshirasizmi?</h2>
+        <h2 class="text-xl font-bold" data-testid="submit-title">
+          {{ perBlock && !lastBlock ? 'Blokni yakunlaysizmi?' : 'Imtihonni topshirasizmi?' }}
+        </h2>
         <p data-testid="submit-summary">
           Javobsiz savollar: <b>{{ unanswered }}</b><template v-if="flagged"
             >, “Keyinroq qaytaman” belgilanganlar: <b>{{ flagged }}</b></template
           >.
         </p>
-        <p class="text-sm text-fg-soft">Topshirgandan keyin javoblarni o‘zgartirib bo‘lmaydi.</p>
+        <p v-if="perBlock && !lastBlock" class="text-sm text-fg-soft" data-testid="block-warning">
+          Keyingi blokka o‘tgach bu blokka qaytib bo‘lmaydi.
+        </p>
+        <p v-else class="text-sm text-fg-soft">
+          Topshirgandan keyin javoblarni o‘zgartirib bo‘lmaydi.
+        </p>
         <div class="flex gap-2">
           <button class="btn-ghost flex-1" data-testid="submit-cancel" @click="confirming = false">
             Qaytish

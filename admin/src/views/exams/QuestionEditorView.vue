@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Eye, Lock, Pencil } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
 import { isApiError } from '@/api/errors'
-import type { Question, QuestionDifficulty, QuestionType } from '@/api/types'
+import type { MyBlockDetail, Question, QuestionDifficulty, QuestionType } from '@/api/types'
 import AcceptedAnswers from '@/components/exams/AcceptedAnswers.vue'
 import BlockEditor from '@/components/exams/BlockEditor.vue'
 import OptionsEditor from '@/components/exams/OptionsEditor.vue'
@@ -47,6 +47,17 @@ const schoolCtx = useSchoolContextStore()
 const questionId = computed(() =>
   route.name === 'exam-question-edit' ? String(route.params.id) : null,
 )
+/**
+ * Blok rejimi (biriktirilgan o'qituvchi): `?blockSession=<imtihon>&block=<blok>`. Fan/mavzu/holat/ulashish
+ * ko'rsatilmaydi: savol server tomonida blok fanidagi "Imtihon: ‹nomi›" mavzusiga FAOL va yopiq holda saqlanadi.
+ */
+const blockRef = computed(() =>
+  !questionId.value && route.query.blockSession && route.query.block
+    ? { sessionId: String(route.query.blockSession), blockId: String(route.query.block) }
+    : null,
+)
+const blockMode = computed(() => !!blockRef.value)
+const blockInfo = ref<MyBlockDetail | null>(null)
 const loading = ref(true)
 const loadError = ref('')
 const question = ref<Question | null>(null)
@@ -74,6 +85,12 @@ const errors = computed(() => ({
 
 /** Orqaga: savol mavzusi sahifasi (mavzu ma'lum bo'lsa), aks holda bank */
 const backTarget = computed(() => {
+  if (blockRef.value) {
+    return {
+      name: 'exam-my-block',
+      params: { sessionId: blockRef.value.sessionId, blockId: blockRef.value.blockId },
+    }
+  }
   const id = form.value.topicId || String(route.query.topicId ?? '')
   return id ? { name: 'exam-topic', params: { topicId: id } } : { name: 'exam-questions' }
 })
@@ -151,6 +168,18 @@ async function load() {
     return
   }
   try {
+    if (blockRef.value) {
+      const info = await examsApi.myBlock(blockRef.value.sessionId, blockRef.value.blockId)
+      if (info.block.locked) {
+        loadError.value = t('examBlocks.myBlock.locked')
+        return
+      }
+      blockInfo.value = info
+      // Mavzu serverda avtomatik: formadagi qiymat faqat tekshiruvdan o'tish uchun (yuborilmaydi)
+      form.value = { ...defaultForm(info.block.subjectId ?? '', 'auto'), status: 'active' }
+      snapshot()
+      return
+    }
     const presetTopicId = String(route.query.topicId ?? '')
     const [subj, q, preset] = await Promise.all([
       examsApi.subjects(),
@@ -204,6 +233,21 @@ async function save() {
   saving.value = true
   try {
     const payload = toPayload(form.value)
+    if (blockRef.value) {
+      const {
+        topicId: _t,
+        subjectId: _s,
+        status: _st,
+        sharing: _sh,
+        ...rest
+      } = payload as unknown as Record<string, unknown>
+      void [_t, _s, _st, _sh]
+      await examsApi.createInBlock(blockRef.value.sessionId, blockRef.value.blockId, rest)
+      toast.success(t('exams.toast.created'))
+      skipLeaveGuard.value = true
+      await router.push(backTarget.value)
+      return
+    }
     const saved = questionId.value
       ? await examsApi.updateQuestion(questionId.value, payload)
       : await examsApi.createQuestion(payload)
@@ -393,7 +437,19 @@ watch(questionId, (id, prev) => {
         @submit.prevent="save"
       >
         <section class="card space-y-4 p-4 sm:p-5">
-          <div class="grid gap-4 sm:grid-cols-2">
+          <p
+            v-if="blockMode && blockInfo"
+            class="rounded-lg bg-surface-muted p-3 text-sm text-fg"
+            data-testid="block-mode-note"
+          >
+            {{
+              t('examBlocks.myBlock.newInBlock', {
+                subject: blockInfo.block.subjectName ?? '',
+                exam: blockInfo.exam.title,
+              })
+            }}
+          </p>
+          <div v-if="!blockMode" class="grid gap-4 sm:grid-cols-2">
             <BaseSelect
               :model-value="form.subjectId"
               :label="t('exams.fields.subject')"
@@ -417,7 +473,7 @@ watch(questionId, (id, prev) => {
             />
           </div>
           <div
-            v-if="form.subjectId"
+            v-if="form.subjectId && !blockMode"
             class="flex flex-col gap-2 sm:flex-row"
             data-testid="quick-topic"
           >
@@ -442,7 +498,7 @@ watch(questionId, (id, prev) => {
             </BaseButton>
           </div>
           <p
-            v-if="subjectOptions.length === 0"
+            v-if="subjectOptions.length === 0 && !blockMode"
             class="rounded-lg bg-warning-soft p-3 text-sm text-warning"
             data-testid="no-subjects"
           >
@@ -517,6 +573,7 @@ watch(questionId, (id, prev) => {
               @update:model-value="set('points', Number($event))"
             />
             <BaseSelect
+              v-if="!blockMode"
               :model-value="form.status"
               :label="t('exams.fields.status')"
               :options="statusOptions"
@@ -577,7 +634,7 @@ watch(questionId, (id, prev) => {
           <p class="text-xs text-fg-muted">{{ t('exams.editor.rubricHint') }}</p>
         </section>
 
-        <section class="card space-y-3 p-4 sm:p-5" data-testid="sharing-section">
+        <section v-if="!blockMode" class="card space-y-3 p-4 sm:p-5" data-testid="sharing-section">
           <h2 class="text-base font-semibold text-fg">{{ t('exams.sharing.title') }}</h2>
           <SharingControl
             :model-value="form.sharing"
