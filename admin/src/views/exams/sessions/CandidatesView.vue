@@ -7,6 +7,7 @@ import { examsApi } from '@/api/exams.api'
 import { isApiError } from '@/api/errors'
 import type { ApiMeta, ExamCandidate } from '@/api/types'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
+import ProfileExamResults from '@/components/exams/ProfileExamResults.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -36,6 +37,9 @@ const q = ref('')
 const page = ref(1)
 
 const formOpen = ref(false)
+/** Nomzod natijalari oynasi */
+const resultsFor = ref<ExamCandidate | null>(null)
+const loadCandidateResults = () => examsApi.candidateResults(resultsFor.value!.id)
 const editId = ref<string | null>(null)
 const saving = ref(false)
 const f = reactive({ fullName: '', birthDate: '', targetGrade: '', parentPhone: '', notes: '' })
@@ -162,6 +166,13 @@ async function remove(c: ExamCandidate) {
 
   <NeedsSchool v-if="needsSchool" />
   <template v-else>
+    <RouterLink
+      :to="{ name: 'exam-sessions' }"
+      class="mb-3 inline-block text-sm text-primary-700 hover:underline"
+      data-testid="candidates-back"
+    >
+      ← {{ t('examCandidates.back') }}
+    </RouterLink>
     <div class="mb-4 max-w-md">
       <BaseInput
         v-model="q"
@@ -208,6 +219,13 @@ async function remove(c: ExamCandidate) {
           <div class="flex gap-1">
             <BaseButton
               size="sm"
+              variant="ghost"
+              data-testid="candidate-results"
+              @click="resultsFor = c"
+              >{{ t('profileExams.title') }}</BaseButton
+            >
+            <BaseButton
+              size="sm"
               variant="secondary"
               data-testid="candidate-edit"
               @click="openEdit(c)"
@@ -237,6 +255,14 @@ async function remove(c: ExamCandidate) {
         "
       />
     </div>
+
+    <BaseModal
+      :open="!!resultsFor"
+      :title="resultsFor ? `${t('profileExams.title')}: ${resultsFor.fullName}` : ''"
+      @close="resultsFor = null"
+    >
+      <ProfileExamResults v-if="resultsFor" :key="resultsFor.id" :load="loadCandidateResults" />
+    </BaseModal>
 
     <BaseModal
       :open="formOpen"

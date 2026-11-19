@@ -121,10 +121,16 @@ describe('BlockEditor', () => {
 
   it("matn, formula va rasm bloklarini qo'shadi", async () => {
     const w = mountEditor([text('a')])
+    // "+ Qo'shish" menyusi: tanlangach yopiladi
+    expect(w.find('[data-testid="add-math"]').exists()).toBe(false)
+    await w.get('[data-testid="add-menu"]').trigger('click')
     await w.get('[data-testid="add-math"]').trigger('click')
     expect(last(w)).toEqual([text('a'), { type: 'math', tex: '' }])
+    expect(w.find('[data-testid="add-math"]').exists()).toBe(false)
+    await w.get('[data-testid="add-menu"]').trigger('click')
     await w.get('[data-testid="add-image"]').trigger('click')
     expect(last(w)[1]).toEqual({ type: 'image', assetId: '' })
+    await w.get('[data-testid="add-menu"]').trigger('click')
     await w.get('[data-testid="add-text"]').trigger('click')
     expect(last(w)[1]).toEqual(text(''))
   })
@@ -153,9 +159,7 @@ describe('BlockEditor', () => {
 
   it("limitga yetganda qo'shish tugmalari o'chadi", () => {
     const w = mount(BlockEditor, { ...opts, props: { modelValue: [text('a')], max: 1 } })
-    for (const id of ['add-text', 'add-math', 'add-image']) {
-      expect(w.get(`[data-testid="${id}"]`).attributes('disabled')).toBeDefined()
-    }
+    expect(w.get('[data-testid="add-menu"]').attributes('disabled')).toBeDefined()
   })
 
   it('rasm yuklash: assetId blokka yoziladi; noto`g`ri tur va katta fayl serverga bormaydi', async () => {

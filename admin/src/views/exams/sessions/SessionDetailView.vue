@@ -31,6 +31,9 @@ import { errorMessage } from '@/utils/errors'
 import { useAuthStore } from '@/stores/auth'
 import { clearDraftById } from '@/utils/examWizardDraft'
 import { STATUS_TONE, fmtDateTime, localToIso, nowLocal } from '@/utils/examSessions'
+import ExamFlowStepper from '@/components/exams/ExamFlowStepper.vue'
+import ExamSubjectsTable from '@/components/exams/ExamSubjectsTable.vue'
+import { FLOW_PILL_TONE, examFlow } from '@/utils/examFlow'
 import ParticipantsPanel from './ParticipantsPanel.vue'
 
 /** Imtihon sahifasi: ma'lumot, holat amallari, tasdiq/rad, ishtirokchilar jadvali (PIN holati), PIN kartochkalari */
@@ -221,12 +224,68 @@ const act = (a: 'submit' | 'approve' | 'open' | 'close', okKey: string) =>
 /** Haqiqiy (blokli) bloklar; eski imtihonda bo'sh */
 const realBlocks = computed(() => (s.value?.blocks ?? []).filter((b) => !b.legacy))
 
+/** Blokli imtihon bosqichlari va holat belgisi (DB da yangi holat yo'q: mavjud ma'lumotdan hisoblanadi) */
+const flow = computed(() => (s.value && realBlocks.value.length ? examFlow(s.value) : null))
+const contribShort = computed(() => {
+  const d = s.value?.contribDeadline
+  return d ? fmtDateTime(d).slice(0, 5) : null
+})
+const metaLine = computed(() => {
+  if (!s.value) return ''
+  return [
+    t(`examSessions.type.${s.value.type}`),
+    s.value.classes.map((c) => c.name).join(', '),
+    fmtDateTime(s.value.scheduledStart),
+    t('examSessions.minutes', { n: s.value.durationMin }),
+  ]
+    .filter(Boolean)
+    .join(' · ')
+})
+/** Tasdiqlanmagan (o'qituvchisi bor) fanlar nomi: rejalashtirishga to'sqinlik */
+const missingApproval = computed(() =>
+  (s.value?.blocks ?? [])
+    .filter((b) => !b.legacy && b.contributors.length > 0)
+    .filter((b) => !(b.status === 'ready' && b.readyBy !== 'contributor'))
+    .map((b) => b.subjectName ?? b.title),
+)
+const openBlock = (blockId: string) =>
+  void router.push({ name: 'exam-my-block', params: { sessionId: id.value, blockId } })
+const reviewBlock = (blockId: string) =>
+  void router.push({ name: 'exam-block-review', params: { id: id.value, blockId } })
+const editSettings = () => void router.push({ name: 'exam-session-edit', params: { id: id.value } })
+
+/** "Eslatma": tugallanmagan fanlar o'qituvchilariga Telegram (soatiga bir marta har fanga) */
+async function remind() {
+  busy.value = true
+  try {
+    const r = await examsApi.remindSession(id.value)
+    if (r.disabled) toast.info(t('examFlow.remindDisabled'))
+    else if (r.notConnected) toast.info(t('examFlow.remindNotConnected'))
+    else if (r.blocks.length && r.blocks.every((b) => b.state === 'recent'))
+      toast.info(t('examFlow.remindRecent'))
+    else if (r.blocks.length === 0) toast.info(t('examFlow.remindNobody'))
+    else
+      toast.success(
+        t('examFlow.remindSent', { n: r.blocks.filter((b) => b.state === 'sent').length }),
+      )
+    await refresh()
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    busy.value = false
+  }
+}
+
 /** Rejalashtirish: maqsaddan kam savol bo'lsa tuzuvchi tasdiqlaydi (409 + details.path=blocks) */
 async function submitSession() {
   await run(async () => {
     try {
       await examsApi.submitSession(id.value)
     } catch (e) {
+      if (isApiError(e) && e.status === 409 && e.details.some((d) => d.path === 'approval')) {
+        toast.error(`${t('examFlow.needApproval')} ${e.details.map((d) => d.message).join('; ')}`)
+        return
+      }
       if (isApiError(e) && e.status === 409 && e.details.some((d) => d.path === 'blocks')) {
         const ok = await confirm({
           title: t('examBlocks.shortTitle'),
@@ -387,8 +446,29 @@ async function regenerate(p: ExamSessionParticipant) {
     message: t('examSessions.participants.regenText', { name: p.fullName }),
     confirmText: t('examSessions.participants.regen'),
   })
-  if (ok)
+  if (ok) {
     await run(() => examsApi.regeneratePin(id.value, p.key), 'examSessions.toast.pinRegenerated')
+    const next = { ...shownCodes.value }
+    delete next[p.key]
+    shownCodes.value = next
+  }
+}
+/** Shaxsiy kod: ro'yxatda maskalangan; "Ko'rsatish" alohida endpoint (audit bilan) orqali, qayta bosilsa yashirinadi */
+const shownCodes = ref<Record<string, string>>({})
+async function toggleCode(p: ExamSessionParticipant) {
+  if (shownCodes.value[p.key]) {
+    const next = { ...shownCodes.value }
+    delete next[p.key]
+    shownCodes.value = next
+    return
+  }
+  try {
+    const r = await examsApi.participantCode(id.value, p.key)
+    if (r.code) shownCodes.value = { ...shownCodes.value, [p.key]: r.code }
+    else toast.info(t('examSessions.participants.codeMissingHint'))
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  }
 }
 async function removeParticipant(p: ExamSessionParticipant) {
   const ok = await confirm({
@@ -453,10 +533,17 @@ const editable = computed(() => !!s.value?.canManageParticipants)
   <template v-else>
     <PageHeader
       :title="s.title"
-      :description="`${t(`examSessions.type.${s.type}`)}${s.subjectName ? ' · ' + s.subjectName : ''}`"
+      :description="
+        flow
+          ? metaLine
+          : `${t(`examSessions.type.${s.type}`)}${s.subjectName ? ' · ' + s.subjectName : ''}`
+      "
     >
       <template #actions>
-        <BaseBadge :tone="STATUS_TONE[s.status]" data-testid="detail-status">
+        <BaseBadge v-if="flow" :tone="FLOW_PILL_TONE[flow.pill]" data-testid="detail-status">
+          {{ t(`examFlow.pill.${flow.pill}`) }}
+        </BaseBadge>
+        <BaseBadge v-else :tone="STATUS_TONE[s.status]" data-testid="detail-status">
           {{ t(`examSessions.status.${s.status}`) }}
         </BaseBadge>
         <BaseBadge v-if="s.timeUp" tone="danger" data-testid="time-up">
@@ -486,95 +573,93 @@ const editable = computed(() => !!s.value?.canManageParticipants)
       {{ t('examSessions.detail.pending') }}
     </p>
 
-    <div class="card mb-5 grid gap-x-6 gap-y-3 p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-      <div>
-        <p class="text-fg-muted">{{ t('examSessions.wizard.start') }}</p>
-        <p class="text-fg">{{ fmtDateTime(s.scheduledStart) }}</p>
-      </div>
-      <div>
-        <p class="text-fg-muted">{{ t('examSessions.detail.ends') }}</p>
-        <p class="text-fg">
-          {{ fmtDateTime(s.endsAt) }}
-          <span v-if="phaseText" class="text-fg-muted">({{ phaseText }})</span>
-        </p>
-      </div>
-      <div>
-        <p class="text-fg-muted">{{ t('examSessions.wizard.duration') }}</p>
-        <p class="text-fg">{{ t('examSessions.minutes', { n: s.durationMin }) }}</p>
-      </div>
-      <div>
-        <p class="text-fg-muted">{{ t('examSessions.detail.code') }}</p>
-        <p class="font-mono text-lg text-fg" data-testid="detail-code">{{ s.code ?? '—' }}</p>
-      </div>
-      <div>
-        <p class="text-fg-muted">{{ t('examSessions.wizard.classes') }}</p>
-        <p class="text-fg">{{ s.classes.map((c) => c.name).join(', ') || '—' }}</p>
-      </div>
-      <div>
-        <p class="text-fg-muted">{{ t('examSessions.wizard.resultsMode') }}</p>
-        <p class="text-fg">{{ t(`examSessions.results.${s.resultsMode}`) }}</p>
-      </div>
-      <div>
-        <p class="text-fg-muted">{{ t('examSessions.wizard.supervisors') }}</p>
-        <p class="text-fg">{{ s.supervisors.map((x) => x.fullName).join(', ') || '—' }}</p>
-      </div>
-      <div>
-        <p class="text-fg-muted">{{ t('examSessions.detail.author') }}</p>
-        <p class="text-fg">{{ s.createdByName ?? '—' }}</p>
-      </div>
-      <template v-if="realBlocks.length">
+    <component
+      :is="flow ? 'details' : 'div'"
+      class="card mb-5 p-4 text-sm"
+      data-testid="detail-info"
+    >
+      <summary v-if="flow" class="cursor-pointer text-sm font-semibold text-fg">
+        {{ t('examFlow.infoTitle') }}
+      </summary>
+      <div class="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3" :class="flow && 'mt-3'">
         <div>
-          <p class="text-fg-muted">{{ t('examBlocks.scoringMode') }}</p>
-          <p class="text-fg" data-testid="detail-scoring">
-            {{ t(`examBlocks.scoring.${s.scoringMode ?? 'points'}`) }}
+          <p class="text-fg-muted">{{ t('examSessions.wizard.start') }}</p>
+          <p class="text-fg">{{ fmtDateTime(s.scheduledStart) }}</p>
+        </div>
+        <div>
+          <p class="text-fg-muted">{{ t('examSessions.detail.ends') }}</p>
+          <p class="text-fg">
+            {{ fmtDateTime(s.endsAt) }}
+            <span v-if="phaseText" class="text-fg-muted">({{ phaseText }})</span>
           </p>
         </div>
         <div>
-          <p class="text-fg-muted">{{ t('examBlocks.timingMode') }}</p>
-          <p class="text-fg" data-testid="detail-timing">
-            {{ t(`examBlocks.timing.${s.timingMode ?? 'common'}`) }}
-          </p>
+          <p class="text-fg-muted">{{ t('examSessions.wizard.duration') }}</p>
+          <p class="text-fg">{{ t('examSessions.minutes', { n: s.durationMin }) }}</p>
         </div>
-        <div v-if="s.contribDeadline">
-          <p class="text-fg-muted">{{ t('examBlocks.contribDeadline') }}</p>
-          <p class="text-fg" data-testid="detail-contrib-deadline">
-            {{ fmtDateTime(s.contribDeadline) }}
-          </p>
+        <div>
+          <p class="text-fg-muted">{{ t('examSessions.detail.code') }}</p>
+          <p class="font-mono text-lg text-fg" data-testid="detail-code">{{ s.code ?? '—' }}</p>
         </div>
-      </template>
-    </div>
+        <div>
+          <p class="text-fg-muted">{{ t('examSessions.wizard.classes') }}</p>
+          <p class="text-fg">{{ s.classes.map((c) => c.name).join(', ') || '—' }}</p>
+        </div>
+        <div>
+          <p class="text-fg-muted">{{ t('examSessions.wizard.resultsMode') }}</p>
+          <p class="text-fg">{{ t(`examSessions.results.${s.resultsMode}`) }}</p>
+        </div>
+        <div>
+          <p class="text-fg-muted">{{ t('examSessions.wizard.supervisors') }}</p>
+          <p class="text-fg">{{ s.supervisors.map((x) => x.fullName).join(', ') || '—' }}</p>
+        </div>
+        <div>
+          <p class="text-fg-muted">{{ t('examSessions.detail.author') }}</p>
+          <p class="text-fg">{{ s.createdByName ?? '—' }}</p>
+        </div>
+        <template v-if="realBlocks.length">
+          <div>
+            <p class="text-fg-muted">{{ t('examBlocks.scoringMode') }}</p>
+            <p class="text-fg" data-testid="detail-scoring">
+              {{ t(`examBlocks.scoring.${s.scoringMode ?? 'points'}`) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-fg-muted">{{ t('examBlocks.timingMode') }}</p>
+            <p class="text-fg" data-testid="detail-timing">
+              {{ t(`examBlocks.timing.${s.timingMode ?? 'common'}`) }}
+            </p>
+          </div>
+          <div v-if="s.contribDeadline">
+            <p class="text-fg-muted">{{ t('examBlocks.contribDeadline') }}</p>
+            <p class="text-fg" data-testid="detail-contrib-deadline">
+              {{ fmtDateTime(s.contribDeadline) }}
+            </p>
+          </div>
+        </template>
+      </div>
+    </component>
 
-    <section v-if="realBlocks.length" class="card mb-5 space-y-2 p-4" data-testid="blocks-panel">
-      <h2 class="text-sm font-semibold text-fg">{{ t('examBlocks.title') }}</h2>
-      <ul class="divide-y divide-border text-sm">
-        <li
-          v-for="(b, i) in realBlocks"
-          :key="b.id"
-          class="flex flex-wrap items-center gap-x-4 gap-y-1 py-2"
-          :data-testid="`detail-block-${i}`"
-        >
-          <span class="min-w-32 font-medium text-fg">{{ b.subjectName ?? b.title }}</span>
-          <span
-            :class="b.count >= b.targetCount ? 'text-success' : 'text-warning'"
-            :data-testid="`detail-block-progress-${i}`"
-          >
-            {{ b.count }}/{{ b.targetCount }}
-          </span>
-          <span v-if="s.scoringMode === 'coefficient'" class="text-fg-muted">
-            ×{{ b.coefficient }}
-          </span>
-          <span v-if="s.timingMode === 'per_block'" class="text-fg-muted">
-            {{ t('examSessions.minutes', { n: b.durationMin ?? 0 }) }}
-          </span>
-          <span class="text-fg-muted">
-            {{ b.contributors.map((c) => c.fullName).join(', ') || t('examBlocks.noContributors') }}
-          </span>
-          <BaseBadge :tone="b.status === 'ready' ? 'success' : 'neutral'">
-            {{ b.status === 'ready' ? t('examBlocks.ready') : t('examBlocks.open') }}
-          </BaseBadge>
-        </li>
-      </ul>
+    <section v-if="flow" class="card mb-5 space-y-3 p-4" data-testid="stage-dashboard">
+      <ExamFlowStepper :stages="flow.stages" :deadline="contribShort" />
+      <p
+        v-if="s.status === 'draft' && missingApproval.length"
+        class="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning"
+        data-testid="stage-warning"
+      >
+        {{ t('examFlow.needApproval') }} {{ missingApproval.join(', ') }}
+      </p>
     </section>
+
+    <ExamSubjectsTable
+      v-if="flow"
+      :session="s"
+      :busy="busy"
+      @open="openBlock"
+      @review="reviewBlock"
+      @remind="remind"
+      @settings="editSettings"
+    />
 
     <div class="mb-5 flex flex-wrap gap-2" data-testid="detail-actions">
       <BaseButton
@@ -588,6 +673,8 @@ const editable = computed(() => !!s.value?.canManageParticipants)
       <BaseButton
         v-if="s.canSubmit"
         :loading="busy"
+        :disabled="!!flow && missingApproval.length > 0"
+        :title="flow && missingApproval.length ? t('examFlow.needApproval') : undefined"
         data-testid="act-submit"
         @click="submitSession"
       >
@@ -697,6 +784,7 @@ const editable = computed(() => !!s.value?.canManageParticipants)
     <section class="card mb-5 p-4">
       <div class="mb-3 flex items-center justify-between gap-2">
         <h2 class="text-base font-semibold text-fg">
+          <span v-if="flow" class="text-fg-muted">4.</span>
           {{ t('examSessions.participants.title') }} ({{ s.participants.length }})
         </h2>
         <BaseButton
@@ -739,6 +827,31 @@ const editable = computed(() => !!s.value?.canManageParticipants)
                 <BaseBadge>{{ t(`examSessions.participants.kinds.${p.kind}`) }}</BaseBadge>
               </td>
               <td class="py-2 pr-3">
+                <div class="mb-1 flex items-center gap-1.5" data-testid="code-cell">
+                  <template v-if="p.hasCode">
+                    <code
+                      class="whitespace-nowrap font-mono text-xs tracking-wider text-fg"
+                      data-testid="code-text"
+                    >
+                      {{ shownCodes[p.key] ?? '•••-•••-•••' }}
+                    </code>
+                    <button
+                      type="button"
+                      class="text-xs text-primary-700 hover:underline"
+                      data-testid="code-toggle"
+                      @click="toggleCode(p)"
+                    >
+                      {{
+                        shownCodes[p.key]
+                          ? t('examSessions.participants.codeHide')
+                          : t('examSessions.participants.codeShow')
+                      }}
+                    </button>
+                  </template>
+                  <span v-else class="text-xs text-warning" data-testid="code-missing">
+                    {{ t('examSessions.participants.codeMissing') }}
+                  </span>
+                </div>
                 <BaseBadge :tone="p.hasPin ? 'success' : 'danger'" data-testid="pin-status">
                   {{
                     p.hasPin

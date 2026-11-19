@@ -104,7 +104,7 @@ async function mountView(query = '?topicId=topic1') {
 }
 
 async function upload(w: Awaited<ReturnType<typeof mountView>>['w'], name = 'q.xlsx') {
-  if (name.endsWith('.xlsx')) await w.get('[data-testid="kind-excel"]').trigger('click')
+  await w.get(`[data-testid="kind-${name.endsWith('.xlsx') ? 'excel' : 'word'}"]`).trigger('click')
   const input = w.get('[data-testid="import-file"]')
   Object.defineProperty(input.element, 'files', {
     value: [new File(['x'], name)],
@@ -169,6 +169,7 @@ describe('QuestionImportView: nishon mavzu', () => {
     const { w } = await mountView()
     expect(api.getTopic).toHaveBeenCalledWith('topic1')
     expect(w.get('[data-testid="import-target"]').text()).toContain('Matematika › Kasrlar')
+    await w.get('[data-testid="kind-word"]').trigger('click')
     expect(w.get('[data-testid="import-ignored-note"]').text()).toContain('Fan va Mavzu')
     expect(w.find('[data-testid="default-subject"]').exists()).toBe(false)
   })
@@ -187,6 +188,11 @@ describe('QuestionImportView: yuklash, oldindan ko`rish, import', () => {
   it("qadam 1: shablon yuklab olish, noto'g'ri kengaytma serverga bormaydi, Word/Excel tabi", async () => {
     const { w } = await mountView()
     expect(w.find('[data-testid="import-upload"]').exists()).toBe(true)
+    // Bankda asosiy usul: "Matnni joylash"; fayl usullari yonida
+    expect(w.find('[data-testid="paste-root"]').exists()).toBe(true)
+    expect(w.find('[data-testid="format-help"]').exists()).toBe(false)
+    await w.get('[data-testid="kind-word"]').trigger('click')
+    expect(w.find('[data-testid="paste-root"]').exists()).toBe(false)
     expect(w.get('[data-testid="format-help"]').text()).toContain('*B)')
     await w.get('[data-testid="kind-excel"]').trigger('click')
     expect(w.get('[data-testid="format-help"]').text()).toContain('A,C')

@@ -15,7 +15,6 @@ import {
   Search,
   Sigma,
   Trash2,
-  Upload,
 } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
 import type { ExamTopic, QuestionListItem, QuestionStatus, QuestionType } from '@/api/types'
@@ -380,12 +379,7 @@ async function onAction(q: QuestionListItem, key: string) {
         >
           {{ t('exams.bulk.activateAllDrafts', { n: draftCount }) }}
         </BaseButton>
-        <RouterLink :to="{ name: 'exam-question-import', query: { topicId } }">
-          <BaseButton variant="secondary" data-testid="import-questions"
-            ><Upload class="h-4 w-4" aria-hidden="true" />
-            {{ t('exams.import.button') }}</BaseButton
-          >
-        </RouterLink>
+        <!-- Word/Excel import va "Matnni joylash" endi "Savol qo'shish" sahifasi ichida -->
         <RouterLink :to="{ name: 'exam-question-create', query: { topicId } }">
           <BaseButton data-testid="add-question"
             ><Plus class="h-4 w-4" aria-hidden="true" /> {{ t('exams.questions.add') }}</BaseButton

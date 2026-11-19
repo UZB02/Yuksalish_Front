@@ -39,11 +39,11 @@ function setContent(id: string, content: QuestionBlock[]) {
 </script>
 
 <template>
-  <div class="space-y-3" data-testid="options-editor">
+  <div class="space-y-2" data-testid="options-editor">
     <div
       v-for="(o, i) in options"
       :key="o.id"
-      class="flex gap-3 rounded-lg border p-3"
+      class="flex items-start gap-2 rounded-lg border p-2"
       :class="
         (type === 'single' ? correctOptionId === o.id : correctOptionIds.includes(o.id))
           ? 'border-success/50 bg-success-soft/40'
@@ -51,15 +51,17 @@ function setContent(id: string, content: QuestionBlock[]) {
       "
       data-testid="option-row"
     >
-      <div class="flex w-10 shrink-0 flex-col items-center gap-2 pt-1">
-        <span class="text-sm font-semibold text-fg-muted" aria-hidden="true">{{ letter(i) }}</span>
+      <div class="flex shrink-0 items-center gap-1.5 pt-2">
+        <span class="w-4 text-sm font-semibold text-fg-muted" aria-hidden="true">{{
+          letter(i)
+        }}</span>
         <input
           v-if="type === 'single'"
           type="radio"
           name="correct-option"
           :checked="correctOptionId === o.id"
           :aria-label="t('exams.options.markCorrect', { letter: letter(i) })"
-          class="h-5 w-5 cursor-pointer accent-primary-600"
+          class="h-4 w-4 cursor-pointer accent-primary-600"
           data-testid="option-correct"
           @change="emit('update:correctOptionId', o.id)"
         />
@@ -68,7 +70,7 @@ function setContent(id: string, content: QuestionBlock[]) {
           type="checkbox"
           :checked="correctOptionIds.includes(o.id)"
           :aria-label="t('exams.options.markCorrect', { letter: letter(i) })"
-          class="h-5 w-5 cursor-pointer accent-primary-600"
+          class="h-4 w-4 cursor-pointer accent-primary-600"
           data-testid="option-correct"
           @change="emit('update:correctOptionIds', toggleCorrect(correctOptionIds, o.id))"
         />

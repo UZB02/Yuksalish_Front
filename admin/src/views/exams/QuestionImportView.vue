@@ -9,10 +9,12 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  TypeOutline,
   Upload,
 } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
 import type { ExamImportPreview, ExamImportResult, ExamTopic, QuestionType } from '@/api/types'
+import PasteQuestions from '@/components/exams/PasteQuestions.vue'
 import AcceptedAnswers from '@/components/exams/AcceptedAnswers.vue'
 import QuestionPreview from '@/components/exams/QuestionPreview.vue'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
@@ -49,7 +51,19 @@ const schoolCtx = useSchoolContextStore()
 
 type Step = 'upload' | 'preview' | 'done'
 const step = ref<Step>('upload')
-const kind = ref<'word' | 'excel'>('word')
+/** Bankda asosiy usul: "Matnni joylash"; blok rejimida (vazifa) fayl usullari (matn joylash vazifa sahifasida) */
+const kind = ref<'word' | 'excel' | 'paste'>(
+  route.query.kind === 'excel'
+    ? 'excel'
+    : route.query.kind === 'word' || route.query.blockSession
+      ? 'word'
+      : 'paste',
+)
+const kinds = computed(() =>
+  blockRef.value ? (['word', 'excel'] as const) : (['paste', 'word', 'excel'] as const),
+)
+/** Fayl usuli (word/excel); "Matnni joylash" fayl talab qilmaydi */
+const fileKind = computed<'word' | 'excel'>(() => (kind.value === 'excel' ? 'excel' : 'word'))
 const file = ref<File | null>(null)
 /** Import nishoni: mavzu (?topicId=). Barcha savollar shu mavzuga qo'shiladi */
 const topicId = computed(() => String(route.query.topicId ?? ''))
@@ -74,7 +88,7 @@ const rows = ref<ImportRowState[]>([])
 const result = ref<ExamImportResult | null>(null)
 const openRows = ref<Set<number>>(new Set())
 
-const ext = computed(() => (kind.value === 'word' ? '.docx' : '.xlsx'))
+const ext = computed(() => (fileKind.value === 'word' ? '.docx' : '.xlsx'))
 const rowLabel = (row: number) =>
   preview.value?.kind === 'excel'
     ? t('exams.import.rowExcel', { n: row })
@@ -194,9 +208,14 @@ function onFile(e: Event) {
   file.value = f
 }
 
+/** "Matnni joylash" saqlangach: mavzu sahifasiga qaytamiz */
+function onPasted(r: { created: number }) {
+  if (r.created > 0) void router.push(backTo.value)
+}
+
 async function download() {
   try {
-    await examsApi.downloadTemplate(kind.value)
+    await examsApi.downloadTemplate(fileKind.value)
   } catch (e) {
     toast.error(errorMessage(e, t))
   }
@@ -210,10 +229,10 @@ async function upload() {
       ? await examsApi.blockImportPreview(
           blockRef.value.sessionId,
           blockRef.value.blockId,
-          kind.value,
+          fileKind.value,
           file.value,
         )
-      : await examsApi.importPreview(kind.value, file.value, topicId.value)
+      : await examsApi.importPreview(fileKind.value, file.value, topicId.value)
     preview.value = p
     rows.value = toRowStates(p.items)
     // Xatoli qatorlar ochiq turadi
@@ -354,7 +373,7 @@ const letter = (i: number) => String.fromCharCode(65 + i)
   >
     <div role="tablist" class="inline-flex rounded-lg border border-border bg-surface-muted p-0.5">
       <button
-        v-for="k in ['word', 'excel'] as const"
+        v-for="k in kinds"
         :key="k"
         type="button"
         role="tab"
@@ -364,16 +383,23 @@ const letter = (i: number) => String.fromCharCode(65 + i)
         :data-testid="`kind-${k}`"
         @click="((kind = k), (file = null))"
       >
-        <FileText v-if="k === 'word'" class="h-4 w-4" aria-hidden="true" />
+        <TypeOutline v-if="k === 'paste'" class="h-4 w-4" aria-hidden="true" />
+        <FileText v-else-if="k === 'word'" class="h-4 w-4" aria-hidden="true" />
         <FileSpreadsheet v-else class="h-4 w-4" aria-hidden="true" />
-        {{ t(`exams.import.kinds.${k}`) }}
+        {{ k === 'paste' ? t('examTasks.tabs.paste') : t(`exams.import.kinds.${k}`) }}
       </button>
     </div>
 
-    <div class="rounded-lg bg-surface-muted p-3 text-sm text-fg-muted" data-testid="format-help">
+    <PasteQuestions v-if="kind === 'paste'" mode="bank" :topic-id="topicId" @committed="onPasted" />
+
+    <div
+      v-if="kind !== 'paste'"
+      class="rounded-lg bg-surface-muted p-3 text-sm text-fg-muted"
+      data-testid="format-help"
+    >
       <p class="font-medium text-fg">{{ t('exams.import.formatTitle') }}</p>
       <ul class="mt-1 list-disc space-y-1 pl-5">
-        <li v-for="n in 5" :key="n">{{ t(`exams.import.help.${kind}.${n}`) }}</li>
+        <li v-for="n in 5" :key="n">{{ t(`exams.import.help.${fileKind}.${n}`) }}</li>
       </ul>
       <BaseButton
         variant="secondary"
@@ -386,11 +412,11 @@ const letter = (i: number) => String.fromCharCode(65 + i)
       </BaseButton>
     </div>
 
-    <p class="text-xs text-fg-muted" data-testid="import-ignored-note">
+    <p v-if="kind !== 'paste'" class="text-xs text-fg-muted" data-testid="import-ignored-note">
       {{ t('exams.import.ignoredNote') }}
     </p>
 
-    <div>
+    <div v-if="kind !== 'paste'">
       <label
         class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-8 text-center hover:border-primary-600"
       >
@@ -409,7 +435,7 @@ const letter = (i: number) => String.fromCharCode(65 + i)
       </label>
     </div>
 
-    <div class="flex justify-end">
+    <div v-if="kind !== 'paste'" class="flex justify-end">
       <BaseButton
         :disabled="!file"
         :loading="uploading"

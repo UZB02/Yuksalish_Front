@@ -194,9 +194,8 @@ describe('QuestionsView (savollar ro`yxati)', () => {
     expect(
       w.get('[data-testid="add-question"]').element.closest('a')!.getAttribute('href'),
     ).toContain('topicId=topic1')
-    expect(
-      w.get('[data-testid="import-questions"]').element.closest('a')!.getAttribute('href'),
-    ).toContain('topicId=topic1')
+    // Alohida "Import" tugmasi yo'q: Word/Excel va joylash "Savol qo'shish" ichida
+    expect(w.find('[data-testid="import-questions"]').exists()).toBe(false)
     api.getTopic.mockRejectedValue(new Error('403'))
     const bad = await mountAt('/exams/topics/zzz')
     expect(bad.w.find('[data-testid="topic-forbidden"]').exists()).toBe(true)
@@ -217,6 +216,7 @@ describe('QuestionEditorView (muharrir)', () => {
 
   it('yangi savol: bitta fan bo`lsa avtomatik tanlanadi; bo`sh forma saqlanmaydi (validatsiya)', async () => {
     const { w } = await mountAt('/exams/questions/new')
+    await w.get('[data-testid="method-single"]').trigger('click')
     expect(w.find('[data-testid="question-form"]').exists()).toBe(true)
     await w.get('[data-testid="save-question"]').trigger('submit')
     await w.get('form').trigger('submit')
@@ -230,6 +230,7 @@ describe('QuestionEditorView (muharrir)', () => {
     api.createQuestion.mockResolvedValue(full({ id: 'new1' }))
     api.getQuestion.mockResolvedValue(full({ id: 'new1' }))
     const { w, router } = await mountAt('/exams/questions/new?topicId=topic1')
+    await w.get('[data-testid="method-single"]').trigger('click')
     await w.get('[data-testid="block-text"]').setValue('2+2 nechiga teng?')
     const opts = w.findAll('[data-testid="option-row"]')
     await opts[0]!.get('textarea').setValue('3')
@@ -251,6 +252,7 @@ describe('QuestionEditorView (muharrir)', () => {
 
   it("tur almashtirish: qisqa javob chip bo'limi, esse rubrika; variantlar bo'limi yashiriladi", async () => {
     const { w } = await mountAt('/exams/questions/new')
+    await w.get('[data-testid="method-single"]').trigger('click')
     const types = w.findAll('[data-testid="type-option"]')
     expect(types).toHaveLength(4)
     await types[2]!.trigger('click')
@@ -296,6 +298,7 @@ describe('QuestionEditorView (muharrir)', () => {
   it("fani yo'q o'qituvchi: ogohlantirish; server xatosi maydonga bog'lanadi", async () => {
     api.subjects.mockResolvedValue({ scope: 'own', subjects: [] })
     const { w } = await mountAt('/exams/questions/new')
+    await w.get('[data-testid="method-single"]').trigger('click')
     expect(w.find('[data-testid="no-subjects"]').exists()).toBe(true)
   })
 
@@ -307,6 +310,7 @@ describe('QuestionEditorView (muharrir)', () => {
       ]),
     )
     const { w } = await mountAt('/exams/questions/new?topicId=topic1')
+    await w.get('[data-testid="method-single"]').trigger('click')
     await w.get('[data-testid="block-text"]').setValue('x')
     const opts = w.findAll('[data-testid="option-row"]')
     await opts[0]!.get('textarea').setValue('1')
@@ -352,6 +356,7 @@ describe('Ulashish (sharing)', () => {
 
   it("muharrir: ulashish bo'limi, 3 rejim; 'tanlangan' rejimda o'qituvchilar ro'yxati (fanni o'qitadiganlar belgisi)", async () => {
     const { w } = await mountAt('/exams/questions/new')
+    await w.get('[data-testid="method-single"]').trigger('click')
     const modes = w.findAll('[data-testid="sharing-mode"]')
     expect(modes.map((m) => m.text())).toEqual([
       'Yopiq',
@@ -374,6 +379,7 @@ describe('Ulashish (sharing)', () => {
     api.createQuestion.mockResolvedValue(full({ id: 'n1' }))
     api.getQuestion.mockResolvedValue(full({ id: 'n1' }))
     const { w } = await mountAt('/exams/questions/new?topicId=topic1')
+    await w.get('[data-testid="method-single"]').trigger('click')
     await w.get('[data-testid="block-text"]').setValue('Savol')
     const opts = w.findAll('[data-testid="option-row"]')
     await opts[0]!.get('textarea').setValue('3')

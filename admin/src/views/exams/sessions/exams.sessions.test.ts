@@ -40,6 +40,7 @@ const api = {
   listSessions: vi.fn(),
   listCandidates: vi.fn(),
   getCandidate: vi.fn(),
+  candidateResults: vi.fn(),
   createCandidate: vi.fn(),
   updateCandidate: vi.fn(),
   removeCandidate: vi.fn(),
@@ -451,9 +452,13 @@ describe('SessionsView (ro`yxat)', () => {
     const { w } = await mountView(SessionsView, '/exams/sessions', 'teacher')
     const rows = w.findAll('[data-testid="session-row"]')
     expect(rows).toHaveLength(2)
-    expect(rows[1]!.get('[data-testid="session-status"]').text()).toBe(
+    // Bosqich guruhlari: "Tayyorlanmoqda" (tasdiq kutayotgan) oldin, "Rejalashtirilgan" keyin
+    expect(rows[0]!.get('[data-testid="session-status"]').text()).toBe(
       uz.examSessions.status.pending_approval,
     )
+    expect(w.find('[data-testid="sessions-group-preparing"]').text()).toContain('Tayyorlanmoqda')
+    expect(w.find('[data-testid="sessions-group-scheduled"]').text()).toContain('Rejalashtirilgan')
+    expect(w.find('[data-testid="sessions-group-past"]').exists()).toBe(false)
     expect(w.find('[data-testid="session-create"]').exists()).toBe(true)
   })
 
@@ -729,6 +734,38 @@ describe('CandidatesView (nomzodlar)', () => {
     expect(api.getCandidate).toHaveBeenCalledWith('n1')
     expect(($('cand-phone') as HTMLInputElement).value).toBe('+998901234567')
     expect(($('cand-birth') as HTMLInputElement).value).toBe('2014-05-06')
+  })
+
+  it('nomzod natijalari: "Imtihonlar" tugmasi oynada yakunlangan imtihonlarni ko`rsatadi', async () => {
+    api.listCandidates.mockResolvedValue(page([cand()]))
+    api.candidateResults.mockResolvedValue({
+      items: [
+        {
+          sessionId: 'e1',
+          title: 'Kirish imtihoni',
+          heldAt: '2026-11-25T04:00:00.000Z',
+          closedAt: null,
+          subjects: ['Matematika'],
+          scoringMode: 'points',
+          passPercent: 50,
+          earned: 18,
+          max: 30,
+          percent: 60,
+          passed: true,
+          essayPending: 0,
+          blocks: [],
+          examDeleted: false,
+        },
+      ],
+      summary: { count: 1, averagePercent: 60, passedCount: 1 },
+    })
+    const { w } = await mountView(CandidatesView, '/exams/candidates', 'school_admin')
+    await w.get('[data-testid="candidate-results"]').trigger('click')
+    await flushPromises()
+    expect(api.candidateResults).toHaveBeenCalledWith('n1')
+    expect($('exam-title').textContent).toBe('Kirish imtihoni')
+    expect($('exam-total').textContent?.trim()).toBe('18 / 30 · 60%')
+    expect($('exam-passed').textContent?.trim()).toBe("O'tdi")
   })
 
   it('yaratish validatsiyasi: ism, sinf, telefon', async () => {

@@ -4,7 +4,7 @@ import { settingsApi } from '@/api/settings.api'
 import { useAuthStore } from '@/stores/auth'
 import { useSchoolContextStore } from '@/stores/school-context'
 
-export type FeatureKey = 'exams'
+export type FeatureKey = 'exams' | 'teacherQuizzes'
 
 /**
  * Maktab bo'yicha yoqiladigan modullar (feature flag). Hozircha: `exams` (Imtihonlar), standart o'chiq.
@@ -16,6 +16,8 @@ export const useFeaturesStore = defineStore('features', () => {
   const schoolCtx = useSchoolContextStore()
 
   const examsEnabled = ref(false)
+  /** O'qituvchi o'zining kichik testlarini yaratishi mumkin (Sozlamalar > Imtihon): "Imtihonlar" bandi shunda ko'rinadi */
+  const teacherQuizzes = ref(false)
   const loadedKey = ref<string | null>(null)
   let pending: Promise<void> | null = null
   let pendingKey: string | null = null
@@ -30,6 +32,7 @@ export const useFeaturesStore = defineStore('features', () => {
 
   function isEnabled(feature: FeatureKey): boolean {
     if (feature === 'exams') return examsEnabled.value
+    if (feature === 'teacherQuizzes') return examsEnabled.value && teacherQuizzes.value
     return false
   }
 
@@ -49,10 +52,12 @@ export const useFeaturesStore = defineStore('features', () => {
         const res = await settingsApi.get('exams', schoolId ?? undefined)
         if (contextKey.value !== key) return // maktab almashgan: eskirgan javob
         examsEnabled.value = res.effective.enabled === true
+        teacherQuizzes.value = res.effective.teachersCanCreateQuizzes === true
         loadedKey.value = key
       } catch {
         if (contextKey.value === key) {
           examsEnabled.value = false
+          teacherQuizzes.value = false
           loadedKey.value = null
         }
       }
@@ -73,6 +78,7 @@ export const useFeaturesStore = defineStore('features', () => {
 
   function reset() {
     examsEnabled.value = false
+    teacherQuizzes.value = false
     loadedKey.value = null
   }
 
@@ -81,11 +87,12 @@ export const useFeaturesStore = defineStore('features', () => {
     contextKey,
     (key) => {
       examsEnabled.value = false
+      teacherQuizzes.value = false
       loadedKey.value = null
       if (key) void load()
     },
     { immediate: true },
   )
 
-  return { examsEnabled, isEnabled, load, refresh, reset }
+  return { examsEnabled, teacherQuizzes, isEnabled, load, refresh, reset }
 })

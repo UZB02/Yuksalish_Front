@@ -1930,6 +1930,9 @@ export interface ExamBlock {
   coefficient: number
   durationMin: number | null
   status: 'open' | 'ready'
+  readyBy?: 'contributor' | 'composer' | null
+  /** Oxirgi "Eslatma" vaqti (soatiga bir marta cheklanadi) */
+  remindedAt?: string | null
   count: number
   contributors: { id: string; fullName: string }[]
   items: ExamSectionItem[]
@@ -1970,8 +1973,39 @@ export interface ExamSessionParticipant {
   grade: number | null
   origin: string | null
   hasPin: boolean
+  /** Shaxsiy kirish kodi bor (kodning o'zi ro'yxatda chiqmaydi) */
+  hasCode?: boolean
   fullTimeGranted: boolean
   extraMinutes: number
+}
+/** Profil sahifasidagi imtihon natijasi (o'quvchi va nomzod uchun bir xil, barqaror DTO) */
+export interface ProfileExamResult {
+  sessionId: string
+  title: string
+  heldAt: string
+  closedAt: string | null
+  subjects: string[]
+  scoringMode: string
+  passPercent: number | null
+  earned: number
+  max: number
+  percent: number
+  passed: boolean | null
+  essayPending: number
+  blocks: {
+    id: string
+    title: string
+    subjectName: string | null
+    coefficient: number
+    earned: number
+    max: number
+    percent: number
+  }[]
+  examDeleted: boolean
+}
+export interface ProfileExamResults {
+  items: ProfileExamResult[]
+  summary: { count: number; averagePercent: number | null; passedCount: number }
 }
 export interface ExamResultListItem {
   id: string
@@ -2001,6 +2035,8 @@ export interface ExamSessionItem {
   timingMode?: ExamTimingMode
   contribDeadline?: string | null
   blocksCount?: number
+  /** Fanlar jamlamasi: jami, o'qituvchi tugatgan va tasdiqlangan (o'qituvchisiz fan tasdiqlangan) */
+  blocksProgress?: { total: number; done: number; approved: number }
   title: string
   type: ExamSessionType
   status: ExamSessionStatus
@@ -2085,6 +2121,63 @@ export interface ExamSessionMeta {
 
 // ---- Biriktirilgan o'qituvchi: blok ----
 export type BlockLockReason = 'status' | 'ready' | 'deadline' | null
+/** "Matnni joylash": serverdagi tahlil natijasi (yagona haqiqat manbai) */
+export type PasteWarnCode =
+  | 'noText'
+  | 'noAnswer'
+  | 'fewOptions'
+  | 'dupLetters'
+  | 'badAnswer'
+  | 'conflict'
+  | 'tooLong'
+  | 'unparsed'
+  | 'badMath'
+export interface PasteWarning {
+  code: PasteWarnCode
+  message: string
+  /** Hal qilinmasa savol saqlanmaydi */
+  blocking: boolean
+}
+export interface PasteQuestion {
+  idx: number
+  number: number | null
+  line: number
+  content: QuestionBlock[]
+  options: { id: string; content: QuestionBlock[] }[]
+  correct: string[]
+  type: 'single' | 'multi'
+  warnings: PasteWarning[]
+  /** Javobni qo'lda tanlash mumkin (javob yo'q/noaniq) */
+  pickable: boolean
+}
+export interface PastePreview {
+  stats: { total: number; ok: number; problems: number }
+  items: PasteQuestion[]
+  ignored: { line: number; text: string }[]
+  limits: { maxQuestions: number; maxBytes: number }
+}
+export interface PasteCommitBody {
+  text: string
+  topicId?: string
+  difficulty: number
+  points: number
+  picks: { idx: number; answer: string[] }[]
+  exclude: number[]
+  status?: 'draft' | 'active'
+}
+export interface PasteCommitResult {
+  created: number
+  ids: string[]
+  skipped: { idx: number; reasons: string[] }[]
+  failed: { idx: number; errors: string[] }[]
+  excluded: number
+  total: number
+  /** Faqat vazifada */
+  addedToBlock?: number
+  count?: number
+  target?: number
+}
+
 export interface MyBlockItem {
   sessionId: string
   blockId: string
@@ -2096,6 +2189,7 @@ export interface MyBlockItem {
   targetCount: number
   count: number
   blockStatus: 'open' | 'ready'
+  readyBy?: 'contributor' | 'composer' | null
   contribDeadline: string | null
   locked: boolean
   lockReason: BlockLockReason
@@ -2123,8 +2217,12 @@ export interface BlockRuleRow {
   type: QuestionType | null
 }
 export interface MyBlockDetail {
+  /** 'composer': ma'muriyat (istalgan fan, hamma savolni olib tashlaydi); 'contributor': biriktirilgan o'qituvchi */
+  role?: 'composer' | 'contributor'
   exam: { id: string; title: string; contribDeadline: string | null }
   block: {
+    readyBy?: 'contributor' | 'composer' | null
+    canMarkReady?: boolean
     id: string
     subjectId: string | null
     subjectName: string | null
@@ -2137,6 +2235,12 @@ export interface MyBlockDetail {
   }
   questions: BlockQuestionRow[]
   rules: BlockRuleRow[]
+}
+export interface RemindResult {
+  disabled: boolean
+  notConnected: boolean
+  sent: number
+  blocks: { blockId: string; subjectName: string; state: 'sent' | 'recent' }[]
 }
 export interface BlockQuestionList {
   questions: BlockQuestionRow[]

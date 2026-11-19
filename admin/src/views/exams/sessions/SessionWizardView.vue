@@ -60,7 +60,16 @@ const needsSchool = useNeedsSchool()
 const auth = useAuthStore()
 const schoolCtx = useSchoolContextStore()
 
-const STEPS = ['basic', 'questions', 'time', 'participants', 'review'] as const
+/**
+ * Ma'muriyat (bloklar rejimi): 1) Umumiy 2) Fanlar va o'qituvchilar 3) Vaqt. Savollarni usta so'ramaydi: saqlangach
+ * imtihon sahifasi "Savollar yig'ilmoqda" bosqichida ochiladi, ishtirokchilar o'sha sahifada qo'shiladi.
+ * O'qituvchi nazorat ishi (bo'limlar rejimi) eski 5 qadamli oqimda qoladi.
+ */
+const steps = computed(() =>
+  form.mode === 'blocks'
+    ? (['basic', 'subjects', 'time'] as const)
+    : (['basic', 'questions', 'time', 'participants', 'review'] as const),
+)
 const step = ref(0)
 const loading = ref(true)
 const loadError = ref('')
@@ -215,7 +224,10 @@ async function init() {
       examsApi.listTemplates().catch(() => [] as ExamTemplate[]),
     ])
     meta.value = m
-    subjects.value = subs.subjects.map((s) => ({ id: s.id, name: s.name }))
+    // Nofaol fanlar (mavzulari bor bo'lsa savollar bankida ko'rinadi) imtihonga qo'shib bo'lmaydi: server rad etadi
+    subjects.value = subs.subjects
+      .filter((s) => s.isActive !== false)
+      .map((s) => ({ id: s.id, name: s.name }))
     templates.value = tpls
     form.type = m.allowedTypes[0] ?? 'quiz'
     // O'qituvchi nazorat ishi (bitta fan) bo'limlar bilan; ma'muriyat bloklar bilan (bitta blok ham mumkin)
@@ -244,11 +256,15 @@ async function init() {
       applySession(s)
       await loadClasses()
       synced.value = formSnapshot()
-      step.value = firstIncompleteStep({
-        title: s.title,
-        sectionsOk: form.mode === 'blocks' ? form.blocks.length > 0 : s.sections.length > 0,
-        participants: s.participants.length,
-      })
+      // Bloklar (ma'muriyat) oqimi 3 qadamli: eski 5 qadamli hisob (ishtirokchilar/tekshirish) chegaradan chiqmasin
+      step.value = Math.min(
+        firstIncompleteStep({
+          title: s.title,
+          sectionsOk: form.mode === 'blocks' ? form.blocks.length > 0 : s.sections.length > 0,
+          participants: s.participants.length,
+        }),
+        steps.value.length - 1,
+      )
       // Nusxa olingan qoralama: sana va nom tekshirilishi uchun birinchi qadamdan boshlanadi
       if (route.query.copied) step.value = 0
       // Brauzerdagi saqlanmagan o'zgarishlar serverdagidan yangi: ular ustun turadi
@@ -278,7 +294,7 @@ const dirty = computed(() => ready.value && !done.value && formSnapshot() !== sy
 
 function restore(d: WizardDraft) {
   Object.assign(form, JSON.parse(JSON.stringify(d.form)) as WizardFormState)
-  step.value = d.step
+  step.value = Math.min(d.step, steps.value.length - 1)
   // Eski sinf/fan tanlovi hozirgi maktabga mos kelmasa loadClasses o'zi filtrlaydi
   void loadClasses()
 }
@@ -397,21 +413,19 @@ function validate(s: number): boolean {
       errors.classes = t('examSessions.errors.classesRequired')
   }
   if (s === 1 && useBlocks.value) {
+    // Fanlar va o'qituvchilar: savollarni usta so'ramaydi (imtihon sahifasida yig'iladi)
     const bad =
       form.blocks.length === 0 ||
       form.blocks.some(
         (b) =>
           !b.subjectId ||
-          (b.items.length === 0 && b.contributorIds.length === 0) ||
-          b.items.some((i) =>
-            i.kind === 'manual' ? i.questionIds.length === 0 : !i.topicId || i.count < 1,
-          ) ||
+          !(b.targetCount >= 1) ||
           (form.scoringMode === 'coefficient' && !(b.coefficient > 0)) ||
           (form.timingMode === 'per_block' && !(Number(b.durationMin) >= 1)),
       )
-    if (bad) errors.sections = t('examSessions.errors.sectionsIncomplete')
-    else if (!preview.value) errors.sections = t('examSessions.errors.sectionsChecking')
-    else if (!preview.value.ok) errors.sections = t('examSessions.errors.sectionsInvalid')
+    const dup = new Set(form.blocks.map((b) => b.subjectId)).size !== form.blocks.length
+    if (bad) errors.sections = t('examBlocks.errors.subjectsIncomplete')
+    else if (dup) errors.sections = t('examBlocks.errors.subjectDuplicate')
   } else if (s === 1) {
     const incomplete =
       form.sections.length === 0 ||
@@ -547,7 +561,19 @@ async function refreshSession() {
 async function next() {
   if (!validate(step.value)) return
   if (step.value === 2 && !(await saveDraft())) return
-  step.value++
+  if (useBlocks.value && step.value === 2) {
+    // Ma'muriyat oqimi: qoralama saqlandi, imtihon sahifasi "Savollar yig'ilmoqda" bosqichida ochiladi
+    toast.success(t('examSessions.toast.draftCollecting'))
+    done.value = true
+    if (autosaveTimer) clearTimeout(autosaveTimer)
+    clearDraft(keyFor(null))
+    if (session.value) {
+      clearDraft(keyFor(session.value.id))
+      void router.replace({ name: 'exam-session', params: { id: session.value.id } })
+    }
+    return
+  }
+  if (step.value < steps.value.length - 1) step.value++
 }
 function back() {
   clearErrors()
@@ -637,8 +663,10 @@ const classNames = computed(() =>
 
 <template>
   <PageHeader
-    :title="t('examSessions.wizard.title')"
-    :description="t('examSessions.wizard.description')"
+    :title="isEdit ? t('examSessions.wizard.editTitle') : t('examSessions.wizard.title')"
+    :description="
+      useBlocks ? t('examSessions.wizard.descriptionBlocks') : t('examSessions.wizard.description')
+    "
   />
 
   <NeedsSchool v-if="needsSchool" />
@@ -658,7 +686,7 @@ const classNames = computed(() =>
   <template v-else>
     <ol class="mb-5 flex flex-wrap gap-2 text-sm" data-testid="wizard-steps">
       <li
-        v-for="(s, i) in STEPS"
+        v-for="(s, i) in steps"
         :key="s"
         class="rounded-full px-3 py-1"
         :class="
@@ -779,6 +807,8 @@ const classNames = computed(() =>
           </p>
           <BlocksEditor
             v-model="form.blocks"
+            simple
+            :class-ids="form.classIds"
             :subjects="blockSubjects"
             :meta="meta"
             :scoring-mode="form.scoringMode"
@@ -1000,12 +1030,16 @@ const classNames = computed(() =>
         {{ t('examSessions.wizard.back') }}
       </BaseButton>
       <BaseButton
-        v-if="step < STEPS.length - 1"
+        v-if="step < steps.length - 1 || useBlocks"
         :loading="saving"
         data-testid="wz-next"
         @click="next"
       >
-        {{ t('examSessions.wizard.next') }}
+        {{
+          useBlocks && step === steps.length - 1
+            ? t('examSessions.wizard.saveContinue')
+            : t('examSessions.wizard.next')
+        }}
       </BaseButton>
       <BaseButton v-else :loading="saving" data-testid="wz-submit" @click="submit">
         {{

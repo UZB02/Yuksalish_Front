@@ -102,6 +102,36 @@ async function addGuest() {
   }
 }
 
+/** Yangi nomzodni shu yerning o'zida yaratib, imtihonga qo'shadi (ism majburiy, "qayerdan/izoh" ixtiyoriy) */
+const candName = ref('')
+const candNote = ref('')
+const candError = ref('')
+async function createAndAddCandidate() {
+  candError.value = ''
+  if (candName.value.trim().length < 2) {
+    candError.value = t('examCandidates.errors.name')
+    return
+  }
+  busy.value = true
+  try {
+    const c = await examsApi.createCandidate({
+      fullName: candName.value.trim(),
+      birthDate: null,
+      targetGrade: null,
+      parentPhone: null,
+      notes: candNote.value.trim(),
+    })
+    candidates.value = [c, ...candidates.value]
+    candName.value = ''
+    candNote.value = ''
+    await add({ candidateIds: [c.id] })
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    busy.value = false
+  }
+}
+
 function toggleCandidate(id: string, on: boolean) {
   const s = new Set(pickedCandidates.value)
   if (on) s.add(id)
@@ -199,6 +229,31 @@ async function addCandidates() {
       <h3 class="mb-2 text-sm font-semibold text-fg">
         {{ t('examSessions.participants.candidates') }}
       </h3>
+      <form
+        class="mb-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+        novalidate
+        data-testid="candidate-quick"
+        @submit.prevent="createAndAddCandidate"
+      >
+        <BaseInput
+          v-model="candName"
+          :label="t('examSessions.participants.newCandidateName')"
+          :maxlength="100"
+          data-testid="cand-quick-name"
+        />
+        <BaseInput
+          v-model="candNote"
+          :label="t('examSessions.participants.newCandidateNote')"
+          :maxlength="500"
+          data-testid="cand-quick-note"
+        />
+        <BaseButton type="submit" variant="secondary" :loading="busy" data-testid="cand-quick-add">
+          {{ t('examSessions.participants.addNewCandidate') }}
+        </BaseButton>
+      </form>
+      <p v-if="candError" class="mb-2 text-sm text-danger" data-testid="cand-quick-error">
+        {{ candError }}
+      </p>
       <p v-if="candidates.length === 0" class="text-sm text-fg-muted">
         {{ t('examSessions.participants.noCandidates') }}
       </p>
@@ -227,6 +282,13 @@ async function addCandidates() {
           {{ t('examSessions.participants.addSelected', { n: pickedCandidates.size }) }}
         </BaseButton>
       </template>
+      <RouterLink
+        :to="{ name: 'exam-candidates' }"
+        class="mt-3 inline-block text-sm font-medium text-primary-700 hover:underline"
+        data-testid="manage-candidates"
+      >
+        {{ t('examSessions.participants.manageCandidates') }}
+      </RouterLink>
     </section>
   </div>
 </template>

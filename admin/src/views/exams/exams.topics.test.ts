@@ -299,6 +299,12 @@ describe('QuestionEditorView: mavzu tanlash', () => {
       }),
     )
     const { w } = await mountAt('/exams/questions/new?topicId=t1')
+    // Ixcham sarlavha: "Fan · Mavzu" va "o'zgartirish"; tanlovlar paneli yopiq, standart usul = Matnni joylash
+    expect(w.get('[data-testid="ctx-text"]').text()).toBe('Matematika · Kasrlar')
+    expect(w.find('[data-testid="ctx-panel"]').exists()).toBe(false)
+    expect(w.get('[data-testid="method-paste"]').attributes('aria-selected')).toBe('true')
+    await w.get('[data-testid="ctx-change"]').trigger('click')
+    expect(w.find('[data-testid="ctx-panel"]').exists()).toBe(true)
     const topicSel = w.get('[data-testid="field-topic"]')
     expect((topicSel.element as HTMLSelectElement).value).toBe('t1')
     expect([...(topicSel.element as HTMLSelectElement).options].map((o) => o.text)).toEqual([
@@ -325,6 +331,7 @@ describe('QuestionEditorView: mavzu tanlash', () => {
     })
     api.createTopic.mockResolvedValue(topic({ id: 'tn', name: 'Yangi mavzu' }))
     const { w } = await mountAt('/exams/questions/new')
+    await w.get('[data-testid="method-single"]').trigger('click')
     await w.get('form').trigger('submit')
     await flushPromises()
     expect(w.text()).toContain(uz.exams.errors.topic)

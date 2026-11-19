@@ -18,7 +18,6 @@ import {
   UserCheck,
   Library,
   FileQuestion,
-  UserRoundPlus,
   ClipboardList,
   Settings2,
   LayoutDashboard,
@@ -71,6 +70,8 @@ export interface NavItem {
   activePrefixes?: string[]
   /** Modul maktab uchun yoqilgan bo'lsa ko'rinadi (feature flag) */
   feature?: FeatureKey
+  /** Faqat o'qituvchi uchun qo'shimcha shart (masalan, o'z testlarini yaratish yoqilgan) */
+  teacherFeature?: FeatureKey
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -258,6 +259,16 @@ export const NAV_ITEMS: NavItem[] = [
     permission: PERMISSIONS.TIMETABLE_SUBSTITUTE,
   },
   {
+    name: 'exam-tasks',
+    group: 'exams',
+    labelKey: 'nav.examTasks',
+    icon: ClipboardCheck,
+    roles: ['teacher'],
+    anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
+    feature: 'exams',
+    activePrefixes: ['/exams/tasks', '/exams/blocks'],
+  },
+  {
     name: 'exam-questions',
     group: 'exams',
     labelKey: 'nav.examQuestions',
@@ -273,23 +284,8 @@ export const NAV_ITEMS: NavItem[] = [
     icon: CalendarClock,
     anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
     feature: 'exams',
-    activePrefixes: ['/exams/sessions'],
-  },
-  {
-    name: 'exam-results-list',
-    group: 'exams',
-    labelKey: 'nav.examResultsList',
-    icon: Trophy,
-    anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
-    feature: 'exams',
-  },
-  {
-    name: 'exam-candidates',
-    group: 'exams',
-    labelKey: 'nav.examCandidates',
-    icon: UserRoundPlus,
-    permission: PERMISSIONS.EXAMS_MANAGE,
-    feature: 'exams',
+    teacherFeature: 'teacherQuizzes',
+    activePrefixes: ['/exams/sessions', '/exams/results', '/exams/candidates'],
   },
   {
     name: 'superadmins',
@@ -323,9 +319,9 @@ export const NAV_DISPLAY_ORDER: string[] = [
   'attendance-history',
   'ratings',
   'reports',
+  'exam-tasks',
   'exam-questions',
   'exam-sessions',
-  'exam-candidates',
   'subjects',
   'behavior-types',
   'attendance-statuses',

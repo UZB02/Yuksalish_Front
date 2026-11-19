@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Trash2 } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
@@ -35,6 +35,10 @@ const props = defineProps<{
   /** Serverdagi (saqlangan) bloklar: o'qituvchi savollari va tayyorlik uchun */
   serverBlocks?: ExamBlock[]
   sessionId?: string | null
+  /** Ma'muriyat ustasi: savollar/elementlar tanlanmaydi, hamma sozlama ochiq, o'qituvchilar avtomatik taklif qilinadi */
+  simple?: boolean
+  /** Tanlangan sinflar: o'qituvchi taklifi uchun */
+  classIds?: string[]
 }>()
 const emit = defineEmits<{
   'update:modelValue': [value: ExamBlockInput[]]
@@ -70,7 +74,41 @@ const addBlock = () =>
       items: [],
     }),
   )
-const removeBlock = (i: number) => update((b) => void b.splice(i, 1))
+/** Qo'lda o'zgartirilgan bloklar (indeks): avtomatik taklif ularning o'qituvchilarini bosib yubormaydi */
+const touched = ref<Set<number>>(new Set())
+/** Fan -> shu sinflarda o'qitadigan o'qituvchilar (taklif natijasi) */
+const suggested = ref<Record<string, string[]>>({})
+const removeBlock = (i: number) => {
+  touched.value = new Set([...touched.value].filter((x) => x !== i).map((x) => (x > i ? x - 1 : x)))
+  update((b) => void b.splice(i, 1))
+}
+
+/** Fan va sinflar bo'yicha shu fanni o'qitadigan o'qituvchilarni avtomatik belgilaydi (yangi, tegilmagan blok uchun) */
+async function suggestFor(i: number) {
+  const blk = props.modelValue[i]
+  if (!props.simple || !blk?.subjectId || blk.blockId || touched.value.has(i)) return
+  try {
+    const r = await examsApi.suggestTeachers(blk.subjectId, props.classIds ?? [])
+    suggested.value = { ...suggested.value, [blk.subjectId]: r.teacherIds }
+    const cur = props.modelValue[i]
+    if (cur && cur.subjectId === blk.subjectId && !touched.value.has(i)) {
+      patch(i, { contributorIds: r.teacherIds })
+    }
+  } catch {
+    /* taklif ixtiyoriy: admin qo'lda tanlaydi */
+  }
+}
+watch(
+  () => (props.classIds ?? []).join(','),
+  () => {
+    for (let i = 0; i < props.modelValue.length; i++) void suggestFor(i)
+  },
+)
+const noSuggestion = (i: number) => {
+  const blk = props.modelValue[i]
+  const s = blk?.subjectId ? suggested.value[blk.subjectId] : undefined
+  return !!blk && !blk.blockId && s !== undefined && s.length === 0 && !touched.value.has(i)
+}
 const patch = (i: number, p: Partial<ExamBlockInput>) => update((b) => void Object.assign(b[i]!, p))
 const num = (v: string) => Number(String(v).replace(',', '.'))
 
@@ -85,6 +123,8 @@ function setSubject(i: number, subjectId: string) {
       blk.title = ''
     }
   })
+  touched.value.delete(i)
+  void nextTick(() => suggestFor(i))
 }
 
 /** Blok fanini o'qitadigan o'qituvchilar (maktab admini istalgan fanga) */
@@ -93,6 +133,7 @@ const contributorsOf = (subjectId: string) =>
     (u) => !subjectId || u.subjectIds === null || u.subjectIds.includes(subjectId),
   )
 function toggleContributor(i: number, id: string, on: boolean) {
+  touched.value.add(i)
   update((b) => {
     const blk = b[i]!
     blk.contributorIds = on
@@ -120,6 +161,7 @@ let timer: ReturnType<typeof setTimeout> | undefined
 let seq = 0
 function schedulePreview() {
   clearTimeout(timer)
+  if (props.simple) return
   if (!previewable.value) {
     preview.value = null
     previewError.value = ''
@@ -143,7 +185,13 @@ function schedulePreview() {
   }, 350)
 }
 watch(() => props.modelValue, schedulePreview, { deep: true })
-onMounted(schedulePreview)
+onMounted(() => {
+  schedulePreview()
+  // Qadamga qaytilganda: tegilmagan, o'qituvchisiz yangi fanlar uchun taklifni qayta hisoblaymiz
+  props.modelValue.forEach((b, i) => {
+    if (!b.blockId && b.subjectId && b.contributorIds.length === 0) void suggestFor(i)
+  })
+})
 onBeforeUnmount(() => clearTimeout(timer))
 
 /** Ichki SectionsEditor uchun bitta yashirin bo'lim */
@@ -250,7 +298,7 @@ async function setReady(blockId: string, ready: boolean) {
           @update:model-value="patch(i, { targetCount: Math.max(0, Math.floor(num($event)) || 0) })"
         />
         <BaseInput
-          v-if="scoringMode === 'coefficient'"
+          v-if="simple || scoringMode === 'coefficient'"
           :model-value="String(b.coefficient)"
           type="number"
           inputmode="decimal"
@@ -261,7 +309,7 @@ async function setReady(blockId: string, ready: boolean) {
           @update:model-value="patch(i, { coefficient: num($event) || 0 })"
         />
         <BaseInput
-          v-if="timingMode === 'per_block'"
+          v-if="simple || timingMode === 'per_block'"
           :model-value="b.durationMin ? String(b.durationMin) : ''"
           type="number"
           inputmode="numeric"
@@ -290,6 +338,13 @@ async function setReady(blockId: string, ready: boolean) {
           </legend>
           <p class="mb-2 text-xs text-fg-muted">{{ t('examBlocks.contributorsHint') }}</p>
           <p
+            v-if="noSuggestion(i)"
+            class="mb-2 rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning"
+            :data-testid="`block-no-suggestion-${i}`"
+          >
+            {{ t('examBlocks.noSuggestion') }}
+          </p>
+          <p
             v-if="contributorsOf(b.subjectId).length === 0"
             class="text-sm text-fg-muted"
             :data-testid="`block-no-teachers-${i}`"
@@ -300,7 +355,11 @@ async function setReady(blockId: string, ready: boolean) {
             <li v-for="u in contributorsOf(b.subjectId)" :key="u.id">
               <BaseCheckbox
                 :model-value="b.contributorIds.includes(u.id)"
-                :label="u.fullName"
+                :label="
+                  suggested[b.subjectId]?.includes(u.id)
+                    ? `${u.fullName} (${t('examBlocks.inClasses')})`
+                    : u.fullName
+                "
                 :data-testid="`block-contrib-${i}-${u.id}`"
                 @update:model-value="toggleContributor(i, u.id, $event)"
               />
@@ -308,7 +367,7 @@ async function setReady(blockId: string, ready: boolean) {
           </ul>
         </fieldset>
 
-        <div>
+        <div v-if="!simple">
           <p class="mb-2 text-sm font-medium text-fg">{{ t('examBlocks.questions') }}</p>
           <SectionsEditor
             single
@@ -320,6 +379,7 @@ async function setReady(blockId: string, ready: boolean) {
         </div>
 
         <div
+          v-if="!simple"
           class="rounded-lg border border-border p-3 text-sm"
           :data-testid="`block-progress-${i}`"
         >

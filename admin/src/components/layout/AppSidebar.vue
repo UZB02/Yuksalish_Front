@@ -10,6 +10,7 @@ import type { NavGroup, NavGroupKey, NavItem } from '@/constants/navigation'
 import { canAccess } from '@/router/guards'
 import { useAuthStore } from '@/stores/auth'
 import { useBrandingStore } from '@/stores/branding'
+import { useExamAssignmentsStore } from '@/stores/examAssignments'
 import { useFeaturesStore } from '@/stores/features'
 import { useUiStore } from '@/stores/ui'
 import SidebarNavLink from './SidebarNavLink.vue'
@@ -21,6 +22,15 @@ const branding = useBrandingStore()
 const features = useFeaturesStore()
 const route = useRoute()
 const router = useRouter()
+// O'qituvchi uchun "Imtihonlar" nishoni: modul yoqilgan bo'lsa va sahifa almashganda yangilanadi
+const examAssignments = useExamAssignmentsStore()
+watch(
+  () => [features.isEnabled('exams'), route.fullPath],
+  ([on]) => {
+    if (on) void examAssignments.refresh()
+  },
+  { immediate: true },
+)
 const isDesktop = useMediaQuery('(min-width: 1024px)')
 const closeBtn = ref<HTMLButtonElement | null>(null)
 
@@ -280,6 +290,18 @@ const hidden = computed(() => !isDesktop.value && !ui.sidebarOpen)
               >
                 <component :is="entry.icon" class="h-5 w-5 shrink-0" aria-hidden="true" />
                 <span class="flex-1 truncate">{{ t(entry.labelKey) }}</span>
+                <!-- Yopiq guruhda ham ko'rinadi: "Mening imtihon vazifalarim" bandidagi to'ldirilmagan fanlar soni -->
+                <span
+                  v-if="
+                    openGroup !== entry.key &&
+                    examAssignments.pending > 0 &&
+                    entry.items.some((i) => i.name === 'exam-tasks')
+                  "
+                  class="inline-flex min-w-5 items-center justify-center rounded-full bg-warning px-1.5 text-xs font-semibold text-white"
+                  data-testid="nav-group-badge"
+                >
+                  {{ examAssignments.pending }}
+                </span>
                 <span
                   v-if="openGroup !== entry.key && entry.active"
                   class="h-1.5 w-1.5 shrink-0 rounded-full bg-primary-600"

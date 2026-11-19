@@ -23,6 +23,8 @@ import { fmtDateTime } from '@/utils/examSessions'
  * "Natijalar" moduli: yopilgan imtihonlar nom va o'tkazilgan sana bo'yicha (imtihoni o'chirilgan, natijalari
  * saqlanganlar ham). Filtrlar: sana oralig'i, fan, sinf, nom qidiruvi. Bosilsa imtihon natijalari sahifasi ochiladi.
  */
+/** `embedded`: "Imtihonlar" sahifasining "O'tgan / Natijalar" bo'limi ichida (o'z sarlavhasiz) */
+defineProps<{ embedded?: boolean }>()
 const { t } = useI18n()
 const router = useRouter()
 const needsSchool = useNeedsSchool()
@@ -109,7 +111,11 @@ const open = (r: ExamResultListItem) =>
 </script>
 
 <template>
-  <PageHeader :title="t('examResultsList.title')" :description="t('examResultsList.description')" />
+  <PageHeader
+    v-if="!embedded"
+    :title="t('examResultsList.title')"
+    :description="t('examResultsList.description')"
+  />
 
   <NeedsSchool v-if="needsSchool" />
   <template v-else>

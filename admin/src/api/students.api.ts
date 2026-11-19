@@ -1,11 +1,19 @@
 import { downloadFile } from './download'
 import { deleteData, getData, getPage, http, putPhoto, sendData } from './http'
-import type { Paginated, Student, StudentListParams, StudentPayload } from './types'
+import type {
+  Paginated,
+  ProfileExamResults,
+  Student,
+  StudentListParams,
+  StudentPayload,
+} from './types'
 
 export const studentsApi = {
   list: (params: StudentListParams = {}): Promise<Paginated<Student>> =>
     getPage('/students', params),
   get: (id: string) => getData<Student>(`/students/${id}`),
+  /** Yakunlangan imtihon natijalari (profil "Imtihonlar" bo'limi) */
+  examResults: (id: string) => getData<ProfileExamResults>(`/students/${id}/exam-results`),
   create: (payload: StudentPayload) => sendData<Student>('post', '/students', payload),
   update: (id: string, payload: Partial<StudentPayload>) =>
     sendData<Student>('patch', `/students/${id}`, payload),

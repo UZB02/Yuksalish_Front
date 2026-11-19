@@ -24,6 +24,8 @@ declare module 'vue-router' {
     narrow?: boolean
     /** Modul maktab uchun yoqilgan bo'lishi shart (masalan, 'exams'); aks holda ruxsat yo'q */
     feature?: FeatureKey
+    /** Faqat o'qituvchi roli uchun qo'shimcha shart (masalan, 'teacherQuizzes': o'z testlarini yaratish yoqilgan) */
+    teacherFeature?: FeatureKey
   }
 }
 
@@ -40,10 +42,18 @@ export interface AccessContext {
 
 export function canAccess(
   ctx: Pick<AccessContext, 'hasRole' | 'hasPermission' | 'isFeatureEnabled'>,
-  meta: Pick<RouteMeta, 'roles' | 'permission' | 'anyPermission' | 'feature'>,
+  meta: Pick<RouteMeta, 'roles' | 'permission' | 'anyPermission' | 'feature' | 'teacherFeature'>,
 ): boolean {
   if (!ctx.hasRole(meta.roles) || !ctx.hasPermission(meta.permission)) return false
   if (meta.feature && !ctx.isFeatureEnabled?.(meta.feature)) return false
+  // O'qituvchi roli uchun qo'shimcha modul sharti (superadmin/ma'muriyatga ta'sir qilmaydi)
+  if (
+    meta.teacherFeature &&
+    ctx.hasRole(['teacher']) &&
+    !ctx.isFeatureEnabled?.(meta.teacherFeature)
+  ) {
+    return false
+  }
   if (meta.anyPermission && meta.anyPermission.length > 0) {
     return meta.anyPermission.some((p) => ctx.hasPermission(p))
   }

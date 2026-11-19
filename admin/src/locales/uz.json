@@ -117,7 +117,7 @@
     },
     "examSessions": "Imtihonlar",
     "examCandidates": "Nomzodlar",
-    "examResultsList": "Natijalar"
+    "examTasks": "Mening imtihon vazifalarim"
   },
   "theme": {
     "light": "Yorug' mavzu",
@@ -1849,7 +1849,7 @@
     },
     "editor": {
       "back": "Savollar",
-      "createTitle": "Yangi savol",
+      "createTitle": "Savol qo'shish",
       "editTitle": "Savolni tahrirlash",
       "viewTitle": "Savol",
       "versionInfo": "Versiya {n}",
@@ -1866,7 +1866,24 @@
       "rubricHint": "Ixtiyoriy. Faqat tekshiruvchi ko'radi, o'quvchiga ko'rsatilmaydi.",
       "previewTitle": "O'quvchi ko'rinishi",
       "previewHint": "Savol o'quvchiga aynan shunday ko'rinadi. To'g'ri javob ko'rsatilmaydi.",
-      "unsavedText": "Saqlanmagan o'zgarishlar bor. Sahifadan chiqsangiz, ular yo'qoladi."
+      "unsavedText": "Saqlanmagan o'zgarishlar bor. Sahifadan chiqsangiz, ular yo'qoladi.",
+      "noTopic": "Mavzu tanlanmagan",
+      "change": "o'zgartirish",
+      "ctxDone": "Tayyor",
+      "needTopic": "Avval mavzuni tanlang: sarlavhadagi «o'zgartirish» tugmasini bosing.",
+      "pastedTotal": "Shu sahifada qo'shildi: {n} ta savol.",
+      "openTopic": "Mavzudagi savollarni ko'rish",
+      "saveAndAdd": "Saqlash va yana qo'shish",
+      "methods": {
+        "paste": "Matnni joylash",
+        "single": "Bittalab",
+        "word": "Word",
+        "excel": "Excel"
+      },
+      "methodHelp": {
+        "word": "Word (.docx) faylidan savollarni yuklang: oldindan ko'rasiz va tuzatasiz. Mavzu oldindan tanlangan.",
+        "excel": "Excel (.xlsx) shablonidan savollarni yuklang: oldindan ko'rasiz va tuzatasiz. Mavzu oldindan tanlangan."
+      }
     },
     "blocks": {
       "text": "Matn",
@@ -1876,6 +1893,7 @@
       "down": "Pastga",
       "remove": "Blokni o'chirish",
       "add": "Blok qo'shish",
+      "addShort": "Qo'shish",
       "addText": "Matn",
       "addMath": "Formula",
       "addImage": "Rasm",
@@ -3281,7 +3299,9 @@
       "allStatuses": "Barcha holatlar",
       "allTypes": "Barcha turlar",
       "status": "Holat",
-      "type": "Tur"
+      "type": "Tur",
+      "stage": "Bosqich",
+      "allStages": "Barcha bosqichlar"
     },
     "status": {
       "draft": "Qoralama",
@@ -3354,14 +3374,17 @@
     },
     "wizard": {
       "title": "Yangi imtihon",
+      "editTitle": "Imtihonni tahrirlash",
       "description": "Besh qadamda imtihon tuzing: umumiy ma'lumot, savollar, vaqt, ishtirokchilar va yuborish.",
+      "descriptionBlocks": "Uch qadamda imtihon oching: umumiy ma'lumot, fanlar va o'qituvchilar, vaqt. Savollarni o'qituvchilar yig'adi, ishtirokchilar imtihon sahifasida qo'shiladi.",
       "forbidden": "Sizga imtihon yaratish ruxsat etilmagan. Ma'muriyatga murojaat qiling.",
       "steps": {
         "basic": "Umumiy",
         "questions": "Savollar",
         "time": "Vaqt",
         "participants": "Ishtirokchilar",
-        "review": "Tekshirish"
+        "review": "Tekshirish",
+        "subjects": "Fanlar va o'qituvchilar"
       },
       "type": "Imtihon turi",
       "name": "Nomi",
@@ -3400,7 +3423,8 @@
       "resumeContinue": "Davom ettirish",
       "resumeDiscard": "Yangidan boshlash",
       "untitled": "nomsiz",
-      "resume": "Davom ettirish"
+      "resume": "Davom ettirish",
+      "saveContinue": "Saqlash va davom etish"
     },
     "errors": {
       "titleRequired": "Nomni kiriting",
@@ -3440,7 +3464,7 @@
       "name": "F.I.Sh.",
       "classOrigin": "Sinf / manba",
       "kind": "Turi",
-      "pin": "PIN",
+      "pin": "Kod va PIN",
       "time": "Vaqt",
       "actions": "Amallar",
       "kinds": {
@@ -3453,17 +3477,25 @@
       "fullTime": "To'liq vaqt",
       "min": "daq.",
       "grant": "Vaqt berish",
-      "regen": "PIN ni yangilash",
+      "regen": "Yangilash",
       "remove": "Olib tashlash",
-      "regenTitle": "PIN ni qayta yaratish",
-      "regenText": "{name} uchun yangi PIN yaratiladi, eskisi ishlamaydi. Kartochkani qayta chop eting.",
+      "regenTitle": "Kod va PIN ni yangilash",
+      "regenText": "{name} uchun yangi shaxsiy kod va PIN yaratiladi. Eski kartochka yaroqsiz bo'ladi. Davom etasizmi?",
       "removeTitle": "Ishtirokchini olib tashlash",
       "removeText": "{name} imtihondan olib tashlansinmi?",
       "grantTitle": "Individual vaqt: {name}",
       "grantFull": "To'liq davomiylik berish",
       "grantFullHint": "Kechikkan ishtirokchi o'zi boshlagan paytdan boshlab to'liq davomiylikni oladi.",
       "grantExtra": "Qo'shimcha daqiqalar (0 dan 240 gacha)",
-      "extraRange": "0 dan 240 gacha butun son kiriting"
+      "extraRange": "0 dan 240 gacha butun son kiriting",
+      "codeShow": "Ko'rsatish",
+      "codeHide": "Yashirish",
+      "codeMissing": "Shaxsiy kod yo'q",
+      "codeMissingHint": "Bu ishtirokchida shaxsiy kod yo'q: «PIN ni yangilash» orqali yarating",
+      "newCandidateName": "Yangi nomzod ismi",
+      "newCandidateNote": "Qayerdan / izoh (ixtiyoriy)",
+      "addNewCandidate": "Yaratish va qo'shish",
+      "manageCandidates": "Nomzodlar ro'yxatini boshqarish"
     },
     "toast": {
       "pending": "Imtihon tasdiqqa yuborildi",
@@ -3480,7 +3512,8 @@
       "reopened": "Imtihon qayta ochildi",
       "extended": "Vaqt qo'shildi",
       "copied": "Nusxa qoralama sifatida yaratildi",
-      "returned": "Imtihon qoralamaga qaytarildi"
+      "returned": "Imtihon qoralamaga qaytarildi",
+      "draftCollecting": "Imtihon saqlandi: savollar yig'ilmoqda. Ishtirokchilarni imtihon sahifasida qo'shasiz."
     },
     "detail": {
       "toList": "Imtihonlar ro'yxatiga",
@@ -3549,6 +3582,15 @@
       "reentryTitle": "Qayta kirishga ruxsat",
       "reentryText": "{name} boshqa qurilmadan kira oladi (bir marta). Eski qurilmadagi sessiya yopiladi.",
       "joinAlert": "Kirishda juda ko'p noto'g'ri kod/PIN urinishi bo'ldi ({n} ta). Begona shaxs urinayotgan bo'lishi mumkin."
+    },
+    "stages": {
+      "preparing": "Tayyorlanmoqda",
+      "scheduled": "Rejalashtirilgan",
+      "past": "Bekor qilingan"
+    },
+    "tabs": {
+      "sessions": "Joriy imtihonlar",
+      "results": "O'tgan / Natijalar"
     }
   },
   "examCandidates": {
@@ -3580,7 +3622,8 @@
     },
     "deleteTitle": "Nomzodni o'chirish",
     "deleteText": "{name} o'chirilsinmi?",
-    "inUse": "Nomzod imtihonga qo'shilgan, o'chirib bo'lmaydi"
+    "inUse": "Nomzod imtihonga qo'shilgan, o'chirib bo'lmaydi",
+    "back": "Imtihonlarga qaytish"
   },
   "examResults": {
     "title": "Natijalar",
@@ -3686,20 +3729,19 @@
     }
   },
   "examBlocks": {
-    "title": "Bloklar",
+    "title": "Fanlar",
     "chooseSubject": "Fanni tanlang",
-    "blockN": "{n}-blok",
+    "blockN": "{n}-fan",
     "ready": "Tayyor",
-    "open": "Ochiq",
-    "removeBlock": "Blokni olib tashlash",
+    "removeBlock": "Fanni olib tashlash",
     "subject": "Fan",
     "target": "Savollar soni (maqsad)",
-    "coefficient": "Koeffitsiyent",
-    "duration": "Davomiylik (daqiqa)",
-    "titleOptional": "Blok nomi (ixtiyoriy)",
-    "pickSubjectFirst": "Avval blok fanini tanlang.",
+    "coefficient": "Koeffitsiyent (koeffitsiyent rejimida hisobga olinadi)",
+    "duration": "Fan vaqti, daqiqa (blokma-blok rejimida hisobga olinadi)",
+    "titleOptional": "Fan nomi (ixtiyoriy)",
+    "pickSubjectFirst": "Avval fanni tanlang.",
     "contributors": "Biriktirilgan o'qituvchilar",
-    "contributorsHint": "Faqat shu fanni o'qitadigan o'qituvchilar. Ular faqat o'z blokini ko'radi va savol qo'shadi.",
+    "contributorsHint": "Shu sinflarda fanni o'qitadiganlar avtomatik belgilanadi; olib tashlashingiz yoki boshqa o'qituvchi qo'shishingiz mumkin. Ular faqat o'z fanining savollarini ko'radi va qo'shadi.",
     "noTeachers": "Bu fanni o'qitadigan o'qituvchi topilmadi.",
     "questions": "Savollar (tuzuvchi tanlovi)",
     "progress": "Savollar: {n}/{target}",
@@ -3710,7 +3752,7 @@
     "reopen": "Qayta ochish",
     "you": "Siz",
     "removeQuestion": "Savolni blokdan olib tashlash",
-    "add": "Blok qo'shish",
+    "add": "Fan qo'shish",
     "scoringMode": "Ball hisobi",
     "timingMode": "Vaqt rejimi",
     "scoring": {
@@ -3734,25 +3776,17 @@
     "contribDeadlineHint": "Muddat o'tgach biriktirilgan o'qituvchilar blokni faqat o'qiy oladi; siz tahrirlashda davom etasiz.",
     "noContributors": "o'qituvchi biriktirilmagan",
     "shortTitle": "Savollar maqsaddan kam",
-    "shortText": "Ba'zi bloklarda savollar soni maqsadga yetmagan. Shunday bo'lsa ham rejalashtirasizmi?",
+    "shortText": "Ba'zi fanlarda savollar soni maqsadga yetmagan. Shunday bo'lsa ham rejalashtirasizmi?",
     "shortConfirm": "Baribir rejalashtirish",
     "errors": {
       "totalRange": "Bloklar davomiyligi yig'indisi 5 daqiqadan 24 soatgacha bo'lishi kerak",
-      "deadlineAfterStart": "Savol topshirish muddati imtihon boshlanishidan oldin bo'lsin"
-    },
-    "myBlocks": {
-      "title": "Menga biriktirilgan imtihon bloklari",
-      "locked": "Faqat o‘qish",
-      "until": "Muddat: {date}"
+      "deadlineAfterStart": "Savol topshirish muddati imtihon boshlanishidan oldin bo'lsin",
+      "subjectsIncomplete": "Har bir fan uchun fan, savollar soni (kamida 1) va tanlangan rejimga mos koeffitsiyent/vaqtni kiriting",
+      "subjectDuplicate": "Bir fan ikki marta tanlangan"
     },
     "myBlock": {
-      "title": "Imtihon bloki",
+      "title": "Imtihon uchun savollar",
       "back": "Imtihonlar",
-      "progress": "Savollar soni",
-      "pick": "Bankdan tanlash",
-      "write": "Yangi savol yozish",
-      "import": "Word/Excel import",
-      "questions": "Blokdagi savollar ({n})",
       "empty": "Hali savol yo'q. Bankdan tanlang, yangisini yozing yoki fayldan import qiling.",
       "missing": "Savol topilmadi (o'chirilgan)",
       "byComposer": "Tuzuvchi",
@@ -3760,14 +3794,20 @@
       "added": "{n} ta savol qo'shildi",
       "removeTitle": "Savolni blokdan olib tashlash",
       "removeText": "Savol bankda qoladi, faqat shu blokdan olib tashlanadi.",
-      "locked": "Bu blok hozir tahrirlash uchun yopiq.",
-      "newInBlock": "Savol «{exam}» imtihonining {subject} blokiga va bankdagi «Imtihon: {exam}» mavzusiga qo'shiladi (faol, faqat sizga ko'rinadi).",
-      "lock": {
-        "status": "Imtihon qoralama holatidan chiqqan: blok faqat o‘qish uchun.",
-        "ready": "Tuzuvchi blokni \"tayyor\" deb belgilagan: faqat o‘qish uchun.",
-        "deadline": "Savol topshirish muddati tugagan: blok faqat o‘qish uchun."
-      }
-    }
+      "locked": "Bu savollar hozir tahrirlash uchun yopiq.",
+      "newInBlock": "Savol «{exam}» imtihonining {subject} fani uchun va bankdagi «Imtihon: {exam}» mavzusiga qo'shiladi (faol, faqat sizga ko'rinadi).",
+      "backToExam": "Imtihon sahifasiga",
+      "markReady": "Tugatdim",
+      "undoReady": "Tugatdim belgisini qaytarish",
+      "readyOn": "Tugatdim deb belgilandi",
+      "readyOff": "Belgi qaytarildi",
+      "composerApprove": "Tasdiqlash",
+      "composerUnapprove": "Tasdiqni bekor qilish",
+      "composerApproved": "Fan tasdiqlandi",
+      "composerUnapproved": "Tasdiq bekor qilindi"
+    },
+    "inClasses": "shu sinflarda",
+    "noSuggestion": "Tanlangan sinflarda bu fanni o'qitadigan o'qituvchi topilmadi: o'qituvchini ro'yxatdan qo'lda tanlang."
   },
   "examResultsList": {
     "title": "Natijalar",
@@ -3784,5 +3824,166 @@
     "blocksN": "{n} blok",
     "submittedN": "Topshirdi: {n}/{total}",
     "examDeleted": "Imtihon o‘chirilgan, natijalar saqlangan"
+  },
+  "examFlow": {
+    "subjectsTitle": "Fanlar",
+    "cardTitle": "Imtihon uchun savollar",
+    "badgeTitle": "Imtihon uchun to'ldirilmagan fanlar: {n}",
+    "infoTitle": "Imtihon ma'lumotlari",
+    "untilShort": "{date} gacha",
+    "step": {
+      "opened": "Ochildi",
+      "questions": "Savollar",
+      "approval": "Tasdiq",
+      "participants": "Ishtirokchilar",
+      "run": "O'tkazish",
+      "results": "Natijalar"
+    },
+    "pill": {
+      "collecting": "Savollar yig'ilmoqda",
+      "awaiting_approval": "Tasdiq kutilmoqda",
+      "ready": "Rejalashtirishga tayyor",
+      "pending_approval": "Tasdiq kutilmoqda",
+      "scheduled": "Rejalashtirilgan",
+      "running": "O'tkazilmoqda",
+      "finished": "Yakunlangan",
+      "cancelled": "Bekor qilingan"
+    },
+    "table": {
+      "subject": "Fan",
+      "teachers": "O'qituvchilar",
+      "questions": "Savollar",
+      "status": "Holati"
+    },
+    "blockState": {
+      "collecting": "Yig'ilmoqda",
+      "done": "O'qituvchi tugatdi",
+      "approved": "Tasdiqlangan",
+      "auto": "Tasdiq shart emas"
+    },
+    "action": {
+      "open": "Ochish",
+      "approve": "Ko'rib tasdiqlash",
+      "view": "Ko'rish"
+    },
+    "approvedOf": "{a} / {n} fan tasdiqlandi",
+    "doneWaiting": "{n} fan tasdiq kutmoqda",
+    "collectingN": "{n} fanda savollar yig'ilmoqda",
+    "remind": "Eslatma",
+    "settings": "Sozlamalar",
+    "remindSent": "Eslatma yuborildi: {n} ta fan o'qituvchilariga",
+    "remindRecent": "Eslatma yaqinda yuborilgan: har fanga soatiga bir marta yuboriladi",
+    "remindDisabled": "Telegram eslatmalari sozlamalarda o'chirilgan",
+    "remindNotConnected": "Telegram bot ulanmagan: eslatma yuborilmadi",
+    "remindNobody": "Eslatma yuboriladigan o'qituvchi yo'q",
+    "needApproval": "Rejalashtirish uchun barcha fanlar tasdiqlanishi kerak. Tasdiqlanmagan:",
+    "review": {
+      "pageTitle": "Fanni ko'rib chiqish",
+      "title": "{subject}: savollarni ko'rib chiqish",
+      "add": "Savol qo'shish",
+      "approve": "Tasdiqlash",
+      "unapprove": "Tasdiqni bekor qilish",
+      "approvedToast": "Fan tasdiqlandi: o'qituvchi uchun yopildi",
+      "unapprovedToast": "Tasdiq bekor qilindi: o‘qituvchi yana tahrirlay oladi",
+      "short": "Savollar maqsaddan kam: {n}/{target}",
+      "shortTitle": "Savollar maqsaddan kam",
+      "shortText": "Fanda {n}/{target} ta savol bor. Baribir tasdiqlaysizmi?",
+      "lockedNote": "Fan tasdiqlangan: o'qituvchi tahrirlay olmaydi. Tahrirlash uchun tasdiqni bekor qiling.",
+      "removeText": "Savol fandan olib tashlanadi (bankdan o'chirilmaydi)."
+    }
+  },
+  "examTasks": {
+    "title": "Mening imtihon vazifalarim",
+    "subtitle": "Sizga biriktirilgan fanlar bo'yicha imtihon savollarini shu yerda qo'shasiz.",
+    "emptyTitle": "Hozircha vazifa yo'q",
+    "emptyText": "Sizga imtihon uchun savol tayyorlash biriktirilganda shu yerda ko'rinadi.",
+    "openTask": "Ochish",
+    "need": "Kerak: {n} savol",
+    "deadline": "Muddat: {date}",
+    "noDeadline": "Muddat belgilanmagan",
+    "daysLeft": "{n} kun qoldi",
+    "hoursLeft": "{n} soat qoldi",
+    "soon": "Bir soatdan kam qoldi",
+    "overdue": "Muddat o'tgan",
+    "taskName": "{exam} · {subject}",
+    "status": {
+      "collecting": "Yig'ilmoqda",
+      "done": "Tugatdim",
+      "approved": "Tasdiqlangan",
+      "readonly": "Faqat o'qish"
+    },
+    "reminderOpen": "Vazifalarni ochish",
+    "reminderText": "Imtihon uchun savollar kutilmoqda: {n} ta vazifa",
+    "pageTitle": "{subject} uchun savollar qo'shish",
+    "backToTasks": "Vazifalarimga",
+    "tabs": {
+      "paste": "Matnni joylash",
+      "word": "Word",
+      "excel": "Excel",
+      "bank": "Bankdan",
+      "single": "Bittalab"
+    },
+    "tabHelp": {
+      "word": "Word (.docx) faylidan savollarni yuklang: oldindan ko'rasiz va tuzatasiz.",
+      "excel": "Excel (.xlsx) shablonidan savollarni yuklang: oldindan ko'rasiz va tuzatasiz.",
+      "bank": "Bankdagi tayyor faol savollardan tanlab qo'shing.",
+      "single": "Bitta savolni formada yozing (rasm va formula bilan)."
+    },
+    "chooseWord": "Word fayl tanlash",
+    "chooseExcel": "Excel fayl tanlash",
+    "pickBank": "Bankdan tanlash",
+    "writeOne": "Savolni yozish",
+    "questionsTitle": "Vazifadagi savollar ({n})",
+    "progress": "Savollar",
+    "statusLabel": "Holati",
+    "locked": {
+      "status": "Imtihon qoralama holatidan chiqqan: savollar faqat o'qish uchun.",
+      "ready": "Ma’muriyat savollarni tasdiqlagan: faqat o‘qish uchun.",
+      "deadline": "Savol topshirish muddati tugagan: savollar faqat o'qish uchun."
+    },
+    "paste": {
+      "textLabel": "Savollar matni",
+      "placeholder": "Savollarni shu yerga joylang (Word yoki boshqa joydan nusxa oling).\n\n1. 7 + 5 nechiga teng?\nA) 11\nB) 12\nC) 13\nJavob: B",
+      "insertSample": "Namuna qo‘yish",
+      "previewTitle": "Jonli ko'rinish",
+      "found": "{n} ta savol topildi",
+      "okCount": "{n} ta tayyor",
+      "problemCount": "{n} tasida muammo",
+      "checking": "Tekshirilmoqda...",
+      "empty": "Savollarni chap tomonga joylang: bu yerda ular darhol ko'rinadi.",
+      "none": "Savol topilmadi. Har bir savol «1.» kabi raqam bilan, variantlar «A)» bilan boshlansin.",
+      "skip": "Qo'shmaslik",
+      "pickAnswer": "To'g'ri javobni tanlang:",
+      "ignored": "{n} ta qator hech bir savolga tegishli emas va e'tiborsiz qoldirildi (sarlavha va h.k.).",
+      "topic": "Mavzu",
+      "autoTopic": "Avtomatik: Imtihon: {exam}",
+      "activate": "Savollarni darhol faol qilish",
+      "commit": "{n} ta savolni qo'shish",
+      "added": "{n} ta savol qo'shildi",
+      "notAdded": "{n} ta savol qo'shilmadi (javobi yo'q yoki xato). Ularni tuzatib qayta joylang.",
+      "result": "Oxirgi qo'shilgan: {n} ta savol.",
+      "sample": "1. 7 + 5 nechiga teng?\nA) 11\nB) 12\nC) 13\nD) 14\nJavob: B\n\n2. Uchburchak burchaklari yig'indisi?\nA) 90 B) 180 C) 270 D) 360\nJavob: B\n\n3. $x^2 = 16$ tenglamaning musbat ildizi?\nA) 2\n*B) 4\nC) 8\n\n4. Eng kichik tub son?\nA) 0\nB) 1\nC) 2\nD) 3\n\nJavoblar: 4-C",
+      "helpTitle": "Qanday yozish kerak?",
+      "help": {
+        "1": "Savol raqami bilan boshlansin: «1.», «1)» yoki «1-savol».",
+        "2": "Variantlar «A)», «B)», «C)» bilan: har biri alohida qatorda yoki bir qatorda («A) 90 B) 180»). Kirill harflari (А Б В Г) ham mumkin.",
+        "3": "To'g'ri javob: «Javob: B», variant oldida «*» yoki «+» («*B) 4»), yoki oxirida «Javoblar: 1-B 2-C».",
+        "4": "Formula $...$ orasida yoziladi (masalan, $x^2+1$).",
+        "5": "Bo'sh qatorlar va sarlavhalar e'tiborsiz qoldiriladi; savol matni bir necha qator bo'lishi mumkin.",
+        "6": "Javobi ko'rsatilmagan savolga o'ng tomondagi A, B, C tugmalari bilan javob tanlanadi."
+      }
+    }
+  },
+  "profileExams": {
+    "title": "Imtihonlar",
+    "summary": "{n} ta imtihon · o'rtacha {avg}%",
+    "emptyTitle": "Imtihon natijalari yo‘q",
+    "emptyText": "Yakunlangan imtihonlar natijalari shu yerda ko'rinadi.",
+    "passed": "O'tdi",
+    "failed": "O'tmadi",
+    "deleted": "Imtihon o'chirilgan",
+    "essayPending": "{n} ta esse tekshirilmagan",
+    "passLine": "o'tish bali {n}%",
+    "detail": "Batafsil natija"
   }
 }

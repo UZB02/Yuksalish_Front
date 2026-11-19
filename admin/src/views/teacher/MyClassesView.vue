@@ -17,12 +17,15 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { PERMISSIONS } from '@/constants/permissions'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
+import ExamAssignmentsCard from '@/components/dashboard/ExamAssignmentsCard.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useFeaturesStore } from '@/stores/features'
 import { errorMessage } from '@/utils/errors'
 
 const { t } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
+const features = useFeaturesStore()
 const needsSchool = useNeedsSchool()
 
 // Bir xil ko'rinish uch marshrutda: o'qituvchi (/my-classes), baholash uchun sinf tanlash (/scoring)
@@ -104,6 +107,8 @@ onMounted(load)
   />
 
   <TodayLessons v-if="!needsSchool && mode === 'mine' && auth.user?.role === 'teacher'" />
+  <!-- Imtihon uchun savollar: menga biriktirilgan va hali to'ldirilmagan fanlar (modul yoqilgan bo'lsa) -->
+  <ExamAssignmentsCard v-if="!needsSchool && mode === 'mine' && features.isEnabled('exams')" />
 
   <NeedsSchool v-if="needsSchool" />
 

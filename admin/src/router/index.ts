@@ -91,17 +91,24 @@ const router = createRouter({
           meta: {
             anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
             feature: 'exams',
+            teacherFeature: 'teacherQuizzes',
             titleKey: 'nav.examSessions',
           },
         },
         {
+          // Eski havola: natijalar ro'yxati endi "Imtihonlar" sahifasidagi "O'tgan / Natijalar" bo'limi
           path: 'exams/results',
           name: 'exam-results-list',
-          component: () => import('@/views/exams/sessions/ExamResultsListView.vue'),
+          redirect: { name: 'exam-sessions', query: { tab: 'results' } },
+        },
+        {
+          path: 'exams/tasks',
+          name: 'exam-tasks',
+          component: () => import('@/views/exams/sessions/MyExamTasksView.vue'),
           meta: {
             anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
             feature: 'exams',
-            titleKey: 'nav.examResultsList',
+            titleKey: 'nav.examTasks',
           },
         },
         {
@@ -142,6 +149,16 @@ const router = createRouter({
             anyPermission: [PERMISSIONS.EXAMS_QUESTIONS, PERMISSIONS.EXAMS_MANAGE],
             feature: 'exams',
             titleKey: 'examResults.title',
+          },
+        },
+        {
+          path: 'exams/sessions/:id/review/:blockId',
+          name: 'exam-block-review',
+          component: () => import('@/views/exams/sessions/BlockReviewView.vue'),
+          meta: {
+            permission: PERMISSIONS.EXAMS_MANAGE,
+            feature: 'exams',
+            titleKey: 'examFlow.review.pageTitle',
           },
         },
         {

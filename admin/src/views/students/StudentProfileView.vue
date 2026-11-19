@@ -29,6 +29,8 @@ import PhotoModal from '@/components/ui/PhotoModal.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import StudentAttendanceSection from '@/components/attendance/StudentAttendanceSection.vue'
 import StudentGradesSection from '@/components/grading/StudentGradesSection.vue'
+import ProfileExamResults from '@/components/exams/ProfileExamResults.vue'
+import { useFeaturesStore } from '@/stores/features'
 import { PERMISSIONS } from '@/constants/permissions'
 import { useAcademicYearLookup } from '@/composables/useLookups'
 import { useReportExport } from '@/composables/useReportExport'
@@ -42,6 +44,10 @@ import { shiftDate, todayTashkent, withAlpha } from '@/utils/scoring'
 const { t } = useI18n()
 const route = useRoute()
 const studentId = computed(() => String(route.params.id))
+/** "Imtihonlar" bo'limi: imtihon moduli yoqilgan maktabda */
+const features = useFeaturesStore()
+const showExams = computed(() => features.isEnabled('exams'))
+const loadExamResults = () => studentsApi.examResults(studentId.value)
 
 const student = ref<Student | null>(null)
 const summary = ref<StudentScoreSummary | null>(null)
@@ -400,6 +406,8 @@ const metaItems = computed(() => {
           :from="range.from"
           :to="range.to"
         />
+
+        <ProfileExamResults v-if="showExams" :key="studentId" :load="loadExamResults" />
 
         <section v-if="!summaryError" class="card p-4 sm:p-5">
           <header class="mb-3 flex items-center gap-3">

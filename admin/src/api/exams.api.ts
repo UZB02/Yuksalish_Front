@@ -22,6 +22,11 @@ import type {
   BlockQuestionList,
   MyBlockDetail,
   MyBlockItem,
+  PasteCommitBody,
+  ProfileExamResults,
+  RemindResult,
+  PasteCommitResult,
+  PastePreview,
   ExamSession,
   ExamSessionBody,
   ExamSessionItem,
@@ -129,6 +134,20 @@ export const examsApi = {
   // ---- Shablonlar ----
   previewSections: (sections: ExamSection[]) =>
     sendData<ExamSectionsPreview>('post', '/exams/templates/preview', { sections }),
+  /** Fan va sinflar bo'yicha shu fanni o'qitadigan o'qituvchilar (avtomatik taklif) */
+  suggestTeachers: (subjectId: string, classIds: string[]) =>
+    getData<{ teacherIds: string[] }>('/exams/sessions/suggest-teachers', {
+      subjectId,
+      classIds: classIds.join(','),
+    }),
+  /** "Tayyor" belgisi (o'qituvchi yoki tuzuvchi) */
+  markBlockReady: (sessionId: string, blockId: string, ready: boolean) =>
+    sendData<{ blockId: string; status: 'open' | 'ready' }>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/ready`,
+      { ready },
+    ),
+  myBlocksSummary: () => getData<{ pending: number; total: number }>('/exams/my-blocks/summary'),
   previewBlocks: (blocks: ExamBlockInput[]) =>
     sendData<ExamSectionsPreview>('post', '/exams/templates/preview', { blocks }),
   listTemplates: () => getData<ExamTemplate[]>('/exams/templates'),
@@ -207,6 +226,7 @@ export const examsApi = {
       `${SID(id)}/blocks/${blockId}/ready`,
       { ready },
     ),
+  remindSession: (id: string) => sendData<RemindResult>('post', `${SID(id)}/remind`),
   // ---- Bloklar: biriktirilgan o'qituvchi ----
   myBlocks: () => getData<MyBlockItem[]>('/exams/my-blocks'),
   myBlock: (sessionId: string, blockId: string) =>
@@ -253,6 +273,21 @@ export const examsApi = {
       `/exams/my-blocks/${sessionId}/${blockId}/import/${importId}/commit`,
       body,
     ),
+  // ---- "Matnni joylash" (vazifa ichida va savollar bankida) ----
+  blockPastePreview: (sessionId: string, blockId: string, text: string) =>
+    sendData<PastePreview>('post', `/exams/my-blocks/${sessionId}/${blockId}/paste/preview`, {
+      text,
+    }),
+  blockPasteCommit: (sessionId: string, blockId: string, body: PasteCommitBody) =>
+    sendData<PasteCommitResult>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/paste/commit`,
+      body,
+    ),
+  pastePreview: (text: string) =>
+    sendData<PastePreview>('post', '/exams/questions/paste/preview', { text }),
+  pasteCommit: (body: PasteCommitBody) =>
+    sendData<PasteCommitResult>('post', '/exams/questions/paste/commit', body),
   rejectSession: (id: string, reason: string) =>
     sendData<ExamSession>('post', `${SID(id)}/reject`, { reason }),
   cancelSession: (id: string, reason?: string) =>
@@ -295,6 +330,10 @@ export const examsApi = {
     params: { page?: number; limit?: number; q?: string } = {},
   ): Promise<Paginated<ExamCandidate>> => getPage('/exams/candidates', params),
   getCandidate: (id: string) => getData<ExamCandidate>(`/exams/candidates/${id}`),
+  candidateResults: (id: string) => getData<ProfileExamResults>(`/exams/candidates/${id}/results`),
+  /** Ishtirokchining shaxsiy kirish kodi (ro'yxatda chiqmaydi; faqat shu endpoint, audit bilan) */
+  participantCode: (sessionId: string, key: string) =>
+    getData<{ code: string | null }>(`${SID(sessionId)}/participants/${key}/code`),
   createCandidate: (body: ExamCandidateBody) =>
     sendData<ExamCandidate>('post', '/exams/candidates', body),
   updateCandidate: (id: string, body: Partial<ExamCandidateBody>) =>

@@ -28,12 +28,15 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
+import ExamAssignmentsCard from '@/components/dashboard/ExamAssignmentsCard.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useFeaturesStore } from '@/stores/features'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
 
 const { t } = useI18n()
 const auth = useAuthStore()
+const features = useFeaturesStore()
 const schoolCtx = useSchoolContextStore()
 
 const summary = ref<DashboardSummary | null>(null)
@@ -108,6 +111,8 @@ watch(() => schoolCtx.schoolId, load)
     :title="t('dashboard.greeting', { name: auth.user?.fullName ?? '' })"
     :description="scopeText"
   />
+
+  <ExamAssignmentsCard v-if="features.isEnabled('exams')" />
 
   <div v-if="forbidden" class="card">
     <EmptyState
