@@ -2,7 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { ApiError, type ExamApi } from './lib/api'
 import type { KeyValueStore } from './lib/queue'
-import type { ClientQuestion, JoinResponse, ResultResponse, StartResponse } from './lib/types'
+import type {
+  ClientQuestion,
+  JoinCodeResponse,
+  JoinResponse,
+  ResultResponse,
+  StartResponse,
+} from './lib/types'
+import { formatCodeInput, isWellFormedCode, normalizeCode } from './lib/code'
+import WhoAmIScreen from './components/WhoAmIScreen.vue'
 import { STORE_KEY } from './inject'
 import { createStore } from './store'
 import ConfirmScreen from './components/ConfirmScreen.vue'
@@ -66,6 +74,21 @@ const joinResp = (over: Partial<JoinResponse> = {}): JoinResponse => ({
   },
   ...over,
 })
+const codeResp = (over: Partial<JoinCodeResponse> = {}): JoinCodeResponse => ({
+  confirmToken: 'ct-1',
+  serverNow: new Date(T0).toISOString(),
+  participant: { fullName: 'Aliyev Bobur', className: '7-A' },
+  exam: {
+    title: 'DTM sinovi',
+    subjectsCount: 3,
+    durationMin: 180,
+    startsAt: new Date(T0).toISOString(),
+    endsAt: DEADLINE,
+    phase: 'running',
+  },
+  attemptStatus: null,
+  ...over,
+})
 const startResp = (over: Partial<StartResponse> = {}): StartResponse => ({
   serverNow: new Date(T0).toISOString(),
   status: 'in_progress',
@@ -91,6 +114,8 @@ type MockApi = ExamApi & { [K in keyof ExamApi]: ReturnType<typeof vi.fn> & Exam
 function mkApi(over: Record<string, unknown> = {}): MockApi {
   return {
     join: vi.fn().mockResolvedValue(joinResp()),
+    joinCode: vi.fn().mockResolvedValue(codeResp()),
+    joinConfirm: vi.fn().mockResolvedValue(joinResp()),
     start: vi.fn().mockResolvedValue(startResp()),
     state: vi.fn().mockResolvedValue({
       serverNow: new Date(T0).toISOString(),
@@ -419,6 +444,7 @@ describe('komponentlar', () => {
     const api = mkApi()
     const store = mk(api)
     const w = mountWith(store, JoinScreen)
+    await w.get('[data-testid="toggle-legacy"]').trigger('click')
     await w.get('form').trigger('submit')
     expect(w.get('[data-testid="join-error"]').text()).toMatch(/6 ta raqam/)
     await w.get('[data-testid="join-code"]').setValue('123456')
@@ -515,5 +541,191 @@ describe('komponentlar', () => {
     await flushPromises()
     expect(w.get('[data-testid="result-title"]').text()).toMatch(/Vaqt tugadi/)
     expect(w.get('[data-testid="result-note"]').text()).toMatch(/ko‘rsatilmaydi/)
+  })
+})
+
+describe('shaxsiy kod bilan kirish', () => {
+  const mountWith = (store: ReturnType<typeof createStore>, comp: object) =>
+    mount(comp, { global: { provide: { [STORE_KEY as symbol]: store } } })
+
+  it('normallashtirish: kichik harf, bo`sh joy, chiziqcha, kirill o`xshash harflar; XXX-XXX-XXX ko`rinishi', () => {
+    expect(normalizeCode(' 7k4-92m qxa. ')).toBe('7K492MQXA')
+    expect(normalizeCode('7К4-92М-QХА')).toBe('7K492MQXA')
+    expect(formatCodeInput('7k492mqxa')).toBe('7K4-92M-QXA')
+    expect(formatCodeInput('7K4 92M QXA ortiqcha')).toBe('7K4-92M-QXA')
+    expect(formatCodeInput('7k')).toBe('7K')
+    expect(isWellFormedCode('7K492MQXA')).toBe(true)
+    expect(isWellFormedCode('7K492MQX0')).toBe(false)
+    expect(isWellFormedCode('7K492MQX')).toBe(false)
+  })
+
+  it('JoinScreen: shaxsiy kod standart; yozganda XXX-XXX-XXX; qisqa/yaroqsiz kod serverga bormaydi; to`g`ri kod "Bu sizmisiz?" ga olib boradi', async () => {
+    const api = mkApi()
+    const store = mk(api)
+    await store.init()
+    const w = mountWith(store, JoinScreen)
+    expect(w.find('[data-testid="code-input"]').exists()).toBe(true)
+    expect(w.find('[data-testid="join-pin"]').exists()).toBe(false)
+    await w.get('form').trigger('submit')
+    expect(w.get('[data-testid="join-error"]').text()).toMatch(/9 ta belgi/)
+    const input = w.get('[data-testid="code-input"]')
+    await input.setValue('7к4 92m')
+    expect((input.element as HTMLInputElement).value).toBe('7K4-92M')
+    await w.get('form').trigger('submit')
+    expect(api.joinCode).not.toHaveBeenCalled()
+    await input.setValue('7K492MQX0')
+    await w.get('form').trigger('submit')
+    expect(w.get('[data-testid="join-error"]').text()).toMatch(/0, O, 1, I, L/)
+    expect(api.joinCode).not.toHaveBeenCalled()
+    await input.setValue('7k4 92m qxa')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    expect(api.joinCode).toHaveBeenCalledWith({ code: '7K492MQXA', deviceId: expect.any(String) })
+    expect(store.state.screen).toBe('whoami')
+    expect(store.state.pending?.participant.fullName).toBe('Aliyev Bobur')
+    expect(storage.getItem('exam.token')).toBeNull()
+  })
+
+  it('"Bu sizmisiz?": ism, sinf, imtihon, fanlar soni, davomiylik, vaqt; "Men emasman" hech narsa saqlamasdan kod ekraniga qaytaradi', async () => {
+    const api = mkApi()
+    const store = mk(api)
+    await store.joinCode('7K492MQXA')
+    const w = mountWith(store, WhoAmIScreen)
+    expect(w.get('[data-testid="whoami-name"]').text()).toBe('Aliyev Bobur')
+    expect(w.get('[data-testid="whoami-class"]').text()).toBe('7-A')
+    expect(w.get('[data-testid="whoami-title"]').text()).toBe('DTM sinovi')
+    expect(w.get('[data-testid="whoami-subjects"]').text()).toBe('3')
+    expect(w.get('[data-testid="whoami-duration"]').text()).toBe('180 daqiqa')
+    expect(w.get('[data-testid="whoami-start"]').text()).toMatch(/^01\.12\.2026 \d\d:\d\d$/)
+    await w.get('[data-testid="not-me"]').trigger('click')
+    expect(store.state.screen).toBe('join')
+    expect(store.state.pending).toBeNull()
+    expect(api.joinConfirm).not.toHaveBeenCalled()
+    expect(storage.getItem('exam.token')).toBeNull()
+    expect(storage.getItem('exam.info')).toBeNull()
+  })
+
+  it('"Ha, boshlash": tasdiqlash tokeni bilan token saqlanadi va umumiy vaqtli imtihon darhol boshlanadi', async () => {
+    const api = mkApi()
+    const store = mk(api)
+    await store.joinCode('7K492MQXA')
+    await store.confirmJoin()
+    expect(api.joinConfirm).toHaveBeenCalledWith({
+      confirmToken: 'ct-1',
+      deviceId: expect.any(String),
+    })
+    expect(storage.getItem('exam.token')).toBe('tok-1')
+    expect(api.start).toHaveBeenCalledTimes(1)
+    expect(store.state.screen).toBe('exam')
+    expect(store.state.pending).toBeNull()
+  })
+
+  it('blokma-blok imtihonda qoidalar ekrani ko`rsatiladi (darhol boshlanmaydi); topshirilgan urinishda natija', async () => {
+    const perBlock = joinResp({
+      exam: { ...joinResp().exam, timingMode: 'per_block', freeNavigation: false },
+    })
+    const s1 = mk(mkApi({ joinConfirm: vi.fn().mockResolvedValue(perBlock) }))
+    await s1.joinCode('7K492MQXA')
+    await s1.confirmJoin()
+    expect(s1.state.screen).toBe('confirm')
+    const api2 = mkApi({
+      joinConfirm: vi.fn().mockResolvedValue(joinResp({ attemptStatus: 'submitted' })),
+    })
+    const s2 = mk(api2)
+    await s2.joinCode('7K492MQXA')
+    await s2.confirmJoin()
+    expect(s2.state.screen).toBe('result')
+    expect(api2.start).not.toHaveBeenCalled()
+  })
+
+  it('xatolar: noto`g`ri kod xabari; tarmoq xatosi; tasdiq muddati tugagan (400) kod ekraniga qaytaradi', async () => {
+    const bad = mk(
+      mkApi({
+        joinCode: vi
+          .fn()
+          .mockRejectedValue(
+            new ApiError(401, 'UNAUTHORIZED', "Kod noto'g'ri yoki muddati tugagan"),
+          ),
+      }),
+    )
+    await bad.joinCode('AAAAAAAAA')
+    expect(bad.state.screen).not.toBe('whoami')
+    expect(bad.state.error).toBe("Kod noto'g'ri yoki muddati tugagan")
+    const net = mk(mkApi({ joinCode: vi.fn().mockRejectedValue(new ApiError(0, 'NETWORK', 'x')) }))
+    await net.joinCode('AAAAAAAAA')
+    expect(net.state.error).toMatch(/Internet yo'q/)
+    const exp = mk(
+      mkApi({
+        joinConfirm: vi
+          .fn()
+          .mockRejectedValue(
+            new ApiError(
+              400,
+              'VALIDATION_ERROR',
+              'Tasdiqlash muddati tugadi: kodni qayta kiriting',
+            ),
+          ),
+      }),
+    )
+    await exp.joinCode('7K492MQXA')
+    await exp.confirmJoin()
+    expect(exp.state.screen).toBe('join')
+    expect(exp.state.error).toContain('qayta kiriting')
+    // 409: imtihon boshlanmagan: tasdiq ekranida qoladi
+    const early = mk(
+      mkApi({
+        joinConfirm: vi
+          .fn()
+          .mockRejectedValue(new ApiError(409, 'CONFLICT', 'Imtihon hali boshlanmagan')),
+      }),
+    )
+    await early.joinCode('7K492MQXA')
+    await early.confirmJoin()
+    expect(early.state.screen).toBe('whoami')
+    expect(early.state.error).toBe('Imtihon hali boshlanmagan')
+  })
+
+  it('WhoAmIScreen: boshlanmagan va tugagan imtihonda "Ha, boshlash" o`chiq', async () => {
+    const early = mk(
+      mkApi({
+        joinCode: vi
+          .fn()
+          .mockResolvedValue(codeResp({ exam: { ...codeResp().exam, phase: 'upcoming' } })),
+      }),
+    )
+    await early.joinCode('7K492MQXA')
+    const w = mountWith(early, WhoAmIScreen)
+    expect(w.find('[data-testid="whoami-waiting"]').exists()).toBe(true)
+    expect(w.get('[data-testid="whoami-yes"]').attributes('disabled')).toBeDefined()
+    const ended = mk(
+      mkApi({
+        joinCode: vi
+          .fn()
+          .mockResolvedValue(codeResp({ exam: { ...codeResp().exam, phase: 'ended' } })),
+      }),
+    )
+    await ended.joinCode('7K492MQXA')
+    const w2 = mountWith(ended, WhoAmIScreen)
+    expect(w2.find('[data-testid="whoami-ended"]').exists()).toBe(true)
+    expect(w2.get('[data-testid="whoami-yes"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('eski kod+PIN: kichik havola orqali ochiladi va oldingidek ishlaydi', async () => {
+    const api = mkApi()
+    const store = mk(api)
+    await store.init()
+    const w = mountWith(store, JoinScreen)
+    await w.get('[data-testid="toggle-legacy"]').trigger('click')
+    expect(w.find('[data-testid="legacy-form"]').exists()).toBe(true)
+    await w.get('[data-testid="join-code"]').setValue('123456')
+    await w.get('[data-testid="join-pin"]').setValue('abc123')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    expect(api.join).toHaveBeenCalledWith(
+      expect.objectContaining({ code: '123456', pin: 'ABC123' }),
+    )
+    expect(store.state.screen).toBe('confirm')
+    await w.get('[data-testid="toggle-legacy"]').trigger('click')
+    expect(w.find('[data-testid="code-input"]').exists()).toBe(true)
   })
 })

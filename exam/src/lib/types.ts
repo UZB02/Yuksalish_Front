@@ -42,6 +42,23 @@ export interface BlockView {
   deadline: string | null
 }
 
+/** Shaxsiy kod bilan 1-qadam: "Bu sizmisiz?" ma'lumoti (token YO'Q, urinish yaratilmagan) */
+export interface JoinCodeResponse {
+  confirmToken: string
+  serverNow: string
+  participant: { fullName: string; className: string | null }
+  exam: {
+    title: string
+    subjectsCount: number
+    durationMin: number
+    startsAt: string
+    endsAt: string
+    /** upcoming: hali boshlanmagan; running: kirish mumkin; ended: tugagan */
+    phase: 'upcoming' | 'running' | 'ended'
+  }
+  attemptStatus: string | null
+}
+
 export interface JoinResponse {
   token: string
   serverNow: string

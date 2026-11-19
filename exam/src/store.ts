@@ -11,12 +11,13 @@ import type {
   BlockView,
   ClientQuestion,
   EventType,
+  JoinCodeResponse,
   JoinResponse,
   ResultResponse,
   StartResponse,
 } from './lib/types'
 
-export type Screen = 'loading' | 'join' | 'confirm' | 'exam' | 'result' | 'closed'
+export type Screen = 'loading' | 'join' | 'whoami' | 'confirm' | 'exam' | 'result' | 'closed'
 
 export interface Toast {
   id: number
@@ -57,6 +58,8 @@ export function createStore(opts: StoreOptions = {}) {
     busy: false,
     error: '',
     join: null as JoinResponse | null,
+    /** Shaxsiy kod kiritildi, lekin hali tasdiqlanmadi ("Bu sizmisiz?"): token yo'q, hech narsa saqlanmaydi */
+    pending: null as JoinCodeResponse | null,
     /** Hozir ko'rinadigan savollar (blokma-blok: faqat joriy blok) */
     questions: [] as ClientQuestion[],
     /** Ko'rsatilgan barcha savollar (natija tahlili uchun; faqat shu qurilmada ko'rilganlar) */
@@ -144,24 +147,76 @@ export function createStore(opts: StoreOptions = {}) {
     }
   }
 
+  /** Kirish javobini (kod+PIN yoki tasdiqlangan shaxsiy kod) qo'llaydi: token saqlanadi, keyingi ekran */
+  async function applyJoin(r: JoinResponse, autoStart = false) {
+    token = r.token
+    writeKey(storage, K_TOKEN, r.token)
+    writeKey(storage, K_INFO, JSON.stringify({ ...r, token: undefined }))
+    state.join = r
+    state.pending = null
+    syncClock(r.serverNow)
+    if (r.attemptStatus === 'submitted' || r.attemptStatus === 'auto_submitted') await showResult()
+    else if (autoStart && r.exam.timingMode !== 'per_block') await start()
+    else state.screen = 'confirm'
+  }
+
+  /** Eski usul: imtihon kodi + PIN */
   async function join(code: string, pin: string) {
     state.busy = true
     state.error = ''
     try {
-      const r = await api.join({ code: code.trim(), pin: pin.trim(), deviceId: deviceId() })
-      token = r.token
-      writeKey(storage, K_TOKEN, r.token)
-      writeKey(storage, K_INFO, JSON.stringify({ ...r, token: undefined }))
-      state.join = r
-      syncClock(r.serverNow)
-      if (r.attemptStatus === 'submitted' || r.attemptStatus === 'auto_submitted')
-        await showResult()
-      else state.screen = 'confirm'
+      await applyJoin(await api.join({ code: code.trim(), pin: pin.trim(), deviceId: deviceId() }))
     } catch (e) {
       state.error = errText(e)
     } finally {
       state.busy = false
     }
+  }
+
+  /** Shaxsiy kod, 1-qadam: kod serverda tekshiriladi, "Bu sizmisiz?" ekrani (urinish yaratilmaydi) */
+  async function joinCode(code: string) {
+    state.busy = true
+    state.error = ''
+    try {
+      state.pending = await api.joinCode({ code: code.trim(), deviceId: deviceId() })
+      state.screen = 'whoami'
+    } catch (e) {
+      state.error = errText(e)
+    } finally {
+      state.busy = false
+    }
+  }
+
+  /**
+   * "Ha, boshlash": tasdiqlash tokeni bilan token olinadi. Umumiy vaqtli imtihon darhol boshlanadi; blokma-blok
+   * imtihonda (orqaga qaytib bo'lmaydi) qoidalar ekrani ko'rsatiladi. Tasdiq muddati tugagan bo'lsa kod ekraniga qaytadi.
+   */
+  async function confirmJoin() {
+    const p = state.pending
+    if (!p) return
+    state.busy = true
+    state.error = ''
+    try {
+      await applyJoin(
+        await api.joinConfirm({ confirmToken: p.confirmToken, deviceId: deviceId() }),
+        true,
+      )
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 400) {
+        state.pending = null
+        state.screen = 'join'
+      }
+      state.error = errText(e)
+    } finally {
+      state.busy = false
+    }
+  }
+
+  /** "Men emasman": hech narsa saqlanmagan, kod ekraniga qaytamiz */
+  function rejectJoin() {
+    state.pending = null
+    state.error = ''
+    state.screen = 'join'
   }
 
   function clearSession() {
@@ -170,6 +225,7 @@ export function createStore(opts: StoreOptions = {}) {
     removeKey(storage, K_INFO)
     teardown()
     state.join = null
+    state.pending = null
     state.questions = []
     state.allQuestions = []
     state.blocks = []
@@ -464,6 +520,9 @@ export function createStore(opts: StoreOptions = {}) {
     state,
     init,
     join,
+    joinCode,
+    confirmJoin,
+    rejectJoin,
     start,
     submit,
     finishBlock,

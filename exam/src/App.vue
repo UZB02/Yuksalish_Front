@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useStore } from './inject'
 import ConfirmScreen from './components/ConfirmScreen.vue'
+import WhoAmIScreen from './components/WhoAmIScreen.vue'
 import ExamScreen from './components/ExamScreen.vue'
 import JoinScreen from './components/JoinScreen.vue'
 import ResultScreen from './components/ResultScreen.vue'
@@ -28,6 +29,7 @@ const isExam = computed(() => s.screen === 'exam')
         </template>
       </div>
       <JoinScreen v-else-if="s.screen === 'join'" />
+      <WhoAmIScreen v-else-if="s.screen === 'whoami'" />
       <ConfirmScreen v-else-if="s.screen === 'confirm'" />
       <ExamScreen v-else-if="s.screen === 'exam'" />
       <ResultScreen v-else-if="s.screen === 'result'" />

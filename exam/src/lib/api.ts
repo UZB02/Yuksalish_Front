@@ -1,5 +1,6 @@
 import type {
   AnswerEntry,
+  JoinCodeResponse,
   EventType,
   FinishBlockResponse,
   JoinResponse,
@@ -31,6 +32,9 @@ export class ApiError extends Error {
 
 export interface ExamApi {
   join(body: { code: string; pin: string; deviceId: string }): Promise<JoinResponse>
+  /** Shaxsiy kod: 1) kod -> "Bu sizmisiz?", 2) tasdiqlash -> token */
+  joinCode(body: { code: string; deviceId: string }): Promise<JoinCodeResponse>
+  joinConfirm(body: { confirmToken: string; deviceId: string }): Promise<JoinResponse>
   start(): Promise<StartResponse>
   state(): Promise<StateResponse>
   saveAnswers(body: {
@@ -86,6 +90,8 @@ export function createApi(getToken: () => string | null, fetchFn: typeof fetch =
 
   return {
     join: (b) => call('POST', '/join', b),
+    joinCode: (b) => call('POST', '/join-code', b),
+    joinConfirm: (b) => call('POST', '/join-confirm', b),
     start: () => call('POST', '/start'),
     state: () => call('GET', '/state'),
     saveAnswers: (b) => call('PUT', '/answers', b),
