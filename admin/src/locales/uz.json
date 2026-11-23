@@ -2553,7 +2553,9 @@
           "export": "Imtihon natijalarini yuklab oldi",
           "copy": "Imtihondan nusxa oldi",
           "return_draft": "Imtihonni tahrirlash uchun qoralamaga qaytardi",
-          "purge": "Imtihonni natijalari bilan butunlay o'chirdi"
+          "purge": "Imtihonni natijalari bilan butunlay o'chirdi",
+          "warn": "Ishtirokchiga ogohlantirish yubordi",
+          "terminate": "Ishtirokchining imtihonini to'xtatdi"
         },
         "candidate": {
           "create": "Nomzod qo'shdi",
@@ -3576,12 +3578,14 @@
         "joined": "Kirgan",
         "in_progress": "Topshirmoqda",
         "submitted": "Topshirgan",
-        "auto_submitted": "Vaqt tugadi"
+        "auto_submitted": "Vaqt tugadi",
+        "terminated": "To'xtatilgan"
       },
       "reentry": "Boshqa qurilmaga ruxsat",
       "reentryTitle": "Qayta kirishga ruxsat",
       "reentryText": "{name} boshqa qurilmadan kira oladi (bir marta). Eski qurilmadagi sessiya yopiladi.",
-      "joinAlert": "Kirishda juda ko'p noto'g'ri kod/PIN urinishi bo'ldi ({n} ta). Begona shaxs urinayotgan bo'lishi mumkin."
+      "joinAlert": "Kirishda juda ko'p noto'g'ri kod/PIN urinishi bo'ldi ({n} ta). Begona shaxs urinayotgan bo'lishi mumkin.",
+      "terminatedReason": "Nazoratchi to'xtatgan: {reason}"
     },
     "stages": {
       "preparing": "Tayyorlanmoqda",
@@ -3591,6 +3595,91 @@
     "tabs": {
       "sessions": "Joriy imtihonlar",
       "results": "O'tgan / Natijalar"
+    },
+    "live": {
+      "title": "Jonli kuzatuv",
+      "hint": "Ma'lumot har 5 soniyada o'zi yangilanadi. Oynadan chiqish testni bloklamaydi.",
+      "paused": "Sahifa yashirin: yangilanish to‘xtatilgan",
+      "updatedAgo": "Yangilandi: {s} s oldin",
+      "loadFailed": "Jonli ma'lumotni yuklab bo'lmadi. Qayta uriniladi.",
+      "notOpen": "Imtihon hali ochilmagan yoki yopilgan: faqat ko'rish.",
+      "counts": {
+        "total": "Jami",
+        "notStarted": "Kirmagan",
+        "joined": "Kirgan",
+        "inProgress": "Yechyapti",
+        "submitted": "Topshirgan",
+        "terminated": "To'xtatilgan",
+        "warned": "Ogohlantirishli"
+      },
+      "filters": {
+        "search": "Ism bo‘yicha qidirish",
+        "status": "Holat",
+        "allStatuses": "Barcha holatlar",
+        "onlyProblems": "Faqat muammolilar",
+        "sort": "Saralash",
+        "sortProblems": "Muammolilar birinchi",
+        "sortName": "Ism bo‘yicha"
+      },
+      "cols": {
+        "name": "O‘quvchi",
+        "status": "Holat",
+        "answered": "Javoblar",
+        "timeLeft": "Qolgan vaqt",
+        "lastSeen": "Oxirgi faollik",
+        "leaves": "Oynadan chiqish",
+        "warnings": "Ogohlantirish",
+        "actions": "Amallar"
+      },
+      "statuses": {
+        "not_started": "Kirmagan",
+        "joined": "Kirgan",
+        "in_progress": "Yechyapti",
+        "submitted": "Topshirgan",
+        "auto_submitted": "Vaqt tugadi",
+        "terminated": "To'xtatilgan"
+      },
+      "block": "Blok {n}/{total}",
+      "agoSec": "{n} s oldin",
+      "agoMin": "{n} daq oldin",
+      "noContact": "aloqa yo'q",
+      "noContactTitle": "{n} soniyadan beri signal yo'q: internet yoki qurilma muammosi bo'lishi mumkin",
+      "leavesCount": "{n} marta",
+      "leavesLast": "oxirgi: {time}",
+      "leavesTitle": "Oyna: {blur}, yashirilgan: {hidden}, to'liq ekran: {fullscreen}",
+      "newLeave": "Yangi!",
+      "warnSent": "{n} ta yuborilgan",
+      "warnPending": "{n} ta ko'rilmagan",
+      "empty": "Ishtirokchi topilmadi",
+      "emptyFiltered": "Filtrga mos ishtirokchi yo'q",
+      "warn": "Ogohlantirish yuborish",
+      "stop": "Imtihonni to'xtatish",
+      "terminatedBy": "{name}: {reason}",
+      "warnDialog": {
+        "title": "Ogohlantirish yuborish",
+        "to": "Kimga: {name}",
+        "presets": "Tayyor matnlar",
+        "text": "Ogohlantirish matni",
+        "hint": "O'quvchi ekranida chiqadi, u \"Tushundim\" bosadi. Oddiy matn, {max} belgigacha.",
+        "send": "Yuborish",
+        "required": "Matn kiriting",
+        "tooLong": "{max} belgidan oshmasin",
+        "sent": "Ogohlantirish yuborildi",
+        "p1": "Boshqa oynaga o'tmang: imtihon oynasida qoling.",
+        "p2": "Telefoningizni olib qo‘ying.",
+        "p3": "Atrofga qaramang, o'z ishingiz bilan band bo'ling.",
+        "p4": "Gaplashmang, iltimos."
+      },
+      "stopDialog": {
+        "title": "Imtihonni to'xtatish",
+        "text": "{name} imtihoni darhol to'xtatiladi. Shu paytgacha bergan javoblari baholanadi va natija sifatida saqlanadi. U imtihonni davom ettira olmaydi.",
+        "reason": "Sabab (majburiy)",
+        "reasonHint": "Natijada va eksportda \"Nazoratchi to'xtatgan: sabab\" deb ko'rinadi. O'quvchiga sabab ko'rsatilmaydi.",
+        "confirm": "Imtihonni to'xtatish",
+        "required": "Sabab kiriting",
+        "tooLong": "{max} belgidan oshmasin",
+        "done": "Imtihon to'xtatildi: {earned} / {max} ball"
+      }
     }
   },
   "examCandidates": {
@@ -3726,7 +3815,8 @@
         "too_hard": "Juda qiyin",
         "distractor": "Chalg'ituvchi variant ko'p tanlangan"
       }
-    }
+    },
+    "terminated": "Nazoratchi to'xtatgan: {reason}"
   },
   "examBlocks": {
     "title": "Fanlar",
@@ -3984,6 +4074,7 @@
     "deleted": "Imtihon o'chirilgan",
     "essayPending": "{n} ta esse tekshirilmagan",
     "passLine": "o'tish bali {n}%",
-    "detail": "Batafsil natija"
+    "detail": "Batafsil natija",
+    "terminated": "Nazoratchi to'xtatgan: {reason}"
   }
 }

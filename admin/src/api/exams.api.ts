@@ -6,6 +6,9 @@ import type {
   ExamAssetInfo,
   ExamAnalysis,
   ExamAttemptsResponse,
+  ExamLiveRaw,
+  ExamLiveResponse,
+  ExamLiveRosterEntry,
   ExamResultDetail,
   ExamResultsResponse,
   ExamCandidate,
@@ -55,6 +58,57 @@ export interface SessionListParams {
   type?: string
 }
 const SID = (id: string) => `/exams/sessions/${id}`
+
+/** Jonli ekran: ixcham javobni to'liq qatorlarga yoyadi (ro'yxat kechi mijozda saqlanadi, faqat o'zgarganda qayta yuklanadi) */
+const liveRoster = new Map<string, { key: string; roster: ExamLiveRosterEntry[] }>()
+export function expandLive(raw: ExamLiveRaw, roster: ExamLiveRosterEntry[]): ExamLiveResponse {
+  const byKey = new Map(roster.map((p) => [p.key, p]))
+  const { rows, roster: _r, rosterKey: _k, ...rest } = raw
+  return {
+    ...rest,
+    items: rows.map((r) => {
+      const p = byKey.get(r.key)
+      return {
+        kind: 'student',
+        fullName: '',
+        className: null,
+        answered: 0,
+        total: 0,
+        block: null,
+        startedAt: null,
+        submittedAt: null,
+        deadline: null,
+        lastSeenAt: null,
+        leaves: 0,
+        leaveDetail: { blur: 0, fullscreen: 0, hidden: 0 },
+        lastLeaveAt: null,
+        reconnects: 0,
+        warningsSent: 0,
+        warningsPending: 0,
+        lastWarnAt: null,
+        terminated: null,
+        fullTimeGranted: false,
+        extraMinutes: 0,
+        allowReentry: false,
+        ...p,
+        ...r,
+      } as ExamLiveResponse['items'][number]
+    }),
+  }
+}
+async function fetchLive(id: string): Promise<ExamLiveResponse> {
+  const known = liveRoster.get(id)
+  let raw = await getData<ExamLiveRaw>(
+    `/exams/sessions/${id}/live`,
+    known ? { roster: known.key } : undefined,
+  )
+  if (!raw.roster && !known) {
+    // kalit yuborilmagan bo'lsa server ro'yxatni doim yuboradi; shunga qaramay yo'q bo'lsa qayta so'raymiz
+    raw = await getData<ExamLiveRaw>(`/exams/sessions/${id}/live`)
+  }
+  if (raw.roster) liveRoster.set(id, { key: raw.rosterKey, roster: raw.roster })
+  return expandLive(raw, liveRoster.get(id)?.roster ?? [])
+}
 
 export const examsApi = {
   subjects: () => getData<ExamSubjectsResponse>('/exams/subjects'),
@@ -316,6 +370,18 @@ export const examsApi = {
       params: { format },
       fallbackName: `natijalar.${format}`,
     }),
+  /** Nazoratchi jonli ekrani: har 5 s da so'raladi (yengil: savol matni va javoblar yo'q) */
+  sessionLive: (id: string) => fetchLive(id),
+  warnParticipant: (id: string, key: string, text: string) =>
+    sendData<{ warningId: string; sentAt: string }>('post', `${SID(id)}/participants/${key}/warn`, {
+      text,
+    }),
+  terminateParticipant: (id: string, key: string, reason: string) =>
+    sendData<{ terminated: boolean; score: { earned: number; max: number } }>(
+      'post',
+      `${SID(id)}/participants/${key}/terminate`,
+      { reason },
+    ),
   sessionAttempts: (id: string) => getData<ExamAttemptsResponse>(`${SID(id)}/attempts`),
   allowReentry: (id: string, key: string) =>
     sendData<{ allowReentry: boolean }>('post', `${SID(id)}/participants/${key}/allow-reentry`),

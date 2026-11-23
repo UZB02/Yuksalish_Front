@@ -152,6 +152,13 @@ async function save(q: ExamResultQuestion) {
       {{ t('examResults.detail.notStarted') }}
     </p>
     <div v-else-if="detail" class="space-y-4" data-testid="participant-detail">
+      <p
+        v-if="detail.terminated"
+        class="rounded-lg border border-danger bg-danger-soft px-3 py-2 text-sm text-danger"
+        data-testid="detail-terminated"
+      >
+        {{ t('examResults.terminated', { reason: detail.terminated.reason }) }}
+      </p>
       <div
         v-if="summary"
         class="flex flex-wrap items-center gap-3 rounded-lg bg-surface-muted p-3 text-sm"

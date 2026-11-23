@@ -33,6 +33,7 @@ import { clearDraftById } from '@/utils/examWizardDraft'
 import { STATUS_TONE, fmtDateTime, localToIso, nowLocal } from '@/utils/examSessions'
 import ExamFlowStepper from '@/components/exams/ExamFlowStepper.vue'
 import ExamSubjectsTable from '@/components/exams/ExamSubjectsTable.vue'
+import LiveMonitor from '@/components/exams/LiveMonitor.vue'
 import { FLOW_PILL_TONE, examFlow } from '@/utils/examFlow'
 import ParticipantsPanel from './ParticipantsPanel.vue'
 
@@ -871,11 +872,19 @@ const editable = computed(() => !!s.value?.canManageParticipants)
               </td>
               <template v-if="attempts">
                 <td class="py-2 pr-3" data-testid="attempt-status">
-                  <BaseBadge :tone="ATTEMPT_TONE[attemptByKey.get(p.key)?.status ?? 'not_started']">
+                  <BaseBadge
+                    :tone="
+                      attemptByKey.get(p.key)?.terminated
+                        ? 'danger'
+                        : ATTEMPT_TONE[attemptByKey.get(p.key)?.status ?? 'not_started']
+                    "
+                  >
                     {{
-                      t(
-                        `examSessions.attempt.statuses.${attemptByKey.get(p.key)?.status ?? 'not_started'}`,
-                      )
+                      attemptByKey.get(p.key)?.terminated
+                        ? t('examSessions.attempt.statuses.terminated')
+                        : t(
+                            `examSessions.attempt.statuses.${attemptByKey.get(p.key)?.status ?? 'not_started'}`,
+                          )
                     }}
                   </BaseBadge>
                 </td>
@@ -940,6 +949,10 @@ const editable = computed(() => !!s.value?.canManageParticipants)
         </table>
       </div>
     </section>
+
+    <div v-if="s.canMonitor" data-testid="stage-run">
+      <LiveMonitor :session-id="s.id" :stage="flow ? '5.' : undefined" @changed="loadAttempts" />
+    </div>
 
     <BaseModal
       :open="deleteOpen"

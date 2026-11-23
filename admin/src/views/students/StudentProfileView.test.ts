@@ -177,6 +177,15 @@ describe('StudentProfileView: "Imtihonlar" bo`limi', () => {
     expect(sec.find('[data-testid="exam-detail"]').exists()).toBe(false)
   })
 
+  it('nazoratchi to`xtatgan imtihon: sabab belgisi ko`rinadi', async () => {
+    vi.mocked(studentsApi.examResults).mockResolvedValue({
+      ...results,
+      items: [{ ...results.items[0]!, terminated: { reason: 'Ko‘chirdi' } }],
+    })
+    const w = await mountAs(['students.view'], student, true)
+    expect(w.get('[data-testid="exam-terminated"]').text()).toBe("Nazoratchi to'xtatgan: Ko‘chirdi")
+  })
+
   it('imtihon moduli o`chiq bo`lsa bo`lim ham, so`rov ham yo`q', async () => {
     const w = await mountAs(['students.view'], student, false)
     expect(w.find('[data-testid="profile-exams"]').exists()).toBe(false)

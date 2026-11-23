@@ -181,6 +181,8 @@ const session = (over: Partial<ExamSession> = {}): ExamSession =>
     canDelete: true,
     canReopen: false,
     canExtend: false,
+    canMonitor: false,
+    canIntervene: false,
     canViewResults: false,
     timeUp: false,
     passPercent: null,

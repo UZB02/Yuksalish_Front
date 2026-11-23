@@ -55,6 +55,8 @@ const ACTIONS = [
   'exam.topic.delete',
   'exam.topic.update',
   'exam.session.allow_reentry',
+  'exam.session.warn',
+  'exam.session.terminate',
   'exam.session.auto_close',
   'exam.session.export',
   'exam.session.extend',

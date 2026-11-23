@@ -98,6 +98,9 @@ const fmtNum = (n: number) => String(Math.round(n * 10) / 10).replace('.', ',')
             {{ r.passed ? t('profileExams.passed') : t('profileExams.failed') }}
           </BaseBadge>
           <BaseBadge v-if="r.examDeleted" tone="neutral">{{ t('profileExams.deleted') }}</BaseBadge>
+          <BaseBadge v-if="r.terminated" tone="danger" data-testid="exam-terminated">
+            {{ t('profileExams.terminated', { reason: r.terminated.reason }) }}
+          </BaseBadge>
           <BaseBadge v-if="r.essayPending > 0" tone="warning">
             {{ t('profileExams.essayPending', { n: r.essayPending }) }}
           </BaseBadge>

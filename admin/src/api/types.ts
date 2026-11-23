@@ -2002,6 +2002,8 @@ export interface ProfileExamResult {
     percent: number
   }[]
   examDeleted: boolean
+  /** Nazoratchi to'xtatgan: sabab */
+  terminated?: { reason: string } | null
 }
 export interface ProfileExamResults {
   items: ProfileExamResult[]
@@ -2076,6 +2078,9 @@ export interface ExamSessionItem {
   canDelete: boolean
   canReopen: boolean
   canExtend: boolean
+  /** Jonli kuzatuv (E5): ko'rish va (faqat ochiq imtihonda) ogohlantirish/to'xtatish */
+  canMonitor: boolean
+  canIntervene: boolean
   canViewResults: boolean
   timeUp: boolean
   passPercent: number | null
@@ -2302,6 +2307,81 @@ export interface ExamAttemptRow {
   reconnects: number
   allowReentry: boolean
   blockIndex?: number
+  /** Nazoratchi to'xtatgan (E5) */
+  terminated?: { reason: string } | null
+}
+
+/** Nazoratchi jonli ekrani (E5): bitta ishtirokchi qatori */
+export interface ExamLiveRow {
+  key: string
+  kind: ExamParticipantKind
+  fullName: string
+  className: string | null
+  status: ExamAttemptStatus
+  answered: number
+  total: number
+  /** per_block: joriy blok */
+  block: { id: string; title: string; index: number; total: number; deadline: string | null } | null
+  startedAt: string | null
+  submittedAt: string | null
+  deadline: string | null
+  lastSeenAt: string | null
+  /** Oynadan chiqishlar (blur + to'liq ekrandan chiqish + yashirilgan oyna) */
+  leaves: number
+  leaveDetail: { blur: number; fullscreen: number; hidden: number }
+  lastLeaveAt: string | null
+  reconnects: number
+  warningsSent: number
+  warningsPending: number
+  lastWarnAt: string | null
+  terminated: { at: string; byName: string; reason: string } | null
+  fullTimeGranted: boolean
+  extraMinutes: number
+  allowReentry: boolean
+}
+/** Jonli ekran javobining ixcham (tarmoq) shakli: ishtirokchilar ro'yxati faqat o'zgarganda, qatorlarda standart qiymatlar yo'q */
+export interface ExamLiveRosterEntry {
+  key: string
+  kind: ExamParticipantKind
+  fullName: string
+  className: string | null
+  fullTimeGranted?: boolean
+  extraMinutes?: number
+  allowReentry?: boolean
+}
+export type ExamLiveRawRow = Partial<Omit<ExamLiveRow, 'key' | 'status'>> & {
+  key: string
+  status: ExamAttemptStatus
+}
+export interface ExamLiveRaw extends Omit<ExamLiveResponse, 'items'> {
+  rosterKey: string
+  roster?: ExamLiveRosterEntry[]
+  rows: ExamLiveRawRow[]
+}
+export interface ExamLiveResponse {
+  serverNow: string
+  session: {
+    id: string
+    title: string
+    status: ExamSessionStatus
+    timingMode: 'common' | 'per_block'
+    scheduledStart: string
+    endsAt: string
+  }
+  canIntervene: boolean
+  staleAfterSec: number
+  counts: {
+    total: number
+    notStarted: number
+    joined: number
+    inProgress: number
+    submitted: number
+    terminated: number
+    warned: number
+    withLeaves: number
+  }
+  items: ExamLiveRow[]
+  joinAlert: { failures: number; lastAt: string | null; alertAt: string | null }
 }
 export interface ExamAttemptsResponse {
   items: ExamAttemptRow[]
@@ -2323,6 +2403,8 @@ export interface ExamResultRow {
   total: number
   timeSpentSec: number | null
   warnings: number
+  /** Nazoratchi to'xtatgan: sabab (natija shu paytgacha javoblardan) */
+  terminated?: { reason: string; at: string; byName: string } | null
   essayPending: number
   rank: number | null
   /** Blok bo'yicha ballar (topshirmagan: bo'sh) */
@@ -2392,6 +2474,7 @@ export interface ExamResultDetail {
     kind?: ExamParticipantKind
   }
   status: ExamAttemptStatus
+  terminated?: { reason: string; at: string; byName: string } | null
   startedAt?: string | null
   submittedAt?: string | null
   score: { earned: number; max: number; essayPending: number } | null

@@ -228,6 +228,28 @@ describe('ExamResultsView (natijalar)', () => {
     expect(rows[3]!.get('[data-testid="cell-score"]').text()).toBe('—')
   })
 
+  it('nazoratchi to`xtatgan: jadvalda va tafsilotda "Nazoratchi to`xtatgan: sabab"; boshqalarda yo`q', async () => {
+    const r = results()
+    r.rows[0] = {
+      ...r.rows[0]!,
+      terminated: { reason: 'Telefon', at: '2026-11-25T05:00:00Z', byName: 'N' },
+    }
+    api.sessionResults.mockResolvedValue(r)
+    api.resultDetail.mockResolvedValue({
+      ...detail(),
+      terminated: { reason: 'Telefon', at: '2026-11-25T05:00:00Z', byName: 'N' },
+    })
+    const { w } = await mountView()
+    const rows = w.findAll('[data-testid="result-row"]')
+    expect(rows[0]!.get('[data-testid="cell-terminated"]').text()).toBe(
+      "Nazoratchi to'xtatgan: Telefon",
+    )
+    expect(rows[1]!.find('[data-testid="cell-terminated"]').exists()).toBe(false)
+    await rows[0]!.trigger('click')
+    await flushPromises()
+    expect($('detail-terminated').textContent).toContain("Nazoratchi to'xtatgan: Telefon")
+  })
+
   it('o`tish bali belgilanmasa "O`tdi" ustuni va kartasi yo`q', async () => {
     const r = results()
     r.summary.passPercent = null

@@ -31,6 +31,7 @@ const api = {
   removeSession: vi.fn(),
   downloadPinSheet: vi.fn(),
   sessionAttempts: vi.fn(),
+  sessionLive: vi.fn(),
   reopenSession: vi.fn(),
   extendSession: vi.fn(),
   allowReentry: vi.fn(),
@@ -116,6 +117,8 @@ const session = (over: Partial<ExamSession> = {}): ExamSession => ({
   canDelete: false,
   canReopen: false,
   canExtend: false,
+  canMonitor: false,
+  canIntervene: false,
   canViewResults: false,
   timeUp: false,
   passPercent: null,
@@ -494,6 +497,45 @@ describe('SessionsView (ro`yxat)', () => {
 describe('SessionDetailView (imtihon sahifasi)', () => {
   const at = (role: 'teacher' | 'school_admin' = 'school_admin') =>
     mountView(SessionDetailView, '/exams/sessions/e1', role, '/exams/sessions/:id')
+
+  it('jonli kuzatuv: faqat canMonitor bo`lganda "5. O`tkazish" bo`limi chiqadi va jonli so`rov yuboriladi', async () => {
+    api.sessionLive.mockResolvedValue({
+      serverNow: new Date().toISOString(),
+      session: {
+        id: 'e1',
+        title: 'T',
+        status: 'open',
+        timingMode: 'common',
+        scheduledStart: new Date().toISOString(),
+        endsAt: new Date().toISOString(),
+      },
+      canIntervene: true,
+      staleAfterSec: 60,
+      counts: {
+        total: 0,
+        notStarted: 0,
+        joined: 0,
+        inProgress: 0,
+        submitted: 0,
+        terminated: 0,
+        warned: 0,
+        withLeaves: 0,
+      },
+      items: [],
+      joinAlert: { failures: 0, lastAt: null, alertAt: null },
+    })
+    api.getSession.mockResolvedValue(session({ status: 'open', canMonitor: false }))
+    expect((await at()).w.find('[data-testid="stage-run"]').exists()).toBe(false)
+    expect(api.sessionLive).not.toHaveBeenCalled()
+    api.getSession.mockResolvedValue(
+      session({ status: 'open', canMonitor: true, canIntervene: true }),
+    )
+    const { w } = await at()
+    await flushPromises()
+    expect(w.find('[data-testid="stage-run"] [data-testid="live-monitor"]').exists()).toBe(true)
+    expect(api.sessionLive).toHaveBeenCalledWith('e1')
+    expect(w.get('[data-testid="live-monitor"] h2').text()).toContain('Jonli kuzatuv')
+  })
 
   it('PIN holati ko`rsatiladi, PIN o`zi hech qachon', async () => {
     const { w } = await at()

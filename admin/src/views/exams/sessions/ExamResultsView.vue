@@ -451,6 +451,13 @@ const flagTone = (f: string) =>
                 <BaseBadge :tone="statusTone(r.status)" data-testid="cell-status">{{
                   t(`examResults.status.${r.status}`)
                 }}</BaseBadge>
+                <p
+                  v-if="r.terminated"
+                  class="mt-0.5 text-xs text-danger"
+                  data-testid="cell-terminated"
+                >
+                  {{ t('examResults.terminated', { reason: r.terminated.reason }) }}
+                </p>
               </td>
               <td
                 v-for="(h, hi) in blockCols"
