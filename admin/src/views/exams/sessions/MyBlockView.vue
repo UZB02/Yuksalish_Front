@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -9,6 +9,7 @@ import {
   Library,
   PenLine,
   Pencil,
+  ScanText,
   Shuffle,
   Trash2,
   TypeOutline,
@@ -19,6 +20,9 @@ import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import FileTestEditor from '@/components/exams/FileTestEditor.vue'
 import PasteQuestions from '@/components/exams/PasteQuestions.vue'
 import RandomPickModal from '@/components/exams/RandomPickModal.vue'
+
+/** OCR: komponent ham, og'ir kutubxonalar ham faqat "Rasm / PDF" yorlig'i ochilganda yuklanadi */
+const OcrQuestions = defineAsyncComponent(() => import('@/components/exams/OcrQuestions.vue'))
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -210,9 +214,10 @@ const writeNew = () => void router.push({ name: 'exam-question-create', query: q
 const importInto = (kind: 'word' | 'excel') =>
   void router.push({ name: 'exam-question-import', query: { ...query(), kind } })
 
-type Tab = 'paste' | 'word' | 'excel' | 'bank' | 'single'
+type Tab = 'paste' | 'ocr' | 'word' | 'excel' | 'bank' | 'single'
 const TABS: { key: Tab; icon: typeof FileText }[] = [
   { key: 'paste', icon: TypeOutline },
+  { key: 'ocr', icon: ScanText },
   { key: 'word', icon: FileText },
   { key: 'excel', icon: FileSpreadsheet },
   { key: 'bank', icon: Library },
@@ -375,6 +380,15 @@ onMounted(() => void loadTopics().catch(() => undefined))
 
       <PasteQuestions
         v-if="tab === 'paste'"
+        mode="block"
+        :session-id="sessionId"
+        :block-id="blockId"
+        :topics="taskTopics"
+        :exam-title="data.exam.title"
+        @committed="onPasted"
+      />
+      <OcrQuestions
+        v-else-if="tab === 'ocr'"
         mode="block"
         :session-id="sessionId"
         :block-id="blockId"

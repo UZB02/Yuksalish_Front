@@ -25,6 +25,9 @@ export function buildPwaOptions(env: PwaEnv = {}): Partial<VitePWAOptions> {
     manifest: false,
     workbox: {
       globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+      // OCR (Rasm/PDF -> matn): katta fayllar (wasm, til modellari, tesseract/pdf.js bo'laklari) PRECACHE QILINMAYDI:
+      // ilovani o'rnatishda hamma o'qituvchi ~15 MB yuklab olmasin. Ular talab bo'yicha keshlanadi (pastda)
+      globIgnores: ['ocr/**', '**/ocr-*.js', '**/tesseract*.js', '**/pdf*.js'],
       navigateFallback: '/index.html',
       navigateFallbackDenylist: [/^\/api\//],
       cleanupOutdatedCaches: true,
@@ -33,7 +36,20 @@ export function buildPwaOptions(env: PwaEnv = {}): Partial<VitePWAOptions> {
       skipWaiting: false,
       // ATAYLAB: /api/ so'rovlari hech qachon keshlanmaydi (NetworkOnly). Bu yerga
       // CacheFirst/StaleWhileRevalidate/NetworkFirst qo'shmang: javoblarda bolalar ma'lumoti bor.
-      runtimeCaching: [{ urlPattern: /^\/api\//, handler: 'NetworkOnly' }],
+      runtimeCaching: [
+        { urlPattern: /^\/api\//, handler: 'NetworkOnly' },
+        // OCR fayllari: o'zgarmas (versiya paketga qotirilgan), shuning uchun CacheFirst; hajm va muddat cheklangan.
+        // Til modellarini tesseract.js o'zi ham IndexedDB da saqlaydi; bu kesh wasm/worker/pdf.js uchun.
+        {
+          urlPattern: /^\/(?:ocr\/|assets\/(?:ocr-|tesseract|pdf)[^/]*\.m?js$)/,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'ocr-assets',
+            expiration: { maxEntries: 24, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            cacheableResponse: { statuses: [200] },
+          },
+        },
+      ],
     },
     devOptions: { enabled: false },
   }

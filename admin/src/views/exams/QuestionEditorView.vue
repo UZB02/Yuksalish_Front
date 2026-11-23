@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -11,6 +11,7 @@ import {
   Lock,
   Pencil,
   PenLine,
+  ScanText,
   TypeOutline,
 } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
@@ -26,6 +27,9 @@ import AcceptedAnswers from '@/components/exams/AcceptedAnswers.vue'
 import BlockEditor from '@/components/exams/BlockEditor.vue'
 import OptionsEditor from '@/components/exams/OptionsEditor.vue'
 import PasteQuestions from '@/components/exams/PasteQuestions.vue'
+
+/** OCR: faqat "Rasm / PDF" usuli tanlanganda yuklanadi */
+const OcrQuestions = defineAsyncComponent(() => import('@/components/exams/OcrQuestions.vue'))
 import SharingControl from '@/components/exams/SharingControl.vue'
 import QuestionPreview from '@/components/exams/QuestionPreview.vue'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
@@ -89,9 +93,10 @@ const serverErrors = ref<Record<string, string>>({})
 const tab = ref<'edit' | 'preview'>('edit')
 const skipLeaveGuard = ref(false)
 /** Yangi savol usullari: Matnni joylash (standart), Bittalab, Word, Excel. Tahrirlash va blok rejimida faqat forma */
-type Method = 'paste' | 'single' | 'word' | 'excel'
+type Method = 'paste' | 'ocr' | 'single' | 'word' | 'excel'
 const METHODS: { key: Method; icon: typeof FileText }[] = [
   { key: 'paste', icon: TypeOutline },
+  { key: 'ocr', icon: ScanText },
   { key: 'single', icon: PenLine },
   { key: 'word', icon: FileText },
   { key: 'excel', icon: FileSpreadsheet },
@@ -529,7 +534,7 @@ watch(questionId, (id, prev) => {
     <div
       v-if="isCreate && !readOnly"
       role="tablist"
-      class="mb-4 grid grid-cols-4 gap-1 rounded-lg border border-border bg-surface-muted p-0.5 sm:inline-grid"
+      class="mb-4 grid grid-cols-5 gap-1 rounded-lg border border-border bg-surface-muted p-0.5 sm:inline-grid"
       data-testid="method-tabs"
     >
       <button
@@ -572,6 +577,26 @@ watch(questionId, (id, prev) => {
         >
           {{ t('exams.editor.openTopic') }}
         </RouterLink>
+      </p>
+    </div>
+
+    <div v-else-if="isCreate && method === 'ocr'" class="card p-4" data-testid="method-panel-ocr">
+      <p
+        v-if="!form.topicId"
+        class="rounded-lg bg-warning-soft p-3 text-sm text-warning"
+        data-testid="ocr-need-topic"
+      >
+        {{ t('exams.editor.needTopic') }}
+      </p>
+      <OcrQuestions
+        v-else
+        :key="form.topicId"
+        mode="bank"
+        :topic-id="form.topicId"
+        @committed="onPasted"
+      />
+      <p v-if="pastedTotal > 0" class="mt-3 text-sm text-fg-muted" data-testid="ocr-done">
+        {{ t('exams.editor.pastedTotal', { n: pastedTotal }) }}
       </p>
     </div>
 
