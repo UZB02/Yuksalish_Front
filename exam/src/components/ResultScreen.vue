@@ -11,10 +11,13 @@ const questions = computed(() => store.state.allQuestions)
 const blockTitle = (id: string | null | undefined) =>
   store.state.blocks.find((b) => b.id === id)?.title ?? ''
 
+const terminated = computed(() => r.value?.terminated === true)
 const title = computed(() =>
-  r.value?.status === 'auto_submitted'
-    ? 'Vaqt tugadi: javoblar topshirildi'
-    : 'Javoblaringiz qabul qilindi',
+  terminated.value
+    ? 'Imtihon nazoratchi tomonidan to‘xtatildi'
+    : r.value?.status === 'auto_submitted'
+      ? 'Vaqt tugadi: javoblar topshirildi'
+      : 'Javoblaringiz qabul qilindi',
 )
 const note = computed(() => {
   const x = r.value
@@ -50,6 +53,10 @@ const plainOf = (q: ClientQuestion, id: string): string =>
   <div v-if="r" class="space-y-4" data-testid="result">
     <div class="card space-y-3 text-center">
       <h1 class="text-2xl font-bold" data-testid="result-title">{{ title }}</h1>
+      <p v-if="terminated" class="text-lg text-bad" data-testid="terminated-note">
+        Nazoratchi imtihonni to‘xtatdi. Shu paytgacha bergan javoblaringiz saqlandi. Imtihonni davom
+        ettirib bo‘lmaydi: nazoratchiga murojaat qiling.
+      </p>
       <p class="text-fg-soft">Javob berilgan savollar: {{ r.answeredCount }} / {{ r.total }}</p>
       <div v-if="r.available && r.score" class="rounded-xl bg-muted p-4" data-testid="result-score">
         <p class="text-sm text-fg-soft">Sizning ballingiz</p>

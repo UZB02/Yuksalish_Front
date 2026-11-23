@@ -63,6 +63,7 @@ export interface JoinResponse {
   token: string
   serverNow: string
   attemptStatus: 'joined' | 'in_progress' | 'submitted' | 'auto_submitted'
+  terminated?: boolean
   participant: { fullName: string; className: string | null }
   exam: {
     title: string
@@ -94,6 +95,13 @@ export interface StartResponse {
   block?: BlockView | null
 }
 
+/** Nazoratchi ogohlantirishi: o'quvchi tasdiqlamaguncha server har heartbeat/state da qaytaradi */
+export interface SupervisorWarning {
+  id: string
+  text: string
+  at: string
+}
+
 export interface StateResponse {
   serverNow: string
   status: 'joined' | 'in_progress' | 'submitted' | 'auto_submitted'
@@ -103,6 +111,19 @@ export interface StateResponse {
   total: number
   clientSeq: number
   block?: BlockView | null
+  /** Nazoratchi imtihonni to'xtatgan (status 'submitted') */
+  terminated?: boolean
+  warnings?: SupervisorWarning[]
+}
+
+/** Heartbeat javobi (kerakli qismi) */
+export interface HeartbeatResponse {
+  serverNow: string
+  status: 'joined' | 'in_progress' | 'submitted' | 'auto_submitted'
+  deadline: string | null
+  block?: BlockView | null
+  terminated?: boolean
+  warnings?: SupervisorWarning[]
 }
 
 export interface SaveResponse {
@@ -133,6 +154,8 @@ export interface ResultResponse {
   submittedAt: string | null
   answeredCount: number
   total: number
+  /** Nazoratchi imtihonni to'xtatgan (shu paytgacha javoblar baholangan) */
+  terminated?: boolean
   score?: { earned: number; max: number; autoMax: number; essayPending: number }
   /** Blok bo'yicha ballar (bir nechta blokli imtihonda va natija ko'rsatilsa) */
   blocks?: { id: string; title: string; earned: number; max: number }[]

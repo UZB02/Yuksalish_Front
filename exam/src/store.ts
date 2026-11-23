@@ -15,6 +15,7 @@ import type {
   JoinResponse,
   ResultResponse,
   StartResponse,
+  SupervisorWarning,
 } from './lib/types'
 
 export type Screen = 'loading' | 'join' | 'whoami' | 'confirm' | 'exam' | 'result' | 'closed'
@@ -38,6 +39,8 @@ export interface StoreOptions {
 const K_DEVICE = 'exam.deviceId'
 const K_TOKEN = 'exam.token'
 const K_INFO = 'exam.info'
+/** Heartbeat oralig'i: nazoratchi ogohlantirishi ham shu bilan yetib keladi (<= ~10 s) */
+export const HEARTBEAT_MS = 10_000
 
 const randomId = (): string => {
   const a = new Uint8Array(16)
@@ -78,7 +81,11 @@ export function createStore(opts: StoreOptions = {}) {
     result: null as ResultResponse | null,
     online: true,
     closedReason: '' as '' | 'time' | 'submitted',
+    /** Nazoratchi ogohlantirishlari (navbat): birinchisi ekranda ko'rsatiladi, o'quvchi tasdiqlaydi */
+    warnings: [] as SupervisorWarning[],
   })
+  /** Tasdiqlangan (yoki tasdiq yuborilayotgan) ogohlantirish id lari: server qayta qaytarsa ham ko'rsatilmaydi */
+  const acked = new Set<string>()
 
   let queue: AnswerQueue | null = null
   let tickTimer: ReturnType<typeof setInterval> | null = null
@@ -133,6 +140,7 @@ export function createStore(opts: StoreOptions = {}) {
       syncClock(st.serverNow)
       if (!info) throw new ApiError(401, 'UNAUTHORIZED', 'Qayta kiring')
       state.join = info
+      takeWarnings(st.warnings)
       if (st.status === 'submitted' || st.status === 'auto_submitted') await showResult()
       else if (st.status === 'in_progress') await start()
       else state.screen = 'confirm'
@@ -231,6 +239,8 @@ export function createStore(opts: StoreOptions = {}) {
     state.blocks = []
     state.block = null
     state.answers = {}
+    state.warnings = []
+    acked.clear()
   }
 
   /** "Boshqa talaba" uchun: chiqish (faqat topshirilgandan keyin yoki kirish bosqichida) */
@@ -323,9 +333,9 @@ export function createStore(opts: StoreOptions = {}) {
       () =>
         void api
           .heartbeat()
-          .then((r) => {
-            // Server bloklarni o'zi almashtirgan bo'lsa (vaqt tugagan): yangi blokni yuklaymiz
-            const hb = r as { block?: BlockView | null; status?: string } | undefined
+          .then((hb) => {
+            takeWarnings(hb?.warnings)
+            // Server bloklarni o'zi almashtirgan bo'lsa (vaqt tugagan) yoki nazoratchi to'xtatgan bo'lsa: holat yangilanadi
             if (hb?.status === 'auto_submitted' || hb?.status === 'submitted') {
               void showResult().catch(() => undefined)
             } else if (hb?.block?.id && state.block?.id && hb.block.id !== state.block.id) {
@@ -333,7 +343,7 @@ export function createStore(opts: StoreOptions = {}) {
             }
           })
           .catch(() => undefined),
-      opts.heartbeatMs ?? 30_000,
+      opts.heartbeatMs ?? HEARTBEAT_MS,
     )
     removeAnti = installAntiCheat(
       {
@@ -401,6 +411,23 @@ export function createStore(opts: StoreOptions = {}) {
       e.preventDefault()
       e.returnValue = ''
     }
+  }
+
+  /** Serverdan kelgan tasdiqlanmagan ogohlantirishlarni navbatga qo'shadi (takror va tasdiqlanganlar chiqmaydi) */
+  function takeWarnings(list: SupervisorWarning[] | undefined) {
+    if (!list?.length) return
+    for (const w of list) {
+      if (acked.has(w.id) || state.warnings.some((x) => x.id === w.id)) continue
+      state.warnings.push(w)
+    }
+  }
+
+  /** "Tushundim": ogohlantirish yopiladi va tasdiq yuboriladi; yuborilmasa keyingi heartbeat qayta yetkazadi */
+  function ackWarning(id: string) {
+    const i = state.warnings.findIndex((x) => x.id === id)
+    if (i >= 0) state.warnings.splice(i, 1)
+    acked.add(id)
+    void api.ackWarnings([id]).catch(() => acked.delete(id))
   }
 
   function setAnswer(qid: string, value: AnswerValue) {
@@ -510,6 +537,7 @@ export function createStore(opts: StoreOptions = {}) {
 
   function finish() {
     teardown()
+    state.warnings = []
     if (storage) {
       for (const k of keysOf(storage)) if (k.startsWith('exam.q.')) removeKey(storage, k)
     }
@@ -530,6 +558,7 @@ export function createStore(opts: StoreOptions = {}) {
     setAnswer,
     pickOption,
     toggleFlag,
+    ackWarning,
     goto,
     toast,
     retryInit: init,

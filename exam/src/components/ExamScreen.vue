@@ -21,6 +21,8 @@ const timeText = computed(() => formatRemaining(shownMs.value))
 const totalText = computed(() => formatRemaining(s.remaining))
 const low = computed(() => isLowTime(shownMs.value))
 const confirming = ref(false)
+/** Nazoratchi ogohlantirishi: navbatdagi birinchisi ko'rsatiladi (test bloklanmaydi, lekin tasdiqlash kerak) */
+const warning = computed(() => s.warnings[0] ?? null)
 const lastBlock = computed(() => !!s.block && s.block.index >= s.block.total - 1)
 const blockTitle = (id: string | undefined) => s.blocks.find((b) => b.id === id)?.title ?? ''
 const currentBlockTitle = computed(() =>
@@ -248,6 +250,30 @@ const noCopy = (e: Event) => e.preventDefault()
             Topshirish
           </button>
         </div>
+      </div>
+    </div>
+
+    <div
+      v-if="warning"
+      class="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="warn-title"
+      data-testid="warning-dialog"
+    >
+      <div class="card w-full max-w-md space-y-4 border-2 border-warn">
+        <h2 id="warn-title" class="text-xl font-bold">Nazoratchidan ogohlantirish</h2>
+        <p class="whitespace-pre-line break-words text-lg" data-testid="warning-text">
+          {{ warning.text }}
+        </p>
+        <button
+          class="btn-primary w-full"
+          data-testid="warning-ack"
+          autofocus
+          @click="store.ackWarning(warning.id)"
+        >
+          Tushundim
+        </button>
       </div>
     </div>
   </div>

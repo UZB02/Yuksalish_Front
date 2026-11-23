@@ -3,6 +3,7 @@ import type {
   JoinCodeResponse,
   EventType,
   FinishBlockResponse,
+  HeartbeatResponse,
   JoinResponse,
   ResultResponse,
   SaveResponse,
@@ -42,7 +43,9 @@ export interface ExamApi {
     answers: { qid: string; value: AnswerEntry['value']; flagged: boolean }[]
   }): Promise<SaveResponse>
   event(type: EventType, at: string): Promise<unknown>
-  heartbeat(): Promise<unknown>
+  heartbeat(): Promise<HeartbeatResponse>
+  /** Nazoratchi ogohlantirishlarini "ko'rdim" deb tasdiqlash */
+  ackWarnings(ids: string[]): Promise<unknown>
   submit(): Promise<ResultResponse>
   /** Blokma-blok: joriy blokni yakunlash (blockId joriy blok bo'lmasa server hech narsa o'zgartirmaydi) */
   finishBlock(body: { blockId: string }): Promise<FinishBlockResponse>
@@ -97,6 +100,7 @@ export function createApi(getToken: () => string | null, fetchFn: typeof fetch =
     saveAnswers: (b) => call('PUT', '/answers', b),
     event: (type, at) => call('POST', '/events', { type, at }),
     heartbeat: () => call('POST', '/heartbeat'),
+    ackWarnings: (ids) => call('POST', '/warnings/ack', { ids }),
     submit: () => call('POST', '/submit'),
     finishBlock: (b) => call('POST', '/blocks/finish', b),
     result: () => call('GET', '/result'),

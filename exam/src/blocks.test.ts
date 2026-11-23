@@ -169,6 +169,7 @@ function mkApi(timing: 'common' | 'per_block', over: Record<string, unknown> = {
     })),
     event: vi.fn().mockResolvedValue({}),
     heartbeat: vi.fn().mockResolvedValue({}),
+    ackWarnings: vi.fn().mockResolvedValue({ acknowledged: true }),
     submit: vi.fn().mockResolvedValue(result()),
     finishBlock: vi.fn().mockResolvedValue(view2(T0 + min(10))),
     result: vi.fn().mockResolvedValue(result()),

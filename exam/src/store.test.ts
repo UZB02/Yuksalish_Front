@@ -133,6 +133,7 @@ function mkApi(over: Record<string, unknown> = {}): MockApi {
     })),
     event: vi.fn().mockResolvedValue({}),
     heartbeat: vi.fn().mockResolvedValue({}),
+    ackWarnings: vi.fn().mockResolvedValue({ acknowledged: true }),
     submit: vi.fn().mockResolvedValue(resultResp()),
     finishBlock: vi.fn().mockResolvedValue({ finished: true, ...resultResp() }),
     result: vi.fn().mockResolvedValue(resultResp()),
@@ -727,5 +728,138 @@ describe('shaxsiy kod bilan kirish', () => {
     expect(store.state.screen).toBe('confirm')
     await w.get('[data-testid="toggle-legacy"]').trigger('click')
     expect(w.find('[data-testid="code-input"]').exists()).toBe(true)
+  })
+})
+
+describe('nazoratchi: ogohlantirish va to`xtatilgan imtihon', () => {
+  const mountWith = (store: ReturnType<typeof createStore>, comp: object) =>
+    mount(
+      { components: { C: comp, ToastHost }, template: '<C /><ToastHost />' },
+      { global: { provide: { [STORE_KEY as symbol]: store } } },
+    )
+  const warn = { id: 'w1', text: 'Telefonni olib qo‘ying', at: new Date(T0).toISOString() }
+  const hb = (over: Record<string, unknown> = {}) => ({
+    serverNow: new Date(T0).toISOString(),
+    status: 'in_progress',
+    deadline: DEADLINE,
+    warnings: [],
+    ...over,
+  })
+  async function started(api: MockApi) {
+    const s = mk(api)
+    await s.init()
+    await s.join('123456', 'abcd')
+    await s.start()
+    return s
+  }
+
+  it('heartbeat ogohlantirishni keltiradi (<= 10 s), oyna ko`rinadi, "Tushundim" tasdiq yuboradi va qayta chiqmaydi', async () => {
+    const api = mkApi({ heartbeat: vi.fn().mockResolvedValue(hb({ warnings: [warn] })) })
+    const s = await started(api)
+    expect(s.state.warnings).toEqual([])
+    await vi.advanceTimersByTimeAsync(10_500)
+    await flushPromises()
+    expect(s.state.warnings).toEqual([warn])
+    const w = mountWith(s, ExamScreen)
+    expect(w.get('[data-testid="warning-text"]').text()).toBe('Telefonni olib qo‘ying')
+    expect(w.get('[data-testid="warning-dialog"]').attributes('role')).toBe('alertdialog')
+    await w.get('[data-testid="warning-ack"]').trigger('click')
+    await flushPromises()
+    expect(api.ackWarnings).toHaveBeenCalledWith(['w1'])
+    expect(w.find('[data-testid="warning-dialog"]').exists()).toBe(false)
+    // server hali qaytarsa ham (ack yo'lda) qayta chiqmaydi; test davom etadi
+    await vi.advanceTimersByTimeAsync(10_500)
+    await flushPromises()
+    expect(s.state.warnings).toEqual([])
+    expect(s.state.screen).toBe('exam')
+  })
+
+  it('tasdiq yuborilmasa (tarmoq) ogohlantirish keyingi heartbeat da qayta chiqadi; bir nechta ogohlantirish navbat bilan', async () => {
+    const w2 = { id: 'w2', text: 'Ikkinchi', at: warn.at }
+    const api = mkApi({
+      heartbeat: vi.fn().mockResolvedValue(hb({ warnings: [warn, w2] })),
+      ackWarnings: vi.fn().mockRejectedValue(new ApiError(0, 'NETWORK', 'x')),
+    })
+    const s = await started(api)
+    await vi.advanceTimersByTimeAsync(10_500)
+    await flushPromises()
+    expect(s.state.warnings.map((x) => x.id)).toEqual(['w1', 'w2'])
+    const w = mountWith(s, ExamScreen)
+    expect(w.get('[data-testid="warning-text"]').text()).toBe('Telefonni olib qo‘ying')
+    s.ackWarning('w1')
+    await flushPromises()
+    expect(s.state.warnings.map((x) => x.id)).toEqual(['w2'])
+    // ack muvaffaqiyatsiz: w1 yana keladi
+    await vi.advanceTimersByTimeAsync(10_500)
+    await flushPromises()
+    expect(s.state.warnings.map((x) => x.id)).toContain('w1')
+  })
+
+  it('heartbeat "submitted + terminated": natija ekrani, to`xtatilgan xabari (sabab ko`rsatilmaydi); ogohlantirish tozalanadi', async () => {
+    const api = mkApi({
+      heartbeat: vi.fn().mockResolvedValue(hb({ status: 'submitted', terminated: true })),
+      result: vi.fn().mockResolvedValue(resultResp({ terminated: true })),
+    })
+    const s = await started(api)
+    s.state.warnings.push(warn)
+    await vi.advanceTimersByTimeAsync(10_500)
+    await flushPromises()
+    expect(s.state.screen).toBe('result')
+    expect(s.state.warnings).toEqual([])
+    const w = mountWith(s, ResultScreen)
+    expect(w.get('[data-testid="result-title"]').text()).toMatch(/nazoratchi tomonidan to‘xtatildi/)
+    expect(w.get('[data-testid="terminated-note"]').text()).toMatch(/javoblaringiz saqlandi/)
+    expect(w.find('[data-testid="result-score"]').exists()).toBe(true)
+  })
+
+  it('navbatdagi javoblar to`xtatilgandan keyin 409 bilan rad etiladi: navbat yopilib natija ekrani chiqadi', async () => {
+    const api = mkApi({
+      saveAnswers: vi
+        .fn()
+        .mockRejectedValue(
+          new ApiError(409, 'CONFLICT', 'Imtihon nazoratchi tomonidan to‘xtatilgan'),
+        ),
+      result: vi.fn().mockResolvedValue(resultResp({ terminated: true })),
+    })
+    const s = await started(api)
+    s.setAnswer('q2', 'matn')
+    await vi.advanceTimersByTimeAsync(3_000)
+    await flushPromises()
+    expect(s.state.screen).toBe('result')
+    expect(s.state.result?.terminated).toBe(true)
+    expect(s.queue).toBeNull()
+  })
+
+  it('qayta kirish (to`xtatilgan urinish): darhol natija ekrani', async () => {
+    const api = mkApi({
+      join: vi.fn().mockResolvedValue(joinResp({ attemptStatus: 'submitted', terminated: true })),
+      result: vi.fn().mockResolvedValue(resultResp({ terminated: true })),
+    })
+    const s = mk(api)
+    await s.init()
+    await s.join('123456', 'abcd')
+    expect(s.state.screen).toBe('result')
+    expect(s.state.result?.terminated).toBe(true)
+  })
+
+  it('init (sahifa yangilandi): state dagi ogohlantirish navbatga tushadi', async () => {
+    storage.setItem('exam.token', 'tok-1')
+    storage.setItem('exam.info', JSON.stringify({ ...joinResp(), token: undefined }))
+    const api = mkApi({
+      state: vi.fn().mockResolvedValue({
+        serverNow: new Date(T0).toISOString(),
+        status: 'in_progress',
+        startedAt: new Date(T0).toISOString(),
+        deadline: DEADLINE,
+        answeredCount: 0,
+        total: 3,
+        clientSeq: 0,
+        warnings: [warn],
+      }),
+    })
+    const s = mk(api)
+    await s.init()
+    expect(s.state.screen).toBe('exam')
+    expect(s.state.warnings).toEqual([warn])
   })
 })
