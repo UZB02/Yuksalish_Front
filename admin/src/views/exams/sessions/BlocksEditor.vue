@@ -6,6 +6,7 @@ import { examsApi } from '@/api/exams.api'
 import type {
   BlockQuestionRow,
   ExamBlock,
+  ExamBlockContent,
   ExamBlockInput,
   ExamScoringMode,
   ExamSectionItem,
@@ -17,6 +18,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCheckbox from '@/components/ui/BaseCheckbox.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 import { errorMessage } from '@/utils/errors'
 import SectionsEditor from './SectionsEditor.vue'
@@ -48,6 +50,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { confirm } = useConfirm()
 const preview = ref<ExamSectionsPreview | null>(null)
 const previewError = ref('')
 
@@ -72,6 +75,7 @@ const addBlock = () =>
       durationMin: 30,
       contributorIds: [],
       items: [],
+      content: 'bank',
     }),
   )
 /** Qo'lda o'zgartirilgan bloklar (indeks): avtomatik taklif ularning o'qituvchilarini bosib yubormaydi */
@@ -148,6 +152,27 @@ const serverOf = (i: number): ExamBlock | null => {
   return id ? (props.serverBlocks?.find((s) => s.id === id) ?? null) : null
 }
 const contribCount = (i: number) => serverOf(i)?.contribQuestions.length ?? 0
+/** Blok manbai: kiritilgan (o'zgartirilgan) yoki saqlangan; eski serverda/hujjatda: savollar banki */
+const contentOf = (i: number): ExamBlockContent =>
+  props.modelValue[i]?.content ?? serverOf(i)?.content ?? 'bank'
+const contentOptions = computed(() => [
+  { value: 'bank', label: t('examBlocks.content.bank') },
+  { value: 'file', label: t('examBlocks.content.file') },
+])
+async function setContent(i: number, v: string) {
+  const next = v === 'file' ? 'file' : 'bank'
+  if (next === contentOf(i)) return
+  // Saqlangan blokda manba almashsa "tayyor" belgisi bekor bo'ladi: tasdiq so'raladi
+  if (serverOf(i) && (serverOf(i)!.count > 0 || serverOf(i)!.status === 'ready')) {
+    const ok = await confirm({
+      title: t('examBlocks.content.switchTitle'),
+      message: t('examBlocks.content.switchText'),
+      confirmText: t('common.save'),
+    })
+    if (!ok) return
+  }
+  patch(i, { content: next })
+}
 
 const itemsComplete = (b: ExamBlockInput) =>
   b.items.every((it: ExamSectionItem) =>
@@ -155,7 +180,10 @@ const itemsComplete = (b: ExamBlockInput) =>
   )
 const previewable = computed(
   () =>
-    props.modelValue.length > 0 && props.modelValue.every((b) => !!b.subjectId && itemsComplete(b)),
+    props.modelValue.length > 0 &&
+    props.modelValue.every(
+      (b, i) => !!b.subjectId && (contentOf(i) === 'file' || itemsComplete(b)),
+    ),
 )
 let timer: ReturnType<typeof setTimeout> | undefined
 let seq = 0
@@ -288,6 +316,7 @@ async function setReady(blockId: string, ready: boolean) {
           @update:model-value="setSubject(i, $event)"
         />
         <BaseInput
+          v-if="contentOf(i) !== 'file'"
           :model-value="String(b.targetCount)"
           type="number"
           inputmode="numeric"
@@ -332,6 +361,22 @@ async function setReady(blockId: string, ready: boolean) {
         {{ t('examBlocks.pickSubjectFirst') }}
       </p>
       <template v-else>
+        <div class="space-y-1">
+          <BaseSelect
+            :model-value="contentOf(i)"
+            :label="t('examBlocks.content.label')"
+            :options="contentOptions"
+            :data-testid="`block-content-${i}`"
+            @update:model-value="setContent(i, $event)"
+          />
+          <p
+            v-if="contentOf(i) === 'file'"
+            class="text-xs text-fg-muted"
+            :data-testid="`block-file-hint-${i}`"
+          >
+            {{ t('examBlocks.content.fileHint') }}
+          </p>
+        </div>
         <fieldset>
           <legend class="mb-1 text-sm font-medium text-fg">
             {{ t('examBlocks.contributors') }}
@@ -367,7 +412,32 @@ async function setReady(blockId: string, ready: boolean) {
           </ul>
         </fieldset>
 
-        <div v-if="!simple">
+        <div
+          v-if="contentOf(i) === 'file' && serverOf(i)"
+          class="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3 text-sm"
+          :data-testid="`block-file-summary-${i}`"
+        >
+          <span class="text-fg">
+            {{
+              serverOf(i)!.fileTest && serverOf(i)!.fileTest!.questions
+                ? t('examBlocks.content.fileSummary', {
+                    n: serverOf(i)!.fileTest!.questions,
+                    v: serverOf(i)!.fileTest!.variants.length,
+                  })
+                : t('examBlocks.content.fileEmpty')
+            }}
+          </span>
+          <RouterLink
+            v-if="sessionId"
+            :to="{ name: 'exam-my-block', params: { sessionId, blockId: serverOf(i)!.id } }"
+            class="text-primary-600 hover:underline"
+            :data-testid="`block-file-edit-${i}`"
+          >
+            {{ t('examBlocks.content.editFile') }}
+          </RouterLink>
+        </div>
+
+        <div v-if="!simple && contentOf(i) !== 'file'">
           <p class="mb-2 text-sm font-medium text-fg">{{ t('examBlocks.questions') }}</p>
           <SectionsEditor
             single
@@ -379,7 +449,7 @@ async function setReady(blockId: string, ready: boolean) {
         </div>
 
         <div
-          v-if="!simple"
+          v-if="!simple && contentOf(i) !== 'file'"
           class="rounded-lg border border-border p-3 text-sm"
           :data-testid="`block-progress-${i}`"
         >

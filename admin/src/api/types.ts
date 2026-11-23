@@ -1921,6 +1921,20 @@ export interface ExamBlockInput {
   durationMin?: number | null
   contributorIds: string[]
   items: ExamSectionItem[]
+  /** Blok mazmuni: savollar banki (odatiy) yoki fayl + kalit. Berilmasa mavjud blokda o'zgarmaydi */
+  content?: ExamBlockContent
+}
+export type ExamBlockContent = 'bank' | 'file'
+/** Fayl + kalit blokining qisqa xulosasi (kalitsiz) */
+export interface FileTestSummary {
+  questions: number
+  variants: {
+    letter: string
+    kind: 'pdf' | 'image'
+    files: number
+    questions: number
+    points: number
+  }[]
 }
 /** Serverdagi blok (tuzuvchi ko'rinishi) */
 export interface ExamBlock {
@@ -1937,6 +1951,9 @@ export interface ExamBlock {
   /** Oxirgi "Eslatma" vaqti (soatiga bir marta cheklanadi) */
   remindedAt?: string | null
   count: number
+  /** Blok mazmuni (eski serverda yo'q = 'bank') */
+  content?: ExamBlockContent
+  fileTest?: FileTestSummary | null
   contributors: { id: string; fullName: string }[]
   items: ExamSectionItem[]
   contribQuestions: {
@@ -2209,6 +2226,7 @@ export interface MyBlockItem {
   targetCount: number
   count: number
   blockStatus: 'open' | 'ready'
+  content?: ExamBlockContent
   readyBy?: 'contributor' | 'composer' | null
   contribDeadline: string | null
   locked: boolean
@@ -2285,11 +2303,65 @@ export interface MyBlockDetail {
     targetCount: number
     count: number
     status: 'open' | 'ready'
+    /** 'file': savollar banki o'rniga fayl testi (PDF/rasm) va javob kaliti tahrirlanadi */
+    content?: ExamBlockContent
+    fileTest?: FileTestSummary | null
     locked: boolean
     lockReason: BlockLockReason
   }
   questions: BlockQuestionRow[]
   rules: BlockRuleRow[]
+}
+
+// ---- Fayl + kalit (§22) ----
+export interface FileKeyItem {
+  no: number
+  type: 'choice' | 'short'
+  /** choice: variantlar soni (2..6) */
+  options?: number
+  /** choice: to'g'ri harflar (bittasi yoki bir nechta) */
+  correct?: string[]
+  /** short: qabul qilinadigan javoblar */
+  accepted?: string[]
+  points: number
+}
+export interface FileTestFileInfo {
+  id: string
+  kind: 'pdf' | 'image'
+  contentType: string
+  size: number
+  width: number
+  height: number
+  pages: number
+}
+export interface FileTestVariant {
+  letter: 'A' | 'B' | 'C' | 'D'
+  kind: 'pdf' | 'image'
+  files: FileTestFileInfo[]
+  key: FileKeyItem[]
+}
+export interface FileTestView {
+  role: 'composer' | 'contributor'
+  content: ExamBlockContent
+  locked: boolean
+  lockReason: BlockLockReason
+  status: 'open' | 'ready'
+  readyBy?: 'contributor' | 'composer' | null
+  variants: FileTestVariant[]
+  questions: number
+}
+export interface FileTestSaveBody {
+  variants: {
+    letter: FileTestVariant['letter']
+    kind: 'pdf' | 'image'
+    files: string[]
+    key: FileKeyItem[]
+  }[]
+}
+export interface FileKeyParse {
+  items: FileKeyItem[]
+  errors: string[]
+  warnings: string[]
 }
 export interface RemindResult {
   disabled: boolean
@@ -2459,6 +2531,8 @@ export interface ExamResultRow {
   rank: number | null
   /** Blok bo'yicha ballar (topshirmagan: bo'sh) */
   blocks?: { blockId: string; earned: number; max: number }[]
+  /** Fayl + kalit bloklarida berilgan variant ("A" yoki "A/C"); yo'q: null */
+  variant?: string | null
 }
 export interface ExamResultBlockHeader {
   id: string
@@ -2537,6 +2611,9 @@ export interface ExamResultDetail {
     correct?: number
   }[]
   percent?: number | null
+  /** Fayl + kalit: berilgan variant harflari ("A") va blokma-blok {blockId: 'A'} */
+  variant?: string | null
+  variants?: Record<string, string>
   questions: ExamResultQuestion[]
 }
 export interface ExamAnalysisQuestion {

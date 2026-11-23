@@ -6,6 +6,7 @@ import { ArrowLeft, Check, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
 import type { BlockQuestionList, ExamBlock, ExamSession, Question } from '@/api/types'
 import BlocksView from '@/components/exams/BlocksView.vue'
+import FileTestEditor from '@/components/exams/FileTestEditor.vue'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -45,6 +46,8 @@ const block = computed<ExamBlock | null>(
 const state = computed(() => (block.value ? blockState(block.value) : 'collecting'))
 const draft = computed(() => session.value?.status === 'draft')
 const editable = computed(() => draft.value && !!session.value?.canEdit)
+/** "Fayl + kalit" bloki: savollar o'rniga fayl testi (variantlar, fayl va kalit) ko'riladi/tahrirlanadi */
+const isFile = computed(() => block.value?.content === 'file')
 const rows = computed(() => list.value?.questions ?? [])
 
 /** To'liq savollarni (javob kaliti bilan) cheklangan parallellikda yuklaydi */
@@ -205,7 +208,7 @@ const stateTone = {
     </EmptyState>
   </div>
 
-  <div v-else class="max-w-5xl space-y-4">
+  <div v-else class="space-y-4" :class="isFile ? 'max-w-7xl' : 'max-w-5xl'">
     <div class="card flex flex-wrap items-center gap-x-5 gap-y-3 p-4 text-sm">
       <div>
         <p class="text-fg-muted">{{ t('examFlow.table.questions') }}</p>
@@ -228,7 +231,12 @@ const stateTone = {
         </BaseBadge>
       </div>
       <div v-if="editable" class="ml-auto flex flex-wrap gap-2">
-        <BaseButton variant="secondary" data-testid="review-add" @click="addQuestions">
+        <BaseButton
+          v-if="!isFile"
+          variant="secondary"
+          data-testid="review-add"
+          @click="addQuestions"
+        >
           <Plus class="h-4 w-4" aria-hidden="true" /> {{ t('examFlow.review.add') }}
         </BaseButton>
         <BaseButton
@@ -261,15 +269,23 @@ const stateTone = {
       {{ t('examFlow.review.lockedNote') }}
     </p>
 
+    <FileTestEditor
+      v-if="isFile"
+      :session-id="sessionId"
+      :block-id="blockId"
+      data-testid="review-filetest"
+      @changed="reloadState"
+    />
+
     <p
-      v-if="rows.length === 0"
+      v-else-if="rows.length === 0"
       class="card p-6 text-center text-sm text-fg-muted"
       data-testid="review-empty"
     >
       {{ t('examBlocks.myBlock.empty') }}
     </p>
 
-    <ol v-else class="space-y-3" data-testid="review-list">
+    <ol v-else-if="!isFile" class="space-y-3" data-testid="review-list">
       <li
         v-for="(r, i) in rows"
         :key="r.id"
@@ -344,7 +360,7 @@ const stateTone = {
     </ol>
 
     <ul
-      v-if="list && list.rules.length"
+      v-if="!isFile && list && list.rules.length"
       class="card space-y-2 p-4 text-sm text-fg-muted"
       data-testid="review-rules"
     >

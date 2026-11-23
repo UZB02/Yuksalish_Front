@@ -169,6 +169,9 @@ async function save(q: ExamResultQuestion) {
         <span v-if="detail.percent !== null && detail.percent !== undefined" class="text-fg-muted"
           >{{ detail.percent }}%</span
         >
+        <BaseBadge v-if="detail.variant" tone="primary" data-testid="detail-variant">
+          {{ t('examResults.detail.variant') }}: {{ detail.variant }}
+        </BaseBadge>
         <BaseBadge v-if="summary.essayPending" tone="warning">
           {{ t('examResults.essayN', { n: summary.essayPending }) }}
         </BaseBadge>

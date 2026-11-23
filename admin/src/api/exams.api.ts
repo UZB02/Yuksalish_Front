@@ -22,6 +22,10 @@ import type {
   ExamSection,
   ExamSectionsPreview,
   ExamBlockInput,
+  FileKeyParse,
+  FileTestFileInfo,
+  FileTestSaveBody,
+  FileTestView,
   ExamCopyResult,
   ExamDeleteMode,
   ExamResultListItem,
@@ -301,6 +305,43 @@ export const examsApi = {
       `/exams/my-blocks/${sessionId}/${blockId}/questions/new`,
       payload,
     ),
+  // ---- Fayl + kalit bloki (§22) ----
+  fileTest: (sessionId: string, blockId: string) =>
+    getData<FileTestView>(`/exams/my-blocks/${sessionId}/${blockId}/file-test`),
+  saveFileTest: (sessionId: string, blockId: string, body: FileTestSaveBody) =>
+    sendData<FileTestView>('put', `/exams/my-blocks/${sessionId}/${blockId}/file-test`, body),
+  parseFileKey: (
+    sessionId: string,
+    blockId: string,
+    body: { text: string; options?: number; points?: number },
+  ) =>
+    sendData<FileKeyParse>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/file-test/key/parse`,
+      body,
+    ),
+  async uploadTestFile(
+    sessionId: string,
+    blockId: string,
+    file: File,
+  ): Promise<{ file: FileTestFileInfo }> {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await http.post<ApiSuccess<{ file: FileTestFileInfo }>>(
+      `/exams/my-blocks/${sessionId}/${blockId}/files`,
+      form,
+      { timeout: 120000 },
+    )
+    return res.data.data
+  },
+  /** Fayl token talab qiladi (<img src>/pdfjs bevosita ocholmaydi): blob sifatida olinadi */
+  async fetchTestFile(sessionId: string, blockId: string, fileId: string): Promise<Blob> {
+    const res = await http.get<Blob>(`/exams/my-blocks/${sessionId}/${blockId}/files/${fileId}`, {
+      responseType: 'blob',
+      timeout: 120000,
+    })
+    return res.data
+  },
   // ---- Daraja bo'yicha tasodifiy tanlash (E8) ----
   randomAvailability: (sessionId: string, blockId: string, sel: RandomSel) =>
     sendData<RandomAvailability>(

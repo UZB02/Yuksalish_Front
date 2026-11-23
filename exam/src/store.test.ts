@@ -138,6 +138,7 @@ function mkApi(over: Record<string, unknown> = {}): MockApi {
     finishBlock: vi.fn().mockResolvedValue({ finished: true, ...resultResp() }),
     result: vi.fn().mockResolvedValue(resultResp()),
     asset: vi.fn().mockResolvedValue(new Blob(['x'])),
+    file: vi.fn().mockResolvedValue(new Blob(['x'])),
     ...over,
   } as never
 }

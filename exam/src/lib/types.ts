@@ -13,6 +13,17 @@ export interface ClientQuestion {
   points: number
   content: Block[]
   options: { id: string; content: Block[] }[]
+  /** "Fayl + kalit" bloki: varaqadagi savol raqami va variant harfi (matn/variant mazmuni yo'q, fayldan o'qiladi) */
+  no?: number
+  variant?: string
+}
+
+/** "Fayl + kalit" bloki: o'quvchiga berilgan variant fayli (PDF yoki tartiblangan rasmlar) */
+export interface FileBlockView {
+  blockId: string
+  variant: string
+  kind: 'pdf' | 'image'
+  files: { id: string }[]
 }
 
 /** single: variant id, multi: id lar, short/essay: matn, null: javobsiz */
@@ -91,6 +102,8 @@ export interface StartResponse {
   clientSeq: number
   timingMode?: 'common' | 'per_block'
   blocks?: BlockMeta[]
+  /** Ko'rinadigan fayl bloklari (yo'q = barcha bloklar savollar bankidan) */
+  files?: FileBlockView[]
   /** Blokma-blok: joriy blok (questions faqat shu blokniki). Aks holda null/yo'q */
   block?: BlockView | null
 }

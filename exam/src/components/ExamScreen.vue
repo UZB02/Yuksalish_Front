@@ -5,12 +5,17 @@ import { countFlagged, countUnanswered, gridCells } from '../lib/grid'
 import { requestFullscreen } from '../lib/events'
 import { formatRemaining, isLowTime } from '../lib/timer'
 import AnswerInput from './AnswerInput.vue'
+import AnswerSheet from './AnswerSheet.vue'
+import FileViewer from './FileViewer.vue'
 import RichBlocks from './RichBlocks.vue'
 
 const store = useStore()
 const s = store.state
 
 const q = computed(() => s.questions[s.index])
+/** "Fayl + kalit" bloki: joriy savol shu blokda bo'lsa fayl ko'rsatkichi va javob varaqasi chiqadi */
+const fileBlock = computed(() => s.files.find((f) => f.blockId === q.value?.blockId) ?? null)
+const fileQuestions = computed(() => s.questions.filter((x) => x.blockId === q.value?.blockId))
 const cells = computed(() => gridCells(s.questions, s.answers))
 const unanswered = computed(() => countUnanswered(s.questions, s.answers))
 const flagged = computed(() => countFlagged(s.questions, s.answers))
@@ -103,7 +108,44 @@ const noCopy = (e: Event) => e.preventDefault()
       </div>
     </div>
 
-    <div class="mx-auto max-w-3xl space-y-4 px-4 pt-4">
+    <div
+      v-if="fileBlock"
+      class="mx-auto flex max-w-7xl flex-col gap-3 px-2 pt-2 pb-16 lg:flex-row lg:items-start lg:px-4 lg:pb-0"
+      data-testid="file-exam"
+    >
+      <nav
+        v-if="chips.length"
+        class="flex flex-wrap gap-2 lg:hidden"
+        aria-label="Bloklar"
+        data-testid="block-tabs-file"
+      >
+        <button
+          v-for="c in chips"
+          :key="c.id"
+          type="button"
+          class="rounded-full border-2 px-3 py-1 text-sm font-semibold"
+          :class="
+            q?.blockId === c.id ? 'border-brand bg-brand/10 text-fg' : 'border-line text-fg-soft'
+          "
+          @click="store.goto(c.first)"
+        >
+          {{ c.title }} ({{ c.count }})
+        </button>
+      </nav>
+      <FileViewer
+        :key="fileBlock.blockId"
+        :file="fileBlock"
+        class="h-[calc(100svh-11rem)] min-h-72 lg:h-[calc(100vh-9rem)] lg:flex-1"
+      />
+      <AnswerSheet
+        :questions="fileQuestions"
+        :answers="s.answers"
+        @pick="(qq, id) => store.pickOption(qq, id)"
+        @text="(id, v) => store.setAnswer(id, v)"
+      />
+    </div>
+
+    <div v-else class="mx-auto max-w-3xl space-y-4 px-4 pt-4">
       <nav
         v-if="chips.length"
         class="flex flex-wrap gap-2"

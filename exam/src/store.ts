@@ -10,6 +10,7 @@ import type {
   BlockMeta,
   BlockView,
   ClientQuestion,
+  FileBlockView,
   EventType,
   JoinCodeResponse,
   JoinResponse,
@@ -68,6 +69,8 @@ export function createStore(opts: StoreOptions = {}) {
     /** Ko'rsatilgan barcha savollar (natija tahlili uchun; faqat shu qurilmada ko'rilganlar) */
     allQuestions: [] as ClientQuestion[],
     blocks: [] as BlockMeta[],
+    /** "Fayl + kalit" bloklari: ko'rinadigan (joriy) bloklar fayllari */
+    files: [] as FileBlockView[],
     /** Blokma-blok: joriy blok holati; null = umumiy vaqt */
     block: null as BlockView | null,
     blockRemaining: 0,
@@ -263,6 +266,7 @@ export function createStore(opts: StoreOptions = {}) {
     for (const q of r.questions) if (!known.has(q.id)) state.allQuestions.push(q)
     state.deadline = r.deadline
     if (r.blocks) state.blocks = r.blocks
+    state.files = r.files ?? []
     state.block = r.block ?? null
     const answers: Record<string, AnswerEntry> = {}
     queue?.destroy()
@@ -564,6 +568,8 @@ export function createStore(opts: StoreOptions = {}) {
     retryInit: init,
     /** Rasm (token bilan) */
     fetchAsset: (id: string) => api.asset(id),
+    /** Test fayli (PDF/rasm, token bilan) */
+    fetchFile: (id: string) => api.file(id),
     get queue() {
       return queue
     },

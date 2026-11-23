@@ -3744,7 +3744,8 @@
       "passed": "O'tdi",
       "answered": "Javoblar",
       "time": "Vaqt",
-      "warnings": "Ogohlantirish"
+      "warnings": "Ogohlantirish",
+      "variant": "Variant"
     },
     "status": {
       "not_started": "Kirmagan",
@@ -3805,7 +3806,8 @@
       "pointsRange": "0 dan {max} gacha, 0.5 qadam bilan kiriting",
       "gradedBy": "Baholagan: {name}",
       "pending": "Tekshirilmagan",
-      "close": "Yopish"
+      "close": "Yopish",
+      "variant": "Variant"
     },
     "analysis": {
       "empty": "Tahlil uchun topshirilgan ish yo'q.",
@@ -3911,7 +3913,19 @@
       "ruleNotEnough": "Bankda hozircha yetarli savol yo'q (kerak {n}, bor {have}). Rejalashtirishdan oldin yetarli faol savol bo'lishi shart."
     },
     "inClasses": "shu sinflarda",
-    "noSuggestion": "Tanlangan sinflarda bu fanni o'qitadigan o'qituvchi topilmadi: o'qituvchini ro'yxatdan qo'lda tanlang."
+    "noSuggestion": "Tanlangan sinflarda bu fanni o'qitadigan o'qituvchi topilmadi: o'qituvchini ro'yxatdan qo'lda tanlang.",
+    "content": {
+      "label": "Savollar manbai",
+      "bank": "Savollar banki",
+      "file": "Fayl + kalit (PDF yoki rasm)",
+      "fileHint": "Test PDF/rasm holida yuklanadi, javoblar kalit bo'yicha tekshiriladi. Savollar sonini va kalitni o'qituvchi (yoki siz) blok sahifasida kiritadi.",
+      "switchTitle": "Manbani almashtirasizmi?",
+      "switchText": "Blokdagi tanlangan savollar/qoidalar saqlanadi, lekin faqat tanlangan manba ishlatiladi. Fayl rejimiga o'tilsa \"tayyor\" belgisi bekor bo'ladi.",
+      "fileSummary": "{n} ta savol, {v} ta variant",
+      "fileEmpty": "Fayl testi hali to'ldirilmagan",
+      "editFile": "Fayl testini tahrirlash",
+      "badge": "Fayl + kalit"
+    }
   },
   "examResultsList": {
     "title": "Natijalar",
@@ -4025,7 +4039,8 @@
       "word": "Word",
       "excel": "Excel",
       "bank": "Bankdan",
-      "single": "Bittalab"
+      "single": "Bittalab",
+      "file": "Fayl + kalit"
     },
     "tabHelp": {
       "word": "Word (.docx) faylidan savollarni yuklang: oldindan ko'rasiz va tuzatasiz.",
@@ -4129,5 +4144,58 @@
     "answers": "Qabul qilinadigan javoblar",
     "rubric": "Mezon",
     "total": "Jami {n} ta"
+  },
+  "fileTest": {
+    "help": "Testni PDF yoki rasm sifatida yuklang va javob kalitini kiriting. O'quvchi faylni ko'radi va javoblarni varaqada belgilaydi. Variantlar (A, B, C, D) o'quvchilarga tasodifiy, teng taqsimlanadi: hammasida savollar soni va ballar yig'indisi bir xil bo'lishi kerak.",
+    "variant": "{v} varianti",
+    "addVariant": "Variant qo'shish",
+    "removeVariant": "Variantni o'chirish",
+    "removeVariantTitle": "{v} variantini o'chirasizmi?",
+    "removeVariantText": "Variant fayli va kaliti olib tashlanadi (saqlagandan keyin).",
+    "noVariants": "Hali variant yo'q. \"Variant qo'shish\" tugmasini bosing.",
+    "fileTitle": "Test fayli",
+    "kind": {
+      "pdf": "PDF",
+      "image": "Rasmlar",
+      "imageOne": "Rasm"
+    },
+    "pickPdf": "PDF tanlash",
+    "pickImages": "Rasmlarni tanlash",
+    "fileHint": "PDF yoki JPG/PNG, har biri 15 MB gacha. Rasmlar tartib bilan ko'rsatiladi. Word faylini avval PDF qilib yuklang.",
+    "onePdf": "Bitta PDF yuklang",
+    "up": "Yuqoriga",
+    "down": "Pastga",
+    "removeFile": "Faylni olib tashlash",
+    "previewEmpty": "Fayl yuklanmagan",
+    "previewLoading": "Fayl yuklanmoqda...",
+    "pagesCount": "{n} sahifa",
+    "imagesCount": "{n} rasm",
+    "pageAlt": "{n}-sahifa",
+    "keyTitle": "Javob kaliti",
+    "keySummary": "{n} ta savol, jami {p} ball",
+    "quick": "Tez kiritish: \"1-C 2-A 3-25 4-B,D\" (bir nechta to'g'ri javob: B,D; qisqa javob: 25 yoki 12|12.5; ball: 5-C*2)",
+    "defOptions": "Variantlar soni",
+    "defPoints": "Ball",
+    "apply": "Qo'llash",
+    "count": "Savollar soni",
+    "replaceKeyTitle": "Kalit almashtiriladimi?",
+    "replaceKeyText": "Mavjud kalit o'rniga {n} ta savolli yangi kalit qo'yiladi.",
+    "replaceKey": "Almashtirish",
+    "type": "Tur",
+    "answer": "To'g'ri javob",
+    "points": "Ball",
+    "choice": "Tanlash",
+    "short": "Qisqa javob",
+    "optionsCount": "Variantlar soni",
+    "acceptedPlaceholder": "25 | 25,0 (bir nechta mumkin: | bilan)",
+    "removeRow": "Qatorni o'chirish",
+    "keyEmpty": "Kalit bo'sh: savollar sonini kiriting yoki tez kiritish maydonidan foydalaning",
+    "addRow": "Savol qo'shish",
+    "mismatchCount": "Variantlarda savollar soni bir xil emas: {a} - {na}, {b} - {nb}",
+    "mismatchPoints": "Variantlarda ballar yig'indisi bir xil emas: {a} - {pa}, {b} - {pb}",
+    "save": "Saqlash",
+    "saved": "Fayl testi saqlandi",
+    "unsaved": "Saqlanmagan o'zgarishlar bor",
+    "saveFirst": "Avval fayl testini saqlang"
   }
 }

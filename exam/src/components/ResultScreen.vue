@@ -29,9 +29,13 @@ const note = computed(() => {
 })
 
 const qOf = (id: string): ClientQuestion | undefined => questions.value.find((q) => q.id === id)
-const indexOf = (id: string) => questions.value.findIndex((q) => q.id === id) + 1
-const optText = (q: ClientQuestion | undefined, id: string): Block[] =>
-  q?.options.find((o) => o.id === id)?.content ?? [{ type: 'text', text: id }]
+/** "Fayl + kalit" savoli: varaqadagi raqam; aks holda ko'rilgan savollar ichidagi o'rni */
+const indexOf = (id: string) => qOf(id)?.no ?? questions.value.findIndex((q) => q.id === id) + 1
+/** Variant matni; fayl savolida variant mazmuni yo'q (faqat harf) */
+const optText = (q: ClientQuestion | undefined, id: string): Block[] => {
+  const c = q?.options.find((o) => o.id === id)?.content
+  return c && c.length ? c : [{ type: 'text', text: id }]
+}
 const givenText = (it: ReviewItem): string => {
   const v = it.given
   if (v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length))

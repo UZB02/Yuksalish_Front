@@ -16,6 +16,7 @@ import {
 import { examsApi } from '@/api/exams.api'
 import type { MyBlockDetail } from '@/api/types'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
+import FileTestEditor from '@/components/exams/FileTestEditor.vue'
 import PasteQuestions from '@/components/exams/PasteQuestions.vue'
 import RandomPickModal from '@/components/exams/RandomPickModal.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
@@ -75,6 +76,15 @@ async function load() {
   }
 }
 onMounted(load)
+/** Fayl testi saqlangach: sahifa (son, tayyorlik) yangilanadi, tahrirlagich qayta ochilmaydi */
+async function refresh() {
+  try {
+    data.value = await examsApi.myBlock(sessionId.value, blockId.value)
+    void examAssignments.refresh()
+  } catch {
+    /* eski ko'rinish qoladi */
+  }
+}
 
 const progressTone = computed(() =>
   data.value && data.value.block.count >= data.value.block.targetCount ? 'success' : 'warning',
@@ -167,10 +177,15 @@ async function removeQ(qid: string) {
 const isComposer = computed(() => data.value?.role === 'composer')
 /** "Tayyor" belgisi: o'qituvchi muddatgacha qaytara oladi; tuzuvchi qo'ygan belgini faqat tuzuvchi qaytaradi */
 const isReady = computed(() => data.value?.block.status === 'ready')
+/** "Fayl + kalit" bloki (§22): savollar banki o'rniga fayl testi tahrirlanadi */
+const isFile = computed(() => data.value?.block.content === 'file')
+const fileEditor = ref<InstanceType<typeof FileTestEditor> | null>(null)
 async function toggleReady() {
   if (!data.value) return
   busy.value = true
   try {
+    // Saqlanmagan fayl testi bilan "tayyor" bo'lmaydi: avval saqlanadi (server to'liqlikni tekshiradi)
+    if (isFile.value && !isReady.value && fileEditor.value?.dirty) await fileEditor.value.save()
     await examsApi.markBlockReady(sessionId.value, blockId.value, !isReady.value)
     toast.success(
       t(
@@ -255,7 +270,7 @@ onMounted(() => void loadTopics().catch(() => undefined))
     </EmptyState>
   </div>
 
-  <div v-else class="max-w-5xl space-y-5">
+  <div v-else class="space-y-5" :class="isFile ? 'max-w-7xl' : 'max-w-5xl'">
     <div class="card grid gap-x-6 gap-y-3 p-4 text-sm sm:grid-cols-4" data-testid="myblock-info">
       <div>
         <p class="text-fg-muted">{{ t('examBlocks.subject') }}</p>
@@ -325,7 +340,18 @@ onMounted(() => void loadTopics().catch(() => undefined))
         {{ isComposer ? t('examFlow.blockState.approved') : t('examBlocks.ready') }}
       </BaseBadge>
     </div>
-    <section v-if="!data.block.locked" class="card space-y-4 p-4" data-testid="myblock-actions">
+    <FileTestEditor
+      v-if="isFile"
+      ref="fileEditor"
+      :session-id="sessionId"
+      :block-id="blockId"
+      @changed="refresh"
+    />
+    <section
+      v-if="!isFile && !data.block.locked"
+      class="card space-y-4 p-4"
+      data-testid="myblock-actions"
+    >
       <div
         role="tablist"
         class="flex flex-wrap gap-1 rounded-lg border border-border bg-surface-muted p-0.5"
@@ -397,7 +423,7 @@ onMounted(() => void loadTopics().catch(() => undefined))
       </div>
     </section>
 
-    <section class="card p-4" data-testid="myblock-questions">
+    <section v-if="!isFile" class="card p-4" data-testid="myblock-questions">
       <h2 class="mb-3 text-sm font-semibold text-fg">
         {{ t('examTasks.questionsTitle', { n: data.questions.length }) }}
       </h2>

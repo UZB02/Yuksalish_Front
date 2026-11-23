@@ -174,6 +174,7 @@ function mkApi(timing: 'common' | 'per_block', over: Record<string, unknown> = {
     finishBlock: vi.fn().mockResolvedValue(view2(T0 + min(10))),
     result: vi.fn().mockResolvedValue(result()),
     asset: vi.fn().mockResolvedValue(new Blob(['x'])),
+    file: vi.fn().mockResolvedValue(new Blob(['x'])),
     ...over,
   } as never
 }

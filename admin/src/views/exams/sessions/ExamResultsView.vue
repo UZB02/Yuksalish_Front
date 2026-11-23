@@ -44,6 +44,8 @@ const openKey = ref<string | null>(null)
 
 /** Blok ustunlari faqat bir nechta blokli imtihonda (eski/yagona blokli: jadval o'zgarmaydi) */
 const blockCols = computed(() => ((data.value?.blocks?.length ?? 0) > 1 ? data.value!.blocks! : []))
+/** "Fayl + kalit" bloki bor imtihon: ishtirokchiga berilgan variant ustuni */
+const hasVariant = computed(() => !!data.value?.rows.some((r) => r.variant))
 const blockCell = (
   r: { blocks?: { blockId: string; earned: number; max: number }[] },
   id: string,
@@ -405,6 +407,9 @@ const flagTone = (f: string) =>
                 </button>
               </th>
               <th class="py-2 pr-3">{{ t('examResults.cols.cls') }}</th>
+              <th v-if="hasVariant" class="py-2 pr-3" data-testid="col-variant">
+                {{ t('examResults.cols.variant') }}
+              </th>
               <th class="py-2 pr-3">{{ t('examResults.cols.status') }}</th>
               <th
                 v-for="(h, hi) in blockCols"
@@ -447,6 +452,9 @@ const flagTone = (f: string) =>
                 {{ r.fullName }}
               </td>
               <td class="py-2 pr-3 text-fg-muted">{{ r.className ?? '—' }}</td>
+              <td v-if="hasVariant" class="py-2 pr-3 font-semibold" data-testid="cell-variant">
+                {{ r.variant ?? '—' }}
+              </td>
               <td class="py-2 pr-3">
                 <BaseBadge :tone="statusTone(r.status)" data-testid="cell-status">{{
                   t(`examResults.status.${r.status}`)

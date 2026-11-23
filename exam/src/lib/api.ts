@@ -51,6 +51,8 @@ export interface ExamApi {
   finishBlock(body: { blockId: string }): Promise<FinishBlockResponse>
   result(): Promise<ResultResponse>
   asset(id: string): Promise<Blob>
+  /** "Fayl + kalit" bloki fayli (PDF/rasm), token bilan */
+  file(id: string): Promise<Blob>
 }
 
 /**
@@ -115,6 +117,20 @@ export function createApi(getToken: () => string | null, fetchFn: typeof fetch =
         throw new ApiError(0, 'NETWORK', "Internet yo'q")
       }
       if (!res.ok) throw new ApiError(res.status, 'ERROR', 'Rasm yuklanmadi')
+      return res.blob()
+    },
+    async file(id) {
+      const headers: Record<string, string> = {}
+      const token = getToken()
+      if (token) headers.Authorization = `Bearer ${token}`
+      let res: Response
+      try {
+        // Standart kesh: server `private, max-age` beradi (sahifa yangilanganda qayta yuklanmaydi), token baribir tekshiriladi
+        res = await fetchFn(`${API_BASE}/files/${id}`, { headers, credentials: 'omit' })
+      } catch {
+        throw new ApiError(0, 'NETWORK', "Internet yo'q")
+      }
+      if (!res.ok) throw new ApiError(res.status, 'ERROR', 'Fayl yuklanmadi')
       return res.blob()
     },
   }
