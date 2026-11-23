@@ -16,6 +16,7 @@ import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { useToast } from '@/composables/useToast'
 import { blockState } from '@/utils/examFlow'
 import { errorMessage } from '@/utils/errors'
+import { ruleLabel } from '@/utils/examRules'
 
 /**
  * Fan bo'yicha ko'rib chiqish: fan savollarining HAMMASI o'quvchi ko'rgandek va to'g'ri javoblari bilan.
@@ -131,6 +132,25 @@ async function removeQ(qid: string) {
   busy.value = true
   try {
     await examsApi.composerRemoveBlockQuestion(sessionId.value, blockId.value, qid)
+    await reloadState()
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    busy.value = false
+  }
+}
+
+async function removeRule(ruleId: string) {
+  const ok = await confirm({
+    title: t('examBlocks.myBlock.ruleRemoveTitle'),
+    message: t('examBlocks.myBlock.ruleRemoveText'),
+    confirmText: t('common.delete'),
+    variant: 'danger',
+  })
+  if (!ok) return
+  busy.value = true
+  try {
+    await examsApi.composerRemoveRule(sessionId.value, blockId.value, ruleId)
     await reloadState()
   } catch (e) {
     toast.error(errorMessage(e, t))
@@ -323,9 +343,37 @@ const stateTone = {
       </li>
     </ol>
 
-    <ul v-if="list && list.rules.length" class="card space-y-1 p-4 text-sm text-fg-muted">
-      <li v-for="(rule, i) in list.rules" :key="i">
-        {{ t('examBlocks.myBlock.rule', { topic: rule.topicName ?? '—', n: rule.count }) }}
+    <ul
+      v-if="list && list.rules.length"
+      class="card space-y-2 p-4 text-sm text-fg-muted"
+      data-testid="review-rules"
+    >
+      <li
+        v-for="(rule, i) in list.rules"
+        :key="rule.ruleId ?? `w${i}`"
+        class="flex flex-wrap items-center gap-2"
+        :data-testid="`review-rule-${i}`"
+      >
+        <span class="min-w-0 flex-1 break-words text-fg">{{ ruleLabel(t, rule) }}</span>
+        <span v-if="rule.poolSize !== undefined" class="text-xs" data-testid="review-rule-pool">
+          {{ t('examBlocks.myBlock.randomRulePool', { n: rule.poolSize }) }}
+        </span>
+        <BaseButton
+          v-if="rule.ruleId && editable"
+          variant="ghost"
+          size="sm"
+          :aria-label="t('examBlocks.removeQuestion')"
+          data-testid="review-rule-remove"
+          @click="removeRule(rule.ruleId)"
+        >
+          <Trash2 class="h-4 w-4" aria-hidden="true" />
+        </BaseButton>
+        <p
+          v-if="rule.poolSize !== undefined && rule.poolSize < rule.count"
+          class="w-full text-xs text-warning"
+        >
+          {{ t('examBlocks.myBlock.ruleNotEnough', { n: rule.count, have: rule.poolSize }) }}
+        </p>
       </li>
     </ul>
   </div>

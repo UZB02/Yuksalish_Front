@@ -8,6 +8,8 @@ import {
   FileText,
   Library,
   PenLine,
+  Pencil,
+  Shuffle,
   Trash2,
   TypeOutline,
 } from 'lucide-vue-next'
@@ -15,6 +17,7 @@ import { examsApi } from '@/api/exams.api'
 import type { MyBlockDetail } from '@/api/types'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
 import PasteQuestions from '@/components/exams/PasteQuestions.vue'
+import RandomPickModal from '@/components/exams/RandomPickModal.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -25,6 +28,7 @@ import { useToast } from '@/composables/useToast'
 import { useExamAssignmentsStore } from '@/stores/examAssignments'
 import { errorMessage } from '@/utils/errors'
 import { fmtDateTime } from '@/utils/examSessions'
+import { ruleLabel } from '@/utils/examRules'
 import { deadlineLeft, taskStatus } from '@/utils/examTasks'
 import QuestionPickerModal from './QuestionPickerModal.vue'
 import { useTopicOptions } from './useTopicOptions'
@@ -49,6 +53,7 @@ const loading = ref(true)
 const error = ref('')
 const busy = ref(false)
 const pickerOpen = ref(false)
+const randomOpen = ref(false)
 const { topics: allTopics, load: loadTopics } = useTopicOptions()
 const topics = computed(() =>
   allTopics.value.filter((x) => x.subjectId === data.value?.block.subjectId),
@@ -81,6 +86,51 @@ const lockText = computed(() =>
 async function openPicker() {
   await loadTopics().catch(() => undefined)
   pickerOpen.value = true
+}
+async function openRandom() {
+  await loadTopics().catch(() => undefined)
+  randomOpen.value = true
+}
+// ---- Tasodifiy tanlash qoidalari: sonini o'zgartirish va olib tashlash ----
+const editRule = ref<{ id: string; count: string } | null>(null)
+async function saveRuleCount() {
+  const e = editRule.value
+  if (!e) return
+  const n = Math.floor(Number(e.count))
+  if (!Number.isFinite(n) || n < 1 || n > 200) {
+    toast.error(t('errors.codes.VALIDATION_ERROR'))
+    return
+  }
+  busy.value = true
+  try {
+    await examsApi.updateBlockRule(sessionId.value, blockId.value, e.id, n)
+    toast.success(t('examBlocks.myBlock.ruleUpdated'))
+    editRule.value = null
+    await load()
+  } catch (err) {
+    toast.error(errorMessage(err, t))
+  } finally {
+    busy.value = false
+  }
+}
+async function removeRule(ruleId: string) {
+  const ok = await confirm({
+    title: t('examBlocks.myBlock.ruleRemoveTitle'),
+    message: t('examBlocks.myBlock.ruleRemoveText'),
+    confirmText: t('common.delete'),
+    variant: 'danger',
+  })
+  if (!ok) return
+  busy.value = true
+  try {
+    await examsApi.removeBlockRule(sessionId.value, blockId.value, ruleId)
+    toast.success(t('examBlocks.myBlock.ruleRemoved'))
+    await load()
+  } catch (err) {
+    toast.error(errorMessage(err, t))
+  } finally {
+    busy.value = false
+  }
 }
 async function onPicked(ids: string[]) {
   pickerOpen.value = false
@@ -333,6 +383,14 @@ onMounted(() => void loadTopics().catch(() => undefined))
         >
           <Library class="h-4 w-4" aria-hidden="true" /> {{ t('examTasks.pickBank') }}
         </BaseButton>
+        <BaseButton
+          v-if="tab === 'bank'"
+          variant="secondary"
+          data-testid="myblock-random"
+          @click="openRandom"
+        >
+          <Shuffle class="h-4 w-4" aria-hidden="true" /> {{ t('randomPick.open') }}
+        </BaseButton>
         <BaseButton v-else variant="secondary" data-testid="myblock-write" @click="writeNew">
           <PenLine class="h-4 w-4" aria-hidden="true" /> {{ t('examTasks.writeOne') }}
         </BaseButton>
@@ -375,14 +433,80 @@ onMounted(() => void loadTopics().catch(() => undefined))
       </ul>
       <ul
         v-if="data.rules.length"
-        class="mt-3 space-y-1 border-t border-border pt-3 text-sm text-fg-muted"
+        class="mt-3 space-y-2 border-t border-border pt-3 text-sm text-fg-muted"
+        data-testid="myblock-rules"
       >
-        <li v-for="(r, i) in data.rules" :key="i">
-          {{ t('examBlocks.myBlock.rule', { topic: r.topicName ?? '—', n: r.count }) }}
+        <li
+          v-for="(r, i) in data.rules"
+          :key="r.ruleId ?? `w${i}`"
+          class="flex flex-wrap items-center gap-2"
+          :data-testid="`myblock-rule-${i}`"
+        >
+          <span class="min-w-0 flex-1 break-words text-fg" data-testid="rule-text">
+            {{ ruleLabel(t, r) }}
+          </span>
+          <span v-if="r.poolSize !== undefined" class="text-xs" data-testid="rule-pool">
+            {{ t('examBlocks.myBlock.randomRulePool', { n: r.poolSize }) }}
+          </span>
+          <template v-if="r.ruleId && r.canRemove">
+            <template v-if="editRule?.id === r.ruleId">
+              <input
+                v-model="editRule.count"
+                type="number"
+                min="1"
+                max="200"
+                class="w-20 rounded-lg border border-border bg-surface px-2 py-1 text-sm text-fg"
+                :aria-label="t('examBlocks.myBlock.ruleCount')"
+                data-testid="rule-count-input"
+              />
+              <BaseButton
+                size="sm"
+                :loading="busy"
+                data-testid="rule-count-save"
+                @click="saveRuleCount"
+              >
+                {{ t('examBlocks.myBlock.ruleSave') }}
+              </BaseButton>
+            </template>
+            <BaseButton
+              v-else
+              variant="ghost"
+              size="sm"
+              :aria-label="t('examBlocks.myBlock.ruleEdit')"
+              data-testid="rule-edit"
+              @click="editRule = { id: r.ruleId, count: String(r.count) }"
+            >
+              <Pencil class="h-4 w-4" aria-hidden="true" />
+            </BaseButton>
+            <BaseButton
+              variant="ghost"
+              size="sm"
+              :aria-label="t('examBlocks.removeQuestion')"
+              data-testid="rule-remove"
+              @click="removeRule(r.ruleId)"
+            >
+              <Trash2 class="h-4 w-4" aria-hidden="true" />
+            </BaseButton>
+          </template>
+          <p
+            v-if="r.poolSize !== undefined && r.poolSize < r.count"
+            class="w-full text-xs text-warning"
+            data-testid="rule-warning"
+          >
+            {{ t('examBlocks.myBlock.ruleNotEnough', { n: r.count, have: r.poolSize }) }}
+          </p>
         </li>
       </ul>
     </section>
 
+    <RandomPickModal
+      :open="randomOpen"
+      :session-id="sessionId"
+      :block-id="blockId"
+      :topics="taskTopics"
+      @close="randomOpen = false"
+      @changed="load"
+    />
     <QuestionPickerModal
       :open="pickerOpen"
       :topics="topics"

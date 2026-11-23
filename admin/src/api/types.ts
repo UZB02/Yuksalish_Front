@@ -1874,7 +1874,10 @@ export type ExamSectionItem =
   | { kind: 'manual'; questionIds: string[] }
   | {
       kind: 'rule'
-      topicId: string
+      /** Eski shakl (bitta mavzu); yangi qoidalarda topicIds yoki allTopics */
+      topicId?: string
+      topicIds?: string[]
+      allTopics?: boolean
       count: number
       difficulty?: number | null
       type?: QuestionType | null
@@ -1938,6 +1941,18 @@ export interface ExamBlock {
   items: ExamSectionItem[]
   contribQuestions: {
     questionId: string
+    addedBy: string
+    addedByName: string | null
+    addedAt: string | null
+  }[]
+  /** Tasodifiy tanlash qoidalari (har o'quvchiga boshqacha) */
+  contribRules?: {
+    ruleId: string
+    topicIds: string[]
+    allTopics: boolean
+    difficulty: number | null
+    type: QuestionType | null
+    count: number
     addedBy: string
     addedByName: string | null
     addedAt: string | null
@@ -2215,11 +2230,46 @@ export interface BlockQuestionRow {
   canRemove: boolean
 }
 export interface BlockRuleRow {
+  /** null: tuzuvchi bloki elementi (wizarddagi qoida); aks holda tasodifiy tanlash qoidasi id si */
+  ruleId?: string | null
   topicId: string
+  topicIds?: string[]
+  allTopics?: boolean
+  /** "Algebra, Geometriya" (allTopics bo'lsa null: "barcha mavzular") */
   topicName: string | null
   count: number
   difficulty: number | null
   type: QuestionType | null
+  addedByName?: string | null
+  canRemove?: boolean
+  /** Hozir mos keladigan FAOL savollar soni (har o'quvchi shundan tanlaydi) */
+  poolSize?: number
+}
+
+// ---- Daraja bo'yicha tasodifiy tanlash (E8) ----
+export interface RandomSel {
+  topicIds?: string[]
+  allTopics?: boolean
+  type?: QuestionType | null
+}
+export interface RandomAvailability {
+  difficulties: Record<'1' | '2' | '3', { total: number; inExam: number; available: number }>
+  topics: string[]
+}
+export interface RandomQuestion {
+  id: string
+  difficulty: number
+  type: QuestionType
+  points: number
+  content: QuestionBlock[]
+  options: { id: string; content: QuestionBlock[]; correct: boolean }[]
+  acceptedAnswers?: string[]
+  rubric?: string
+}
+export interface RandomPreview {
+  items: RandomQuestion[]
+  available: Record<'1' | '2' | '3', number>
+  shortfall: Record<'1' | '2' | '3', number>
 }
 export interface MyBlockDetail {
   /** 'composer': ma'muriyat (istalgan fan, hamma savolni olib tashlaydi); 'contributor': biriktirilgan o'qituvchi */

@@ -7,6 +7,10 @@ import type {
   ExamAnalysis,
   ExamAttemptsResponse,
   ExamLiveRaw,
+  RandomAvailability,
+  RandomPreview,
+  RandomQuestion,
+  RandomSel,
   ExamLiveResponse,
   ExamLiveRosterEntry,
   ExamResultDetail,
@@ -297,6 +301,53 @@ export const examsApi = {
       `/exams/my-blocks/${sessionId}/${blockId}/questions/new`,
       payload,
     ),
+  // ---- Daraja bo'yicha tasodifiy tanlash (E8) ----
+  randomAvailability: (sessionId: string, blockId: string, sel: RandomSel) =>
+    sendData<RandomAvailability>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/random/availability`,
+      sel,
+    ),
+  randomPreview: (
+    sessionId: string,
+    blockId: string,
+    body: RandomSel & { counts: { easy: number; medium: number; hard: number } },
+  ) =>
+    sendData<RandomPreview>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/random/preview`,
+      body,
+    ),
+  randomReplace: (
+    sessionId: string,
+    blockId: string,
+    body: RandomSel & { difficulty: number; exclude: string[] },
+  ) =>
+    sendData<{ item: RandomQuestion; remaining: number }>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/random/replace`,
+      body,
+    ),
+  addBlockRule: (
+    sessionId: string,
+    blockId: string,
+    body: RandomSel & { difficulty: number; count: number },
+  ) =>
+    sendData<{ ruleId: string; poolSize: number; enough: boolean }>(
+      'post',
+      `/exams/my-blocks/${sessionId}/${blockId}/rules`,
+      body,
+    ),
+  updateBlockRule: (sessionId: string, blockId: string, ruleId: string, count: number) =>
+    sendData<{ ruleId: string; count: number }>(
+      'patch',
+      `/exams/my-blocks/${sessionId}/${blockId}/rules/${ruleId}`,
+      { count },
+    ),
+  removeBlockRule: (sessionId: string, blockId: string, ruleId: string) =>
+    deleteData<{ removed: boolean }>(`/exams/my-blocks/${sessionId}/${blockId}/rules/${ruleId}`),
+  composerRemoveRule: (id: string, blockId: string, ruleId: string) =>
+    deleteData<{ removed: boolean }>(`${SID(id)}/blocks/${blockId}/rules/${ruleId}`),
   removeFromBlock: (sessionId: string, blockId: string, qid: string) =>
     deleteData<BlockCounts & { removed: boolean }>(
       `/exams/my-blocks/${sessionId}/${blockId}/questions/${qid}`,

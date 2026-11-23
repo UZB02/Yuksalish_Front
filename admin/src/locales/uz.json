@@ -2569,7 +2569,10 @@
         "block": {
           "question_add": "Imtihon blokiga savol qo'shdi",
           "question_remove": "Imtihon blokidan savolni olib tashladi",
-          "ready": "Imtihon blokining tayyorlik holatini o'zgartirdi"
+          "ready": "Imtihon blokining tayyorlik holatini o'zgartirdi",
+          "rule_add": "Blokka tasodifiy tanlash qoidasini qo'shdi",
+          "rule_update": "Tasodifiy tanlash qoidasi sonini o'zgartirdi",
+          "rule_remove": "Tasodifiy tanlash qoidasini olib tashladi"
         }
       },
       "telegram": {
@@ -3894,7 +3897,18 @@
       "composerApprove": "Tasdiqlash",
       "composerUnapprove": "Tasdiqni bekor qilish",
       "composerApproved": "Fan tasdiqlandi",
-      "composerUnapproved": "Tasdiq bekor qilindi"
+      "composerUnapproved": "Tasdiq bekor qilindi",
+      "randomRule": "Qoida: {topics} · {level} {n} ta (har o'quvchiga tasodifiy)",
+      "randomRulePool": "bankda {n} ta mos savol",
+      "allTopics": "barcha mavzular",
+      "ruleRemoveTitle": "Qoidani olib tashlash",
+      "ruleRemoveText": "Qoida blokdan olib tashlanadi, savollar bankda qoladi.",
+      "ruleRemoved": "Qoida olib tashlandi",
+      "ruleUpdated": "Qoida yangilandi",
+      "ruleEdit": "Sonini o'zgartirish",
+      "ruleCount": "Savollar soni",
+      "ruleSave": "Saqlash",
+      "ruleNotEnough": "Bankda hozircha yetarli savol yo'q (kerak {n}, bor {have}). Rejalashtirishdan oldin yetarli faol savol bo'lishi shart."
     },
     "inClasses": "shu sinflarda",
     "noSuggestion": "Tanlangan sinflarda bu fanni o'qitadigan o'qituvchi topilmadi: o'qituvchini ro'yxatdan qo'lda tanlang."
@@ -4076,5 +4090,44 @@
     "passLine": "o'tish bali {n}%",
     "detail": "Batafsil natija",
     "terminated": "Nazoratchi to'xtatgan: {reason}"
+  },
+  "randomPick": {
+    "open": "Daraja bo'yicha tasodifiy",
+    "title": "Daraja bo'yicha tasodifiy tanlash",
+    "topics": "Mavzular",
+    "allTopics": "Barcha mavzular",
+    "type": "Savol turi (ixtiyoriy)",
+    "anyType": "Barcha turlar",
+    "counts": "Nechta savol kerak",
+    "levels": {
+      "1": "Oson",
+      "2": "O'rta",
+      "3": "Qiyin"
+    },
+    "avail": "{level}: bankda {total} ta, {inExam} tasi allaqachon imtihonda, tanlash mumkin: {available}",
+    "noTopics": "Avval mavzu tanlang yoki \"Barcha mavzular\"ni belgilang.",
+    "mode": "Qanday qo'shiladi",
+    "mode1": "Bir marta tanlab qo'shish",
+    "mode1Hint": "Tizim savollarni tanlaydi, siz almashtirib ko'rasiz va qo'shasiz. Hamma o'quvchiga bir xil savollar tushadi.",
+    "mode2": "Har o'quvchiga boshqacha",
+    "mode2Hint": "Qoida saqlanadi. Imtihon rejalashtirilganda savollar ro'yxati muzlatiladi va har o'quvchiga shu ro'yxatdan alohida tasodifiy savollar beriladi.",
+    "pick": "Tasodifiy tanlash",
+    "repick": "Qaytadan tanlash",
+    "preview": "Tanlangan savollar",
+    "replace": "Almashtirish",
+    "remove": "Olib tashlash",
+    "noReplace": "Almashtirish uchun boshqa savol qolmadi",
+    "shortfall": "Yetarli savol yo'q: {parts}. Bor qadarini qo'shishingiz mumkin.",
+    "shortfallPart": "{level}: kerak {want}, bor {have}",
+    "addN": "{n} ta savolni qo'shish",
+    "saveRule": "Qoidani saqlash",
+    "ruleSaved": "Qoida saqlandi",
+    "ruleNotEnough": "Bankda hozircha yetarli savol yo'q: qoida saqlandi, lekin rejalashtirishdan oldin savol qo'shing.",
+    "added": "{n} ta savol qo'shildi",
+    "nothing": "Hech narsa tanlanmadi: kamida bitta savol soni kiriting.",
+    "correct": "To'g'ri javob",
+    "answers": "Qabul qilinadigan javoblar",
+    "rubric": "Mezon",
+    "total": "Jami {n} ta"
   }
 }
