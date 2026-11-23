@@ -272,7 +272,14 @@ describe('Vazifa sahifasi: usullar (tablar)', () => {
     )
     expect(w.get('[data-testid="myblock-title"]').text()).toBe("Matematika uchun savollar qo'shish")
     const tabs = w.findAll('[role="tab"]').map((x) => x.text())
-    expect(tabs).toEqual(['Matnni joylash', 'Word', 'Excel', 'Bankdan', 'Bittalab'])
+    expect(tabs).toEqual([
+      'Matnni joylash',
+      'Rasm / PDF (OCR)',
+      'Word (.docx)',
+      'Excel',
+      'Bankdan',
+      'Bittalab',
+    ])
     expect(w.get('[data-testid="tab-paste"]').attributes('aria-selected')).toBe('true')
     expect(w.find('[data-testid="paste-root"]').exists()).toBe(true)
     expect(w.find('[data-testid="myblock-left"]').exists()).toBe(true)

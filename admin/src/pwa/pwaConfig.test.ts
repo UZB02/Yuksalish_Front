@@ -26,14 +26,31 @@ describe('PWA sozlamalari', () => {
     expect(w.navigateFallbackDenylist?.some((re) => re.test('/classes'))).toBe(false)
   })
 
-  it('API hech qachon keshlanmaydi: faqat NetworkOnly, faqat /api/', () => {
+  it('API hech qachon keshlanmaydi: /api/ ga tegishli qoida faqat NetworkOnly', () => {
     const rules = opts.workbox!.runtimeCaching ?? []
-    for (const rule of rules) {
-      expect(rule.handler).toBe('NetworkOnly')
-      expect(rule.urlPattern).toBeInstanceOf(RegExp)
-      expect((rule.urlPattern as RegExp).test('/api/v1/x')).toBe(true)
-      expect((rule.urlPattern as RegExp).test('/assets/app.js')).toBe(false)
+    const api = rules.filter((r) => (r.urlPattern as RegExp).test('/api/v1/x'))
+    expect(api).toHaveLength(1)
+    expect(api[0]!.handler).toBe('NetworkOnly')
+    expect((api[0]!.urlPattern as RegExp).test('/assets/app.js')).toBe(false)
+    // boshqa qoidalar API ni ushlamaydi (keshlash faqat OCR fayllari uchun)
+    for (const r of rules.filter((x) => x !== api[0])) {
+      expect((r.urlPattern as RegExp).test('/api/v1/exams/questions')).toBe(false)
     }
+  })
+
+  it('OCR fayllari precache qilinmaydi, talab bo`yicha CacheFirst bilan keshlanadi (cheklangan)', () => {
+    const w = opts.workbox!
+    expect(w.globIgnores).toEqual(expect.arrayContaining(['ocr/**']))
+    const ocr = (w.runtimeCaching ?? []).find((r) => r.handler === 'CacheFirst')!
+    const re = ocr.urlPattern as RegExp
+    expect(re.test('/ocr/tesseract-core-simd-lstm.wasm')).toBe(true)
+    expect(re.test('/ocr/lang/uzb.traineddata.gz')).toBe(true)
+    expect(re.test('/assets/ocr-engine-AbC123.js')).toBe(true)
+    expect(re.test('/assets/pdf.worker.min-x1.mjs')).toBe(true)
+    expect(re.test('/assets/index-AbC.js')).toBe(false)
+    expect(re.test('/api/v1/ocr/x')).toBe(false)
+    expect(ocr.options?.expiration?.maxEntries).toBeLessThanOrEqual(30)
+    expect(ocr.options?.cacheName).toBe('ocr-assets')
   })
 
   it('kill-switch: VITE_PWA_KILL=1 bolganda selfDestroying', () => {

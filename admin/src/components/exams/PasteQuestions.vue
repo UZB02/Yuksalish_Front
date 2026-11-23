@@ -129,6 +129,9 @@ onBeforeUnmount(() => {
   seq++
 })
 
+/** Tashqaridan (masalan, OCR natijasi) matn qo'yish: jonli ko'rinish odatdagidek ishlaydi */
+defineExpose({ setText: (v: string) => (text.value = v) })
+
 /** Bosish: bitta javob; Ctrl/Shift/Cmd bilan bosish: ko'p javobli savol uchun qo'shish/olib tashlash */
 function onPick(q: PasteQuestion, id: string, ev: MouseEvent) {
   if (!(ev.ctrlKey || ev.shiftKey || ev.metaKey)) {

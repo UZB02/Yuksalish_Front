@@ -161,15 +161,16 @@ beforeEach(() => {
 })
 
 describe('Savol qo`shish sahifasi: ixcham sarlavha va usullar', () => {
-  it('sarlavhada "Fan · Mavzu" va "o`zgartirish"; usullar: Matnni joylash (standart), Bittalab, Word, Excel', async () => {
+  it('sarlavhada "Fan · Mavzu" va "o`zgartirish"; usullar: Matnni joylash (standart), Rasm / PDF (OCR), Bittalab, Word (.docx), Excel', async () => {
     const { w } = await mountAt('/exams/questions/new?topicId=t1')
     expect(w.get('h1').text()).toBe("Savol qo'shish")
     expect(w.get('[data-testid="ctx-text"]').text()).toBe('Matematika · Kasrlar')
     expect(w.find('[data-testid="ctx-panel"]').exists()).toBe(false)
     expect(w.findAll('[data-testid="method-tabs"] [role="tab"]').map((x) => x.text())).toEqual([
       'Matnni joylash',
+      'Rasm / PDF (OCR)',
       'Bittalab',
-      'Word',
+      'Word (.docx)',
       'Excel',
     ])
     expect(w.get('[data-testid="method-paste"]').attributes('aria-selected')).toBe('true')

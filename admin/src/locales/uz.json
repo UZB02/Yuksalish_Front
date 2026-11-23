@@ -1877,8 +1877,9 @@
       "methods": {
         "paste": "Matnni joylash",
         "single": "Bittalab",
-        "word": "Word",
-        "excel": "Excel"
+        "word": "Word (.docx)",
+        "excel": "Excel",
+        "ocr": "Rasm / PDF (OCR)"
       },
       "methodHelp": {
         "word": "Word (.docx) faylidan savollarni yuklang: oldindan ko'rasiz va tuzatasiz. Mavzu oldindan tanlangan.",
@@ -4022,10 +4023,11 @@
     "backToTasks": "Vazifalarimga",
     "tabs": {
       "paste": "Matnni joylash",
-      "word": "Word",
+      "word": "Word (.docx)",
       "excel": "Excel",
       "bank": "Bankdan",
-      "single": "Bittalab"
+      "single": "Bittalab",
+      "ocr": "Rasm / PDF (OCR)"
     },
     "tabHelp": {
       "word": "Word (.docx) faylidan savollarni yuklang: oldindan ko'rasiz va tuzatasiz.",
@@ -4129,5 +4131,37 @@
     "answers": "Qabul qilinadigan javoblar",
     "rubric": "Mezon",
     "total": "Jami {n} ta"
+  },
+  "ocr": {
+    "hint": "Aniq, tekis, yorug' rasm yuklang: sahifa to'g'ri turgan, soyasiz, matn xira emas bo'lsin.",
+    "privacy": "Rasm sizning brauzeringizda o'qiladi va serverga yuborilmaydi. Til fayllari birinchi marta yuklanadi (bir necha MB), keyin saqlab qo'yiladi.",
+    "pickFiles": "Rasm yoki PDF tanlash",
+    "camera": "Kamera bilan olish",
+    "up": "Yuqoriga",
+    "down": "Pastga",
+    "rotate": "90° burish",
+    "langs": "Hujjat tillari",
+    "needLang": "Kamida bitta tilni tanlang.",
+    "lang": {
+      "uzb": "O'zbek (lotin)",
+      "uzb_cyrl": "O'zbek (kirill)",
+      "rus": "Rus",
+      "eng": "Ingliz"
+    },
+    "prepLabel": "Rasmni tayyorlash",
+    "prep": {
+      "stretch": "Kontrastni oshirish (xira suratlar uchun)",
+      "binarize": "Qora-oq (faqat qattiq soyali suratlar uchun)",
+      "none": "Tayyorlamasdan (tavsiya)"
+    },
+    "start": "Matnni tanib olish",
+    "loadingLangs": "Til fayllari yuklanmoqda: {n}% (bir marta)",
+    "pageOf": "{page}/{total}-sahifa: {n}%",
+    "badFile": "{name}: bu fayl turi qo'llanmaydi (JPG, PNG yoki PDF tanlang)",
+    "failed": "Tanib olib bo'lmadi. Rasmni tekshirib qayta urining. {msg}",
+    "manyTitle": "Sahifalar juda ko'p",
+    "manyText": "{n} ta sahifa: telefon yoki kompyuterda ko'p xotira va vaqt (bir necha daqiqa) ketishi mumkin. Davom etamizmi? Kichikroq bo'laklarga bo'lib yuklash qulayroq.",
+    "manyGo": "Davom etish",
+    "fix": "Tanilgan matnni tekshiring va xatolarni tuzating: o'ngda savollar jonli ko'rinadi. Keyin saqlang."
   }
 }
