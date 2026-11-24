@@ -433,12 +433,30 @@ describe('Imtihon sahifasi: sarlavha, bosqichlar va "Fanlar" jadvali', () => {
     expect(w2.find('[data-testid="act-remind"]').exists()).toBe(false)
   })
 
-  it('rejalashtirish: tasdiqlanmagan fan bor = tugma o`chiq va xabarda fanlar nomi; hammasi tasdiqlangach ochiq; 409 (approval) toast', async () => {
-    const { w } = await mountDetail()
-    expect(w.get('[data-testid="act-submit"]').attributes('disabled')).toBeDefined()
+  it('rejalashtirish: tasdiqlanmagan fan bor = "<Fan>ni tasdiqlash" (ko`rib chiqishga) va xabarda fanlar nomi; hammasi tasdiqlangach "Rejalashtirish"; 409 (approval) toast', async () => {
+    const { w, router } = await mountDetail()
+    // "Rejalashtirish" tugmasi o'rniga tayyor (o'qituvchi tugatgan) fanni tasdiqlash tugmasi
+    expect(w.find('[data-testid="act-submit"]').exists()).toBe(false)
+    const review = w.get('[data-testid="act-review"]')
+    expect(review.text()).toBe('Ona tilini tasdiqlash')
+    expect(review.attributes('disabled')).toBeUndefined()
     expect(w.get('[data-testid="stage-warning"]').text()).toContain('Matematika')
     expect(w.get('[data-testid="stage-warning"]').text()).toContain('Ona tili')
     expect(w.get('[data-testid="stage-warning"]').text()).not.toContain('Fizika')
+    await review.trigger('click')
+    await flushPromises()
+    expect(api.submitSession).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('exam-block-review')
+    expect(router.currentRoute.value.params).toMatchObject({ id: 'e1', blockId: 'b2' })
+    document.body.innerHTML = ''
+    // hech bir o'qituvchi tugatmagan: tugma o'chiq va sababi sarlavhada
+    const none = session({
+      blocks: blocks3().map((b) => ({ ...b, status: 'open' as const, readyBy: null })),
+    })
+    const { w: w1 } = await mountDetail(none)
+    const dis = w1.get('[data-testid="act-review"]')
+    expect(dis.attributes('disabled')).toBeDefined()
+    expect(dis.attributes('title')).toBeTruthy()
     document.body.innerHTML = ''
     const ok = session({
       blocks: blocks3().map((b) => ({
@@ -448,6 +466,7 @@ describe('Imtihon sahifasi: sarlavha, bosqichlar va "Fanlar" jadvali', () => {
       })),
     })
     const { w: w2 } = await mountDetail(ok)
+    expect(w2.find('[data-testid="act-review"]').exists()).toBe(false)
     api.submitSession.mockRejectedValueOnce(
       new ApiError('CONFLICT', 'x', 409, [
         { path: 'approval', message: "Matematika: ma'muriyat tasdiqlamagan" },
@@ -709,43 +728,58 @@ describe('Ishtirokchilar: shaxsiy kirish kodi', () => {
     return mountAt(SessionDetailView, '/exams/sessions/e1', '/exams/sessions/:id')
   }
 
-  it('kod ro`yxatda maskalangan; "Ko`rsatish" alohida so`rov bilan ochadi, qayta bosilsa yashiradi; eski ishtirokchida "kod yo`q"', async () => {
+  const $ = (id: string) => document.body.querySelector(`[data-testid="${id}"]`) as HTMLElement
+  const tiles = (w: { findAll: (s: string) => { trigger: (e: string) => Promise<void> }[] }) =>
+    w.findAll('[data-testid="tile-open"]')
+  async function openStudent(w: Parameters<typeof tiles>[0], i: number) {
+    await w.findAll('[data-testid="tab-students"]')[0]!.trigger('click')
+    await tiles(w)[i]!.trigger('click')
+    await flushPromises()
+  }
+
+  it('kod panelda maskalangan; "Ko`rsatish" alohida so`rov bilan ochadi, qayta bosilsa yashiradi; eski ishtirokchida "kod yo`q"', async () => {
     api.participantCode.mockResolvedValue({ code: '7K4-92M-QXA' })
     const { w } = await mountDetail()
-    const rows = w.findAll('[data-testid="participant-row"]')
-    expect(rows).toHaveLength(2)
-    expect(rows[0]!.get('[data-testid="code-text"]').text()).toBe('•••-•••-•••')
+    // Rejalashtirilgan blokli imtihon "Fanlar" bo'limidan ochiladi; o'quvchilar alohida bo'limda
+    expect(tiles(w)).toHaveLength(0)
+    await openStudent(w, 0)
+    expect(tiles(w)).toHaveLength(2)
+    expect($('code-text').textContent?.trim()).toBe('•••-•••-•••')
     expect(api.participantCode).not.toHaveBeenCalled()
-    expect(w.text()).not.toContain('7K4-92M-QXA')
-    await rows[0]!.get('[data-testid="code-toggle"]').trigger('click')
+    expect(document.body.textContent).not.toContain('7K4-92M-QXA')
+    $('code-toggle').click()
     await flushPromises()
     expect(api.participantCode).toHaveBeenCalledWith('e1', 'k1')
-    expect(rows[0]!.get('[data-testid="code-text"]').text()).toBe('7K4-92M-QXA')
-    expect(rows[0]!.get('[data-testid="code-toggle"]').text()).toBe('Yashirish')
-    await rows[0]!.get('[data-testid="code-toggle"]').trigger('click')
-    expect(rows[0]!.get('[data-testid="code-text"]').text()).toBe('•••-•••-•••')
-    expect(rows[1]!.find('[data-testid="code-text"]').exists()).toBe(false)
-    expect(rows[1]!.get('[data-testid="code-missing"]').text()).toContain("yo'q")
+    expect($('code-text').textContent?.trim()).toBe('7K4-92M-QXA')
+    expect($('code-toggle').textContent?.trim()).toBe('Yashirish')
+    $('code-toggle').click()
+    await flushPromises()
+    expect($('code-text').textContent?.trim()).toBe('•••-•••-•••')
+    // eski ishtirokchi (kodi yo'q)
+    $('drawer-close').click()
+    await flushPromises()
+    await tiles(w)[1]!.trigger('click')
+    await flushPromises()
+    expect($('code-text')).toBeNull()
+    expect($('code-missing').textContent).toContain("yo'q")
   })
 
   it('"Kod va PIN ni yangilash": tasdiqdan keyin yangilanadi va ochilgan kod yashirinadi', async () => {
     api.participantCode.mockResolvedValue({ code: '7K4-92M-QXA' })
     api.regeneratePin.mockResolvedValue({ regenerated: true })
     const { w } = await mountDetail()
-    const row = w.findAll('[data-testid="participant-row"]')[0]!
-    await row.get('[data-testid="code-toggle"]').trigger('click')
+    await openStudent(w, 0)
+    $('code-toggle').click()
     await flushPromises()
-    expect(row.get('[data-testid="code-text"]').text()).toBe('7K4-92M-QXA')
-    await row.get('[data-testid="regen-pin"]').trigger('click')
+    expect($('code-text').textContent?.trim()).toBe('7K4-92M-QXA')
+    $('regen-pin').click()
     await flushPromises()
     const c = useConfirm()
     expect(c.state.options.message).toContain('shaxsiy kod')
     c.settle(true)
     await flushPromises()
     expect(api.regeneratePin).toHaveBeenCalledWith('e1', 'k1')
-    expect(
-      w.findAll('[data-testid="participant-row"]')[0]!.get('[data-testid="code-text"]').text(),
-    ).toBe('•••-•••-•••')
+    expect($('code-text').textContent?.trim()).toBe('•••-•••-•••')
   })
 })
 

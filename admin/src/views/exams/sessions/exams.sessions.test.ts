@@ -69,6 +69,18 @@ const click = async (el: Element | null) => {
   ;(el as HTMLElement).click()
   await flushPromises()
 }
+/** Sarlavhadagi ⋮ menyuni ochib, amal elementini qaytaradi (menyu yoki element bo'lmasa null) */
+const menuItem = async (key: string) => {
+  const trigger = $('menu-trigger')
+  if (!trigger) return null
+  if (!$('menu-panel')) await click(trigger)
+  return $(`menu-item-${key}`)
+}
+/** O'quvchi katagini bosib o'ng panelni ochadi */
+const openDrawer = async (w: { get: (s: string) => { trigger: (e: string) => Promise<void> } }) => {
+  await w.get('[data-testid="tile-open"]').trigger('click')
+  await flushPromises()
+}
 
 const meta = (over: Partial<ExamSessionMeta> = {}): ExamSessionMeta => ({
   pinSecretConfigured: true,
@@ -495,10 +507,13 @@ describe('SessionsView (ro`yxat)', () => {
 })
 
 describe('SessionDetailView (imtihon sahifasi)', () => {
-  const at = (role: 'teacher' | 'school_admin' = 'school_admin') =>
-    mountView(SessionDetailView, '/exams/sessions/e1', role, '/exams/sessions/:id')
+  /** Oldingi o'rnatilgan nusxa (va uning oynalari) olib tashlanadi: `$` so'rovlari aniq bo'lsin */
+  const at = async (role: 'teacher' | 'school_admin' = 'school_admin') => {
+    while (mounted.length) mounted.pop()!.unmount()
+    return mountView(SessionDetailView, '/exams/sessions/e1', role, '/exams/sessions/:id')
+  }
 
-  it('jonli kuzatuv: faqat canMonitor bo`lganda "5. O`tkazish" bo`limi chiqadi va jonli so`rov yuboriladi', async () => {
+  it('jonli kuzatuv: faqat canMonitor bo`lganda jonli so`rov yuboriladi va katak holati unga ko`ra', async () => {
     api.sessionLive.mockResolvedValue({
       serverNow: new Date().toISOString(),
       session: {
@@ -512,53 +527,88 @@ describe('SessionDetailView (imtihon sahifasi)', () => {
       canIntervene: true,
       staleAfterSec: 60,
       counts: {
-        total: 0,
+        total: 1,
         notStarted: 0,
         joined: 0,
-        inProgress: 0,
+        inProgress: 1,
         submitted: 0,
         terminated: 0,
         warned: 0,
         withLeaves: 0,
       },
-      items: [],
+      items: [
+        {
+          key: 'k1',
+          fullName: 'Aliyev Vali',
+          className: '7-A',
+          kind: 'student',
+          status: 'in_progress',
+          answered: 2,
+          total: 4,
+          lastSeenAt: new Date().toISOString(),
+          leaves: 0,
+          leaveDetail: { blur: 0, fullscreen: 0, hidden: 0 },
+          lastLeaveAt: null,
+          deadline: null,
+          block: null,
+          warningsSent: 0,
+          warningsPending: 0,
+          terminated: null,
+          allowReentry: false,
+        },
+      ],
       joinAlert: { failures: 0, lastAt: null, alertAt: null },
     })
     api.getSession.mockResolvedValue(session({ status: 'open', canMonitor: false }))
-    expect((await at()).w.find('[data-testid="stage-run"]').exists()).toBe(false)
+    const a = await at()
     expect(api.sessionLive).not.toHaveBeenCalled()
+    expect(a.w.get('[data-testid="student-tile"]').attributes('data-phase')).toBe('not_started')
     api.getSession.mockResolvedValue(
       session({ status: 'open', canMonitor: true, canIntervene: true }),
     )
     const { w } = await at()
     await flushPromises()
-    expect(w.find('[data-testid="stage-run"] [data-testid="live-monitor"]').exists()).toBe(true)
     expect(api.sessionLive).toHaveBeenCalledWith('e1')
-    expect(w.get('[data-testid="live-monitor"] h2').text()).toContain('Jonli kuzatuv')
+    expect(w.find('[data-testid="live-monitor"]').exists()).toBe(false)
+    expect(w.get('[data-testid="student-tile"]').attributes('data-phase')).toBe('in_progress')
   })
 
   it('PIN holati ko`rsatiladi, PIN o`zi hech qachon', async () => {
     const { w } = await at()
-    expect(w.get('[data-testid="pin-status"]').text()).toBe(uz.examSessions.participants.pinReady)
-    expect(w.text()).not.toMatch(/pinEnc|pinHash/)
+    await openDrawer(w)
+    expect($('pin-status').textContent?.trim()).toBe(
+      'PIN: ' + uz.examSessions.participants.pinReady.toLowerCase(),
+    )
+    expect(document.body.textContent).not.toMatch(/pinEnc|pinHash/)
+    // Imtihon kodi: sarlavhada (rejalashtirilgan) va "Ma'lumot" bo'limida
+    expect(w.get('[data-testid="hero-code"]').text()).toContain('123456')
+    await w.get('[data-testid="tab-info"]').trigger('click')
     expect(w.get('[data-testid="detail-code"]').text()).toBe('123456')
   })
 
   it('PIN kartochkalarini chop etish API ni chaqiradi (hammasi va sinf bo`yicha)', async () => {
     api.downloadPinSheet.mockResolvedValue('pin.pdf')
     const { w } = await at()
-    await w.get('[data-testid="print-pins"]').trigger('click')
+    // Rejalashtirilgan imtihonda "Kartochkalarni chop etish" asosiy tugma; oyna sinf tanlashni beradi
+    await w.get('[data-testid="act-print"]').trigger('click')
     await flushPromises()
+    await click($('print-pins'))
     expect(api.downloadPinSheet).toHaveBeenLastCalledWith('e1', undefined)
-    await w.get('[data-testid="print-class"]').setValue('7-A')
-    await w.get('[data-testid="print-pins"]').trigger('click')
+    await w.get('[data-testid="act-print"]').trigger('click')
     await flushPromises()
+    const sel = $('print-class') as HTMLSelectElement
+    sel.value = '7-A'
+    sel.dispatchEvent(new Event('change'))
+    await flushPromises()
+    await click($('print-pins'))
     expect(api.downloadPinSheet).toHaveBeenLastCalledWith('e1', '7-A')
   })
 
-  it('chop etish bloki canPrint=false bo`lsa ko`rinmaydi (qoralama)', async () => {
+  it('chop etish canPrint=false bo`lsa tugma ham, menyu elementi ham yo`q (qoralama)', async () => {
     api.getSession.mockResolvedValue(session({ status: 'draft', canPrint: false, code: null }))
     const { w } = await at()
+    expect(w.find('[data-testid="act-print"]').exists()).toBe(false)
+    expect(await menuItem('print')).toBeNull()
     expect(w.find('[data-testid="print-block"]').exists()).toBe(false)
   })
 
@@ -612,11 +662,12 @@ describe('SessionDetailView (imtihon sahifasi)', () => {
   it('individual vaqt: faqat canGrant da; saqlash API ga to`g`ri maydonlarni yuboradi', async () => {
     api.grantTime.mockResolvedValue({})
     const a = await at('teacher')
-    expect(a.w.find('[data-testid="grant-open"]').exists()).toBe(false)
+    await openDrawer(a.w)
+    expect($('grant-open')).toBeNull()
     api.getSession.mockResolvedValue(session({ canGrant: true }))
     const { w } = await at('school_admin')
-    await w.get('[data-testid="grant-open"]').trigger('click')
-    await flushPromises()
+    await openDrawer(w)
+    await click($('grant-open'))
     await click($('grant-full').querySelector('button'))
     await setIn('grant-extra', '10')
     await click($('grant-confirm'))
@@ -624,6 +675,7 @@ describe('SessionDetailView (imtihon sahifasi)', () => {
   })
 
   it('urinishlar: holat, javoblar soni, ogohlantirishlar va kirish urinishlari ogohlantirishi; qayta kirishga ruxsat', async () => {
+    api.getSession.mockResolvedValue(session({ status: 'open', canClose: true }))
     api.sessionAttempts.mockResolvedValue({
       items: [
         {
@@ -644,33 +696,40 @@ describe('SessionDetailView (imtihon sahifasi)', () => {
     })
     api.allowReentry.mockResolvedValue({ allowReentry: true })
     const { w } = await at('school_admin')
-    expect(w.get('[data-testid="attempt-status"]').text()).toBe(
-      uz.examSessions.attempt.statuses.in_progress,
-    )
-    expect(w.get('[data-testid="attempt-answered"]').text()).toBe('3 / 6')
-    expect(w.get('[data-testid="attempt-warnings"]').text()).toBe('4')
+    // canMonitor=false: jonli so'rov yo'q, urinishlar so'rovi ishlaydi
+    expect(api.sessionLive).not.toHaveBeenCalled()
+    expect(w.get('[data-testid="student-tile"]').attributes('data-phase')).toBe('in_progress')
     expect(w.get('[data-testid="join-alert"]').text()).toContain('210')
+    await openDrawer(w)
+    expect($('drawer-phase').textContent?.trim()).toBe(uz.examSessions.live.statuses.in_progress)
+    expect($('drawer-answers').textContent?.trim()).toBe('3 / 6 javob')
+    expect($('live-leaves-count').textContent).toContain('4')
     const c = useConfirm()
-    await w.get('[data-testid="allow-reentry"]').trigger('click')
-    await flushPromises()
+    await click($('allow-reentry'))
     expect(c.state.open).toBe(true)
     c.settle(true)
     await flushPromises()
     expect(api.allowReentry).toHaveBeenCalledWith('e1', 'k1')
   })
 
-  it('urinishlar yuklanmasa jadval holat ustunlarisiz ko`rinadi', async () => {
+  it('urinishlar yuklanmasa katak holatsiz (kirmagan) ko`rinadi, sahifa buzilmaydi', async () => {
+    api.getSession.mockResolvedValue(session({ status: 'open' }))
     api.sessionAttempts.mockRejectedValue(new Error('x'))
     const { w } = await at('school_admin')
-    expect(w.find('[data-testid="attempt-status"]').exists()).toBe(false)
-    expect(w.find('[data-testid="participant-row"]').exists()).toBe(true)
+    expect(w.get('[data-testid="student-tile"]').attributes('data-phase')).toBe('not_started')
+    expect(w.find('[data-testid="join-alert"]').exists()).toBe(false)
   })
 
-  it('Natijalar tugmasi canViewResults ga bog`liq; bosilganda natijalar sahifasiga o`tadi', async () => {
+  it('Natijalar: yopilganda asosiy tugma (canViewResults ga bog`liq), boshqa holatda menyuda; natijalar sahifasiga o`tadi', async () => {
     api.getSession.mockResolvedValue(session({ canViewResults: false }))
     const a = await at('school_admin')
     expect(a.w.find('[data-testid="act-results"]').exists()).toBe(false)
+    expect(await menuItem('results')).toBeNull()
     api.getSession.mockResolvedValue(session({ canViewResults: true }))
+    const b = await at('school_admin')
+    expect(b.w.find('[data-testid="act-results"]').exists()).toBe(false)
+    expect(await menuItem('results')).not.toBeNull()
+    api.getSession.mockResolvedValue(session({ status: 'closed', canViewResults: true }))
     const { w, router } = await at('school_admin')
     await router.isReady()
     await w.get('[data-testid="act-results"]').trigger('click')
@@ -689,15 +748,15 @@ describe('SessionDetailView (imtihon sahifasi)', () => {
 
   it('Qayta ochish: faqat canReopen; sabab va kelajakdagi vaqt majburiy; yangi kod haqida xabar', async () => {
     api.getSession.mockResolvedValue(session({ status: 'closed', canReopen: false }))
-    expect((await at('school_admin')).w.find('[data-testid="act-reopen"]').exists()).toBe(false)
+    await at('school_admin')
+    expect(await menuItem('reopen')).toBeNull()
     api.getSession.mockResolvedValue(session({ status: 'closed', canReopen: true }))
     api.reopenSession.mockResolvedValue({
       ...session({ status: 'open', code: '654321' }),
       codeChanged: true,
     })
-    const { w } = await at('school_admin')
-    await w.get('[data-testid="act-reopen"]').trigger('click')
-    await flushPromises()
+    await at('school_admin')
+    await click(await menuItem('reopen'))
     await click($('reopen-confirm'))
     expect(api.reopenSession).not.toHaveBeenCalled()
     expect(document.body.textContent).toContain(uz.examSessions.errors.reasonRequired)
@@ -737,8 +796,8 @@ describe('SessionDetailView (imtihon sahifasi)', () => {
     api.regeneratePin.mockResolvedValue({ regenerated: true })
     const { w } = await at('school_admin')
     const c = useConfirm()
-    await w.get('[data-testid="regen-pin"]').trigger('click')
-    await flushPromises()
+    await openDrawer(w)
+    await click($('regen-pin'))
     expect(c.state.open).toBe(true)
     c.settle(true)
     await flushPromises()

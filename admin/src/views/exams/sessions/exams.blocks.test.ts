@@ -83,6 +83,23 @@ afterEach(() => {
   while (mounted.length) mounted.pop()!.unmount()
 })
 
+/** Sarlavhadagi ⋮ menyuni ochadi (agar ochiq bo'lmasa); menyu yo'q bo'lsa false */
+async function openMenu() {
+  const trigger = $('menu-trigger')
+  if (!trigger) return false
+  if (!$('menu-panel')) {
+    trigger.click()
+    await flushPromises()
+  }
+  return true
+}
+const menuClick = async (key: string) => {
+  await openMenu()
+  $(`menu-item-${key}`).click()
+  await flushPromises()
+}
+const hasMenuItem = async (key: string) => (await openMenu()) && !!$(`menu-item-${key}`)
+
 async function mountView(
   comp: unknown,
   path: string,
@@ -507,6 +524,8 @@ describe('Imtihon sahifasi: bloklar paneli va rejalashtirish', () => {
     expect(w.get('[data-testid="detail-block-0"]').text()).toContain('Matematik Ustoz')
     expect(w.get('[data-testid="detail-block-0"]').text()).toContain('×3,1')
     expect(w.get('[data-testid="detail-block-1"]').text()).toContain('Tasdiqlangan')
+    // Ball va vaqt rejimi, muddat: "Ma'lumot" bo'limida
+    await w.get('[data-testid="tab-info"]').trigger('click')
     expect(w.get('[data-testid="detail-scoring"]').text()).toBe('Blok koeffitsiyenti')
     expect(w.get('[data-testid="detail-timing"]').text()).toBe('Blokma-blok')
     expect(w.find('[data-testid="detail-contrib-deadline"]').exists()).toBe(true)
@@ -811,12 +830,12 @@ describe('Imtihon sahifasi: o`chirish tanlovi, nusxa, qaytarish', () => {
       draftLike({ status: 'closed', canDelete: true, hasAttempts: true, canSubmit: false }),
     )
     api.deleteSession.mockResolvedValue({ id: 'e1', deleted: true, mode: 'with_results' })
-    const { w, router } = await mountView(
+    const { router } = await mountView(
       SessionDetailView,
       '/exams/sessions/e1',
       '/exams/sessions/:id',
     )
-    await w.get('[data-testid="act-delete"]').trigger('click')
+    await menuClick('delete')
     await flushPromises()
     expect($('delete-dialog')).toBeTruthy()
     expect(document.body.querySelector('[data-testid="delete-confirm-box"]')).toBeNull()
@@ -847,8 +866,8 @@ describe('Imtihon sahifasi: o`chirish tanlovi, nusxa, qaytarish', () => {
       draftLike({ status: 'closed', canDelete: true, hasAttempts: true }),
     )
     api.deleteSession.mockResolvedValue({ id: 'e1', deleted: true, mode: 'exam_only' })
-    const { w } = await mountView(SessionDetailView, '/exams/sessions/e1', '/exams/sessions/:id')
-    await w.get('[data-testid="act-delete"]').trigger('click')
+    await mountView(SessionDetailView, '/exams/sessions/e1', '/exams/sessions/:id')
+    await menuClick('delete')
     await flushPromises()
     ;($('delete-confirm') as HTMLButtonElement).click()
     await flushPromises()
@@ -861,8 +880,8 @@ describe('Imtihon sahifasi: o`chirish tanlovi, nusxa, qaytarish', () => {
   it('urinishsiz imtihon: oddiy tasdiq dialogi (ikki variantli oyna yo`q)', async () => {
     api.getSession.mockResolvedValue(draftLike({ canDelete: true, hasAttempts: false }))
     api.deleteSession.mockResolvedValue({ id: 'e1', deleted: true, mode: 'none' })
-    const { w } = await mountView(SessionDetailView, '/exams/sessions/e1', '/exams/sessions/:id')
-    await w.get('[data-testid="act-delete"]').trigger('click')
+    await mountView(SessionDetailView, '/exams/sessions/e1', '/exams/sessions/:id')
+    await menuClick('delete')
     await flushPromises()
     expect(document.body.querySelector('[data-testid="delete-dialog"]')).toBeNull()
     useConfirm().settle(true)
@@ -876,12 +895,12 @@ describe('Imtihon sahifasi: o`chirish tanlovi, nusxa, qaytarish', () => {
       session: draftLike({ id: 'n1' }),
       warnings: ["1 ta savol bankdan o'chirilgan: nusxaga tushmadi"],
     })
-    const { w, router } = await mountView(
+    const { router } = await mountView(
       SessionDetailView,
       '/exams/sessions/e1',
       '/exams/sessions/:id',
     )
-    await w.get('[data-testid="act-copy"]').trigger('click')
+    await menuClick('copy')
     await flushPromises()
     expect(api.copySession).toHaveBeenCalledWith('e1')
     expect(router.currentRoute.value.name).toBe('exam-session-edit')
@@ -889,12 +908,8 @@ describe('Imtihon sahifasi: o`chirish tanlovi, nusxa, qaytarish', () => {
     expect(JSON.stringify(useToast().toasts)).toContain('nusxaga tushmadi')
     document.body.innerHTML = ''
     api.getSession.mockResolvedValue(draftLike({ canCopy: false }))
-    const { w: w2 } = await mountView(
-      SessionDetailView,
-      '/exams/sessions/e1',
-      '/exams/sessions/:id',
-    )
-    expect(w2.find('[data-testid="act-copy"]').exists()).toBe(false)
+    await mountView(SessionDetailView, '/exams/sessions/e1', '/exams/sessions/:id')
+    expect(await hasMenuItem('copy')).toBe(false)
   })
 
   it('qoralamaga qaytarish: faqat rejalashtirilgan va urinishsiz; tasdiqdan keyin usta ochiladi', async () => {
@@ -907,12 +922,12 @@ describe('Imtihon sahifasi: o`chirish tanlovi, nusxa, qaytarish', () => {
       }),
     )
     api.returnToDraft.mockResolvedValue(draftLike())
-    const { w, router } = await mountView(
+    const { router } = await mountView(
       SessionDetailView,
       '/exams/sessions/e1',
       '/exams/sessions/:id',
     )
-    await w.get('[data-testid="act-return"]').trigger('click')
+    await menuClick('return')
     await flushPromises()
     expect(useConfirm().state.options.message).toContain('PIN')
     useConfirm().settle(true)
@@ -923,12 +938,8 @@ describe('Imtihon sahifasi: o`chirish tanlovi, nusxa, qaytarish', () => {
     api.getSession.mockResolvedValue(
       draftLike({ status: 'scheduled', canReturnToDraft: true, hasAttempts: true }),
     )
-    const { w: w2 } = await mountView(
-      SessionDetailView,
-      '/exams/sessions/e1',
-      '/exams/sessions/:id',
-    )
-    expect(w2.find('[data-testid="act-return"]').exists()).toBe(false)
+    await mountView(SessionDetailView, '/exams/sessions/e1', '/exams/sessions/:id')
+    expect(await hasMenuItem('return')).toBe(false)
   })
 })
 
@@ -1224,7 +1235,10 @@ describe('Imtihon sahifasi: bosqichli boshqaruv', () => {
     expect(w.get('[data-testid="stage-bar"]').text()).toMatch(
       /Ochildi.*Savollar.*Tasdiq.*Ishtirokchilar.*O'tkazish.*Natijalar/,
     )
-    expect(w.get('[data-testid="act-submit"]').attributes('disabled')).toBeDefined()
+    // Tasdiqlanmagan fan bor: "Rejalashtirish" o'rniga "Fanlarni tasdiqlash" (hech kim tugatmagani uchun o'chiq)
+    expect(w.find('[data-testid="act-submit"]').exists()).toBe(false)
+    expect(w.get('[data-testid="act-review"]').attributes('disabled')).toBeDefined()
+    expect(w.get('[data-testid="act-review"]').attributes('title')).toBeTruthy()
     await w.get('[data-testid="detail-block-action-0"]').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.name).toBe('exam-my-block')

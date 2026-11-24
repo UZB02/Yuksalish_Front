@@ -3483,7 +3483,7 @@
       "fullTime": "To'liq vaqt",
       "min": "daq.",
       "grant": "Vaqt berish",
-      "regen": "Yangilash",
+      "regen": "Kodni yangilash",
       "remove": "Olib tashlash",
       "regenTitle": "Kod va PIN ni yangilash",
       "regenText": "{name} uchun yangi shaxsiy kod va PIN yaratiladi. Eski kartochka yaroqsiz bo'ladi. Davom etasizmi?",
@@ -4244,5 +4244,158 @@
     "manyText": "{n} ta sahifa: telefon yoki kompyuterda ko'p xotira va vaqt (bir necha daqiqa) ketishi mumkin. Davom etamizmi? Kichikroq bo'laklarga bo'lib yuklash qulayroq.",
     "manyGo": "Davom etish",
     "fix": "Tanilgan matnni tekshiring va xatolarni tuzating: o'ngda savollar jonli ko'rinadi. Keyin saqlang."
+  },
+  "examBoard": {
+    "back": "Imtihonlar ro'yxatiga qaytish",
+    "more": "Boshqa amallar",
+    "remaining": "Qoldi",
+    "code": "Kod: {code}",
+    "hero": {
+      "confirmSubject": "{subject}ni tasdiqlash",
+      "confirmSubjects": "Fanlarni tasdiqlash",
+      "nobodyFinished": "Hali hech bir o'qituvchi savollarni tugatmagan",
+      "start": "Boshlash",
+      "results": "Natijalar",
+      "excel": "Excel",
+      "publish": "E'lon qilish",
+      "addTime": "Vaqt qo'shish"
+    },
+    "menu": {
+      "edit": "Sozlamalar",
+      "print": "Kartochkalarni chop etish"
+    },
+    "cells": {
+      "readiness": "Tayyorlik",
+      "subjects": "Fanlar",
+      "students": "O'quvchilar",
+      "startsIn": "Boshlanishiga",
+      "all": "Hammasi",
+      "problem": "Muammoli",
+      "solving": "Yechyapti",
+      "submitted": "Topshirdi",
+      "notStarted": "Kirmagan",
+      "terminated": "To'xtatilgan",
+      "passed": "O'tdi",
+      "failed": "O'tmadi",
+      "notSubmitted": "Topshirmagan",
+      "average": "O'rtacha",
+      "highest": "Eng yuqori",
+      "status": "Holat"
+    },
+    "cellSub": {
+      "approved": "tasdiqlangan",
+      "classes": "{n} sinf",
+      "needAttention": "e'tibor kerak"
+    },
+    "startsDH": "{d} kun {h} soat",
+    "startsHM": "{h} soat {m} daq",
+    "startsM": "{m} daq",
+    "startsNow": "Hozir",
+    "stripAria": "Filtrlar",
+    "tabsAria": "Bo'limlar",
+    "tabs": {
+      "students": "O'quvchilar",
+      "subjects": "Fanlar",
+      "info": "Ma'lumot"
+    },
+    "toolbar": {
+      "search": "O'quvchini qidirish",
+      "add": "Qo'shish",
+      "addTitle": "Ishtirokchilarni qo'shish",
+      "selected": "{n} ta tanlandi",
+      "clear": "Tanlovni bekor qilish",
+      "warn": "Ogohlantirish",
+      "grant": "Vaqt berish",
+      "stop": "To'xtatish"
+    },
+    "section": {
+      "count": "{n} o'quvchi",
+      "partial": "{a} / {b}",
+      "done": "{n}% bajarildi",
+      "avg": "o'rtacha {n}%",
+      "candidates": "Nomzodlar",
+      "guests": "Mehmonlar",
+      "others": "Boshqalar",
+      "selectAll": "{name} bo'limini belgilash",
+      "selectOne": "{name}ni belgilash",
+      "empty": "Hali o'quvchi yo'q.",
+      "emptyFiltered": "Filtrga mos o'quvchi topilmadi.",
+      "resetFilter": "Filtrni tozalash"
+    },
+    "tile": {
+      "codeReady": "Kod tayyor",
+      "codeMissing": "Kod yo'q",
+      "passed": "O'tdi",
+      "failed": "O'tmadi",
+      "notSubmitted": "Topshirmagan",
+      "leaves": "{n} marta chiqdi",
+      "noContact": "Aloqa yo'q",
+      "open": "{name}: tafsilot",
+      "extra": "+{n} daq",
+      "fullTime": "To'liq vaqt"
+    },
+    "drawer": {
+      "close": "Yopish",
+      "answers": "{a} / {t} javob",
+      "personalCode": "Shaxsiy kod",
+      "pin": "PIN",
+      "time": "Vaqt",
+      "lastSeen": "Oxirgi faollik",
+      "leaves": "Oynadan chiqish",
+      "warnings": "Ogohlantirishlar",
+      "personal": "Shaxsiy amallar",
+      "details": "Jonli ma'lumot",
+      "scores": "Fanlar bo'yicha ball",
+      "total": "Jami",
+      "viewAnswers": "Javoblarini ko'rish",
+      "essayPending": "Tekshirilmagan insho: {n} ta",
+      "noResult": "Natija yo'q",
+      "terminated": "To'xtatilgan: {reason}",
+      "pinState": "PIN: {state}"
+    },
+    "bulk": {
+      "warnTitle": "Ogohlantirish yuborish",
+      "warnTo": "Kimga: {n} ta o'quvchi",
+      "warnOnlySolving": "Faqat yechayotganlarga yuboriladi: {n} ta (tanlangan: {total} ta)",
+      "warnNone": "Tanlanganlar orasida yechayotgan o'quvchi yo'q.",
+      "sentSummary": "{sent} ta yuborildi, {skipped} ta o'tkazildi",
+      "grantTitle": "Tanlanganlarga vaqt berish",
+      "grantMinutes": "Qo'shiladigan daqiqa (1 dan 240 gacha)",
+      "grantHint": "Har bir o'quvchining hozirgi qo'shimcha vaqtiga qo'shiladi. Jami 240 daqiqadan oshsa, o'tkazib yuboriladi.",
+      "grantRange": "1 dan 240 gacha butun son kiriting",
+      "grantSend": "Vaqt qo'shish",
+      "grantDone": "{n} ta o'quvchiga +{m} daqiqa qo'shildi",
+      "grantSummary": "{done} ta qo'shildi, {skipped} ta o'tkazildi",
+      "grantLimit": "jami 240 daqiqadan oshadi",
+      "stopTitle": "Imtihonlarni to'xtatish",
+      "stopList": "To'xtatiladigan o'quvchilar:",
+      "stopWarn": "{n} ta o'quvchining imtihoni darhol to'xtatiladi. Shu paytgacha bergan javoblari baholanadi.",
+      "stopConfirm": "{n} ta o'quvchini to'xtatish",
+      "stopDone": "{n} ta imtihon to'xtatildi",
+      "stopSummary": "{done} ta to'xtatildi, {failed} tasi to'xtamadi (tanlovda qoldi)",
+      "none": "Tanlangan o'quvchi yo'q",
+      "close": "Yopish",
+      "stopOnlySolving": "Faqat yechayotganlar to'xtatiladi: {n} ta (tanlangan: {total} ta)"
+    },
+    "dist": {
+      "title": "Natijalar taqsimoti",
+      "subjects": "Fanlar bo'yicha o'rtacha",
+      "bar": "{from}-{to}%: {n} ta",
+      "empty": "Hali natija yo'q"
+    },
+    "info": {
+      "edit": "O'zgartirish"
+    },
+    "subjects": {
+      "stepsTitle": "Qadamlar",
+      "timeTitle": "Vaqt",
+      "perSubject": "{pct}%",
+      "noBlocks": "Bu imtihonda fanlar bo'limi yo'q.",
+      "average": "o'rtacha"
+    },
+    "copyCode": "Kodni nusxalash",
+    "codeCopied": "Imtihon kodi nusxalandi",
+    "resultsError": "Natijalarni yuklab bo'lmadi.",
+    "retry": "Qayta urinish"
   }
 }

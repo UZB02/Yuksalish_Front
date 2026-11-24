@@ -3,41 +3,62 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
-import { Printer } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
-import { isApiError } from '@/api/errors'
 import type {
-  ExamAttemptRow,
   ExamAttemptsResponse,
+  ExamResultsResponse,
   ExamSession,
   ExamSessionMeta,
-  ExamSessionParticipant,
 } from '@/api/types'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
-import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
-import BaseSwitch from '@/components/ui/BaseSwitch.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import PageHeader from '@/components/ui/PageHeader.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
+import BulkDialogs, { type BulkMode } from '@/components/exams/session/BulkDialogs.vue'
+import ClassSection from '@/components/exams/session/ClassSection.vue'
+import ExamHero from '@/components/exams/session/ExamHero.vue'
+import ExamStatStrip from '@/components/exams/session/ExamStatStrip.vue'
+import ExamToolbar from '@/components/exams/session/ExamToolbar.vue'
+import InfoPanel from '@/components/exams/session/InfoPanel.vue'
+import ResultsInsights from '@/components/exams/session/ResultsInsights.vue'
+import SessionActionDialogs from '@/components/exams/session/SessionActionDialogs.vue'
+import StudentDrawer from '@/components/exams/session/StudentDrawer.vue'
+import SubjectCards from '@/components/exams/session/SubjectCards.vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useExamLive, useVisiblePoll } from '@/composables/useExamLive'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
+import { useSessionActions } from '@/composables/useSessionActions'
 import { useToast } from '@/composables/useToast'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
-import { useAuthStore } from '@/stores/auth'
-import { clearDraftById } from '@/utils/examWizardDraft'
-import { STATUS_TONE, fmtDateTime, localToIso, nowLocal } from '@/utils/examSessions'
-import ExamFlowStepper from '@/components/exams/ExamFlowStepper.vue'
-import ExamSubjectsTable from '@/components/exams/ExamSubjectsTable.vue'
-import LiveMonitor from '@/components/exams/LiveMonitor.vue'
-import { FLOW_PILL_TONE, examFlow } from '@/utils/examFlow'
+import {
+  buildBoardRows,
+  distribution,
+  groupSections,
+  layoutOf,
+  matchesFilter,
+  matchesSearch,
+  pruneSelection,
+  readinessPct,
+  sortRows,
+  startsInParts,
+  statCells,
+  stageOf,
+  subjectAverages,
+  type BoardRow,
+  type FilterKey,
+} from '@/utils/examBoard'
+import { blockState, blocksSummary, examFlow } from '@/utils/examFlow'
+import { fmtDateTime } from '@/utils/examSessions'
+import ParticipantResultModal from './ParticipantResultModal.vue'
 import ParticipantsPanel from './ParticipantsPanel.vue'
 
-/** Imtihon sahifasi: ma'lumot, holat amallari, tasdiq/rad, ishtirokchilar jadvali (PIN holati), PIN kartochkalari */
+/**
+ * Imtihon sahifasi ("4B: sinflar yonma-yon"): sarlavha + amallar, raqamlar qatori (filtr), asboblar qatori,
+ * o'quvchilar sinf bo'yicha kataklarda, fanlar va ma'lumot bo'limlari, o'quvchi paneli (drawer).
+ * Ma'lumot: nazoratchida har 5 s da bitta sessionLive; boshqalarda 15 s da sessionAttempts; yopilganda bir marta.
+ */
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -45,209 +66,168 @@ const toast = useToast()
 const { confirm } = useConfirm()
 const needsSchool = useNeedsSchool()
 const { schoolId } = storeToRefs(useSchoolContextStore())
-const auth = useAuthStore()
 
 const id = computed(() => String(route.params.id))
 const s = ref<ExamSession | null>(null)
 const meta = ref<ExamSessionMeta | null>(null)
 const loading = ref(true)
 const error = ref('')
-const busy = ref(false)
 const showAdd = ref(false)
-const printClass = ref('')
-
-const rejectOpen = ref(false)
-const rejectReason = ref('')
-const rejectError = ref('')
-
-// ---- Urinishlar (o'quvchi imtihon topshirish holati): E5 da nazoratchi ekrani kengayadi ----
 const attempts = ref<ExamAttemptsResponse | null>(null)
-const attemptByKey = computed(
-  () => new Map<string, ExamAttemptRow>((attempts.value?.items ?? []).map((a) => [a.key, a])),
-)
-let attemptsTimer: ReturnType<typeof setInterval> | null = null
+const results = ref<ExamResultsResponse | null>(null)
+
+const stage = computed(() => (s.value ? stageOf(s.value.status) : 'before'))
+
+// ---- Ma'lumot yuklash ----
+/** Kechikkan eski javob yangi imtihon ustiga yozilmasin: so'rov boshidagi id va ketma-ket raqam solishtiriladi */
+let loadSeq = 0
 async function loadAttempts() {
-  if (!s.value || !['scheduled', 'open', 'closed'].includes(s.value.status)) return
+  const sid = id.value
+  if (!s.value) return
   try {
-    attempts.value = await examsApi.sessionAttempts(id.value)
+    const r = await examsApi.sessionAttempts(sid)
+    if (sid === id.value) attempts.value = r
   } catch {
-    /* jadval holat ustunlarisiz ko'rinadi */
+    /* kataklar holat ma'lumotisiz ko'rinadi */
   }
 }
-async function allowReentry(p: ExamSessionParticipant) {
-  const ok = await confirm({
-    title: t('examSessions.attempt.reentryTitle'),
-    message: t('examSessions.attempt.reentryText', { name: p.fullName }),
-    confirmText: t('examSessions.attempt.reentry'),
-  })
-  if (ok) {
-    await run(() => examsApi.allowReentry(id.value, p.key), 'examSessions.toast.reentry')
-    await loadAttempts()
-  }
-}
-onBeforeUnmount(() => {
-  if (attemptsTimer) clearInterval(attemptsTimer)
-})
-
-// ---- Qayta ochish va hammaga vaqt qo'shish ----
-const reopenOpen = ref(false)
-const reopenReason = ref('')
-const reopenEnd = ref('')
-const reopenError = ref<Record<string, string>>({})
-function openReopen() {
-  reopenReason.value = ''
-  reopenEnd.value = nowLocal(60)
-  reopenError.value = {}
-  reopenOpen.value = true
-}
-async function doReopen() {
-  reopenError.value = {}
-  if (!reopenReason.value.trim()) reopenError.value.reason = t('examSessions.errors.reasonRequired')
-  if (!reopenEnd.value) reopenError.value.end = t('examSessions.errors.newEndRequired')
-  else if (new Date(localToIso(reopenEnd.value)).getTime() <= Date.now()) {
-    reopenError.value.end = t('examSessions.errors.newEndPast')
-  }
-  if (Object.keys(reopenError.value).length) return
-  busy.value = true
+const resultsState = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
+/** Yopilgan imtihon natijalari: bir marta (va yangilashda). Xato sahifani buzmaydi: kichik xabar + "Qayta urinish" */
+async function loadResults() {
+  const cur = s.value
+  if (!cur || cur.status !== 'closed' || !cur.canViewResults) return
+  const sid = id.value
+  if (!results.value) resultsState.value = 'loading'
   try {
-    const r = await examsApi.reopenSession(id.value, {
-      reason: reopenReason.value.trim(),
-      newEnd: localToIso(reopenEnd.value),
-    })
-    reopenOpen.value = false
-    toast.success(
-      r.codeChanged
-        ? t('examSessions.detail.reopenedCode', { code: r.code ?? '' })
-        : t('examSessions.toast.reopened'),
-    )
-    await refresh()
-  } catch (e) {
-    toast.error(errorMessage(e, t))
-  } finally {
-    busy.value = false
+    const r = await examsApi.sessionResults(sid)
+    if (sid !== id.value) return
+    results.value = r
+    resultsState.value = 'ready'
+  } catch {
+    if (sid === id.value) resultsState.value = 'error'
   }
 }
-
-const extendOpen = ref(false)
-const extendMinutes = ref('15')
-const extendReason = ref('')
-const extendError = ref('')
-function openExtend() {
-  extendMinutes.value = '15'
-  extendReason.value = ''
-  extendError.value = ''
-  extendOpen.value = true
-}
-async function doExtend() {
-  const n = Number(extendMinutes.value)
-  if (!Number.isInteger(n) || n < 1 || n > 180) {
-    extendError.value = t('examSessions.errors.minutesRange')
-    return
-  }
-  busy.value = true
-  try {
-    await examsApi.extendSession(id.value, {
-      minutes: n,
-      reason: extendReason.value.trim() || undefined,
-    })
-    extendOpen.value = false
-    toast.success(t('examSessions.toast.extended'))
-    await refresh()
-  } catch (e) {
-    toast.error(errorMessage(e, t))
-  } finally {
-    busy.value = false
-  }
-}
-
-const grantFor = ref<ExamSessionParticipant | null>(null)
-const grantFull = ref(false)
-const grantExtra = ref('0')
-const grantError = ref('')
-
-const classOptions = computed(() => {
-  const names = [
-    ...new Set((s.value?.participants ?? []).map((p) => p.className).filter(Boolean)),
-  ] as string[]
-  return [
-    { value: '', label: t('examSessions.detail.allClasses') },
-    ...names.map((n) => ({ value: n, label: n })),
-  ]
-})
-
 async function load() {
   if (needsSchool.value) return
+  const seq = ++loadSeq
+  const sid = id.value
   loading.value = true
   error.value = ''
+  attempts.value = null
+  results.value = null
+  resultsState.value = 'idle'
   try {
-    const [x, m] = await Promise.all([examsApi.getSession(id.value), examsApi.sessionMeta()])
+    const [x, m] = await Promise.all([examsApi.getSession(sid), examsApi.sessionMeta()])
+    if (seq !== loadSeq) return
     s.value = x
     meta.value = m
-    void loadAttempts()
-    if (attemptsTimer) clearInterval(attemptsTimer)
-    attemptsTimer = setInterval(() => void loadAttempts(), 15_000)
+    void loadClosed()
   } catch (e) {
+    if (seq !== loadSeq) return
     s.value = null
     error.value = errorMessage(e, t)
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
+}
+/** Yopilgan imtihon: natijalar; natija ko'rolmaydigan yoki natija xatosida urinishlar (bir martalik, zaxira) */
+async function loadClosed() {
+  if (s.value?.status !== 'closed') return
+  await loadResults()
+  if (!s.value?.canViewResults || resultsState.value === 'error') await loadAttempts()
 }
 async function refresh() {
+  const sid = id.value
   try {
-    s.value = await examsApi.getSession(id.value)
-    void loadAttempts()
+    const x = await examsApi.getSession(sid)
+    if (sid !== id.value) return
+    s.value = x
   } catch (e) {
     toast.error(errorMessage(e, t))
+    return
   }
+  void loadClosed()
+  live.refreshNow()
+  attemptsPoll.refreshNow()
 }
+
+// ---- Jonli ma'lumot (nazoratchi) yoki urinishlar (boshqalar) ----
+const liveEnabled = computed(() => !!s.value?.canMonitor)
+const attemptsEnabled = computed(
+  () => !!s.value && !s.value.canMonitor && ['scheduled', 'open'].includes(s.value.status),
+)
+let reloading = false
+function onLiveStatus(status: string) {
+  if (!s.value || status === s.value.status || reloading) return
+  reloading = true
+  void refresh().finally(() => (reloading = false))
+}
+const live = useExamLive(id, liveEnabled, onLiveStatus)
+const attemptsPoll = useVisiblePoll(loadAttempts, 15_000, attemptsEnabled)
+
 onMounted(load)
-watch(id, load)
+watch(id, () => {
+  // Boshqa imtihonga o'tilganda eski holat (panel, tanlov, filtr, qidiruv, kodlar) qolmasin
+  s.value = null
+  openKey.value = null
+  resultKey.value = null
+  shownCodes.value = {}
+  selected.value = []
+  q.value = ''
+  filter.value = 'all'
+  tabSel.value = null
+  showAdd.value = false
+  bulkMode.value = null
+  void load()
+})
 watch(schoolId, () => void router.replace({ name: 'exam-sessions' }))
+watch(stage, () => {
+  tabSel.value = null
+  filter.value = 'all'
+  selected.value = []
+})
 
-async function run(fn: () => Promise<unknown>, okKey?: string) {
-  busy.value = true
-  try {
-    await fn()
-    if (okKey) toast.success(t(okKey))
-    await refresh()
-  } catch (e) {
-    toast.error(errorMessage(e, t))
-    await refresh()
-  } finally {
-    busy.value = false
-  }
-}
+// ---- Amallar ----
+const A = useSessionActions({ id, s, results, refresh })
 
-const act = (a: 'submit' | 'approve' | 'open' | 'close', okKey: string) =>
-  run(() => examsApi.sessionAction(id.value, a), okKey)
-
-/** Haqiqiy (blokli) bloklar; eski imtihonda bo'sh */
 const realBlocks = computed(() => (s.value?.blocks ?? []).filter((b) => !b.legacy))
-
-/** Blokli imtihon bosqichlari va holat belgisi (DB da yangi holat yo'q: mavjud ma'lumotdan hisoblanadi) */
-const flow = computed(() => (s.value && realBlocks.value.length ? examFlow(s.value) : null))
+const hasBlocks = computed(() => realBlocks.value.length > 0)
+const flow = computed(() => (s.value && hasBlocks.value ? examFlow(s.value) : null))
+const pill = computed(() =>
+  !s.value
+    ? ''
+    : flow.value
+      ? t(`examFlow.pill.${flow.value.pill}`)
+      : t(`examSessions.status.${s.value.status}`),
+)
 const contribShort = computed(() => {
   const d = s.value?.contribDeadline
   return d ? fmtDateTime(d).slice(0, 5) : null
 })
-const metaLine = computed(() => {
-  if (!s.value) return ''
-  return [
-    t(`examSessions.type.${s.value.type}`),
-    s.value.classes.map((c) => c.name).join(', '),
-    fmtDateTime(s.value.scheduledStart),
-    t('examSessions.minutes', { n: s.value.durationMin }),
-  ]
-    .filter(Boolean)
-    .join(' · ')
+/** Tasdiqlanmagan (o'qituvchisi bor) fanlar: rejalashtirishga to'sqinlik */
+const missing = computed(() =>
+  realBlocks.value
+    .filter((b) => b.contributors.length > 0)
+    .filter((b) => !(b.status === 'ready' && b.readyBy !== 'contributor')),
+)
+const missingNames = computed(() => missing.value.map((b) => b.subjectName ?? b.title))
+/** Tasdiqlash uchun birinchi tayyor fan (o'qituvchi tugatgan) */
+const reviewTarget = computed(() => {
+  const b = missing.value.find((x) => blockState(x) === 'done')
+  return b ? { id: b.id, name: b.subjectName ?? b.title } : null
 })
-/** Tasdiqlanmagan (o'qituvchisi bor) fanlar nomi: rejalashtirishga to'sqinlik */
-const missingApproval = computed(() =>
-  (s.value?.blocks ?? [])
-    .filter((b) => !b.legacy && b.contributors.length > 0)
-    .filter((b) => !(b.status === 'ready' && b.readyBy !== 'contributor'))
-    .map((b) => b.subjectName ?? b.title),
+const canRemind = computed(
+  () =>
+    s.value?.status === 'draft' &&
+    !!s.value.canEdit &&
+    realBlocks.value.some((b) => blockState(b) === 'collecting' && b.contributors.length > 0),
+)
+const canPublish = computed(
+  () =>
+    s.value?.status === 'closed' &&
+    !!s.value.canViewResults &&
+    results.value?.session.resultsMode === 'after_publish' &&
+    !results.value.session.resultsPublished,
 )
 const openBlock = (blockId: string) =>
   void router.push({ name: 'exam-my-block', params: { sessionId: id.value, blockId } })
@@ -255,265 +235,265 @@ const reviewBlock = (blockId: string) =>
   void router.push({ name: 'exam-block-review', params: { id: id.value, blockId } })
 const editSettings = () => void router.push({ name: 'exam-session-edit', params: { id: id.value } })
 
-/** "Eslatma": tugallanmagan fanlar o'qituvchilariga Telegram (soatiga bir marta har fanga) */
-async function remind() {
-  busy.value = true
+async function copyCode() {
+  const c = s.value?.code
+  if (!c) return
   try {
-    const r = await examsApi.remindSession(id.value)
-    if (r.disabled) toast.info(t('examFlow.remindDisabled'))
-    else if (r.notConnected) toast.info(t('examFlow.remindNotConnected'))
-    else if (r.blocks.length && r.blocks.every((b) => b.state === 'recent'))
-      toast.info(t('examFlow.remindRecent'))
-    else if (r.blocks.length === 0) toast.info(t('examFlow.remindNobody'))
-    else
-      toast.success(
-        t('examFlow.remindSent', { n: r.blocks.filter((b) => b.state === 'sent').length }),
-      )
-    await refresh()
-  } catch (e) {
-    toast.error(errorMessage(e, t))
-  } finally {
-    busy.value = false
+    await navigator.clipboard.writeText(c)
+    toast.success(t('examBoard.codeCopied'))
+  } catch {
+    toast.info(c)
   }
 }
 
-/** Rejalashtirish: maqsaddan kam savol bo'lsa tuzuvchi tasdiqlaydi (409 + details.path=blocks) */
-async function submitSession() {
-  await run(async () => {
-    try {
-      await examsApi.submitSession(id.value)
-    } catch (e) {
-      if (isApiError(e) && e.status === 409 && e.details.some((d) => d.path === 'approval')) {
-        toast.error(`${t('examFlow.needApproval')} ${e.details.map((d) => d.message).join('; ')}`)
-        return
-      }
-      if (isApiError(e) && e.status === 409 && e.details.some((d) => d.path === 'blocks')) {
-        const ok = await confirm({
-          title: t('examBlocks.shortTitle'),
-          message: `${t('examBlocks.shortText')}\n${e.details.map((d) => d.message).join('\n')}`,
-          confirmText: t('examBlocks.shortConfirm'),
-        })
-        if (!ok) return
-        await examsApi.submitSession(id.value, true)
-      } else {
-        throw e
-      }
-    }
-    toast.success(t('examSessions.toast.scheduled'))
-  })
-}
-
-async function cancel() {
-  const ok = await confirm({
-    title: t('examSessions.detail.cancelTitle'),
-    message: t('examSessions.detail.cancelText'),
-    confirmText: t('examSessions.detail.cancel'),
-    variant: 'danger',
-  })
-  if (ok) await run(() => examsApi.cancelSession(id.value), 'examSessions.toast.cancelled')
-}
-/** O'chirish: urinishsiz imtihon oddiy tasdiq bilan; urinishli (yopilgan) imtihon uchun ikki variantli oyna */
-const deleteOpen = ref(false)
-const deleteMode = ref<'exam_only' | 'with_results'>('exam_only')
-const deleteTitle = ref('')
-const deleteError = ref('')
-async function remove() {
-  if (s.value?.hasAttempts) {
-    deleteMode.value = 'exam_only'
-    deleteTitle.value = ''
-    deleteError.value = ''
-    deleteOpen.value = true
-    return
-  }
-  const ok = await confirm({
-    title: t('examSessions.detail.deleteTitle'),
-    message: t('examSessions.detail.deleteText'),
-    confirmText: t('common.delete'),
-    variant: 'danger',
-  })
-  if (ok) await doDelete()
-}
-async function doDelete() {
-  if (!s.value) return
-  if (
-    deleteOpen.value &&
-    deleteMode.value === 'with_results' &&
-    deleteTitle.value !== s.value.title
-  ) {
-    deleteError.value = t('examSessions.detail.deleteTitleMismatch')
-    return
-  }
-  busy.value = true
-  try {
-    await examsApi.deleteSession(
-      id.value,
-      deleteOpen.value
-        ? {
-            mode: deleteMode.value,
-            confirmTitle: deleteMode.value === 'with_results' ? deleteTitle.value : undefined,
-          }
-        : {},
-    )
-    clearDraftById(auth.user?.id ?? '', schoolId.value ?? auth.user?.schoolId ?? '', id.value)
-    toast.success(t('examSessions.toast.deleted'))
-    deleteOpen.value = false
-    void router.replace({ name: 'exam-sessions' })
-  } catch (e) {
-    toast.error(errorMessage(e, t))
-  } finally {
-    busy.value = false
+function onHeroAction(key: string) {
+  switch (key) {
+    case 'submit':
+      return void A.submitSession()
+    case 'review':
+      return reviewTarget.value ? reviewBlock(reviewTarget.value.id) : undefined
+    case 'approve':
+      return void A.act('approve', 'examSessions.toast.approved')
+    case 'reject':
+      return A.openReject()
+    case 'open':
+      return void A.act('open', 'examSessions.toast.opened')
+    case 'extend':
+      return A.openExtend()
+    case 'close':
+      return void A.closeNow()
+    case 'results':
+      return void router.push({ name: 'exam-session-results', params: { id: id.value } })
+    case 'excel':
+      return void A.exportExcel()
+    case 'publish':
+      return void A.publish()
+    case 'edit':
+      return editSettings()
+    case 'reopen':
+      return A.openReopen()
+    case 'return':
+      return void A.returnToDraft()
+    case 'copy':
+      return void A.copySession()
+    case 'print':
+      return A.openPrint()
+    case 'remind':
+      return void A.remind()
+    case 'cancel':
+      return void A.cancel()
+    case 'delete':
+      return void A.remove()
   }
 }
 
-/** Nusxa olib yangi imtihon: yangi qoralama ustada ochiladi, ogohlantirishlar toast bilan */
-async function copySession() {
-  busy.value = true
-  try {
-    const r = await examsApi.copySession(id.value)
-    toast.success(t('examSessions.toast.copied'))
-    for (const w of r.warnings) toast.info(w)
-    void router.push({
-      name: 'exam-session-edit',
-      params: { id: r.session.id },
-      query: { copied: '1' },
-    })
-  } catch (e) {
-    toast.error(errorMessage(e, t))
-  } finally {
-    busy.value = false
-  }
-}
-/** Tahrirlash uchun qaytarish (urinish yo'q imtihon): qoralamaga, ustada ochiladi */
-async function returnToDraft() {
-  const ok = await confirm({
-    title: t('examSessions.detail.returnTitle'),
-    message: t('examSessions.detail.returnText'),
-    confirmText: t('examSessions.detail.returnConfirm'),
+// ---- O'quvchilar taxtasi ----
+const passPercent = computed(
+  () => results.value?.session.passPercent ?? results.value?.summary.passPercent ?? null,
+)
+/** Kataklar har soniyada emas, jonli yangilanish va sekin (5 s) tik bilan qayta hisoblanadi; sarlavha taymeri alohida 1 s */
+const boardTick = ref(Date.now())
+let boardTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  boardTimer = setInterval(() => {
+    if (!document.hidden) boardTick.value = Date.now()
+  }, 5000)
+})
+onBeforeUnmount(() => {
+  if (boardTimer) clearInterval(boardTimer)
+})
+watch(
+  () => live.data.value,
+  () => (boardTick.value = Date.now()),
+)
+const boardNow = computed(() => boardTick.value + live.offset.value)
+const rows = computed(() =>
+  buildBoardRows(s.value?.participants ?? [], {
+    live: s.value?.canMonitor ? live.data.value : null,
+    attempts: attempts.value,
+    results: results.value,
+    nowMs: boardNow.value,
+    staleMs: live.staleMs.value,
+    flashUntil: live.flashUntil.value,
+    tickMs: boardTick.value,
+  }),
+)
+const startsInText = computed(() => {
+  if (!s.value) return '—'
+  const p = startsInParts(s.value.scheduledStart, boardNow.value)
+  if (!p) return t('examBoard.startsNow')
+  if (p.d > 0) return t('examBoard.startsDH', { d: p.d, h: p.h })
+  if (p.h > 0) return t('examBoard.startsHM', { h: p.h, m: p.m })
+  return t('examBoard.startsM', { m: p.m })
+})
+const cells = computed(() => {
+  if (!s.value) return []
+  const sum = blocksSummary(s.value.blocks)
+  return statCells({
+    rows: rows.value,
+    stage: stage.value,
+    passPercent: passPercent.value,
+    results: results.value,
+    readiness: readinessPct(s.value),
+    approved: sum.approved,
+    blocksTotal: sum.total,
+    startsIn: startsInText.value,
+    classesCount: s.value.classes.length,
+    cancelled: s.value.status === 'cancelled',
+    statusText: t(`examSessions.status.${s.value.status}`),
+    resultsReady: results.value !== null,
   })
-  if (!ok) return
-  busy.value = true
-  try {
-    await examsApi.returnToDraft(id.value)
-    toast.success(t('examSessions.toast.returned'))
-    void router.push({ name: 'exam-session-edit', params: { id: id.value } })
-  } catch (e) {
-    toast.error(errorMessage(e, t))
-    await refresh()
-  } finally {
-    busy.value = false
-  }
-}
-async function closeNow() {
-  const ok = await confirm({
-    title: t('examSessions.detail.closeTitle'),
-    message: t('examSessions.detail.closeText'),
-    confirmText: t('examSessions.detail.close'),
-    variant: 'danger',
-  })
-  if (ok) await act('close', 'examSessions.toast.closed')
-}
+})
 
-function openReject() {
-  rejectReason.value = ''
-  rejectError.value = ''
-  rejectOpen.value = true
-}
-async function doReject() {
-  if (!rejectReason.value.trim()) {
-    rejectError.value = t('examSessions.errors.reasonRequired')
-    return
-  }
-  rejectOpen.value = false
-  await run(
-    () => examsApi.rejectSession(id.value, rejectReason.value.trim()),
-    'examSessions.toast.rejected',
+const filter = ref<FilterKey>('all')
+/** Yaroqsiz filtr (bosqich o'zgargan va h.k.) "Hammasi" ga qaytadi */
+const activeFilter = computed<FilterKey>(() =>
+  cells.value.some((c) => c.filter === filter.value) ? filter.value : 'all',
+)
+const q = ref('')
+const tabSel = ref<string | null>(null)
+const tabs = computed(() => {
+  const subjects = { key: 'subjects', label: t('examBoard.tabs.subjects') }
+  const students = { key: 'students', label: t('examBoard.tabs.students') }
+  const info = { key: 'info', label: t('examBoard.tabs.info') }
+  if (!hasBlocks.value) return [students, info]
+  return stage.value === 'before' ? [subjects, students, info] : [students, subjects, info]
+})
+const tab = computed(() =>
+  tabs.value.some((x) => x.key === tabSel.value) ? tabSel.value! : tabs.value[0]!.key,
+)
+
+const visibleRows = computed(() =>
+  sortRows(
+    rows.value.filter(
+      (r) => matchesFilter(r, activeFilter.value, stage.value) && matchesSearch(r, q.value),
+    ),
+    stage.value,
+  ),
+)
+const sections = computed(() => groupSections(visibleRows.value))
+const totals = computed(
+  () => new Map(groupSections(rows.value).map((x) => [x.id, x.rows.length] as const)),
+)
+const classSections = computed(() => sections.value.filter((x) => x.kind === 'class'))
+const otherSections = computed(() => sections.value.filter((x) => x.kind !== 'class'))
+const layout = computed(() => layoutOf(classSections.value.length))
+const FULL_GRID = 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-4'
+
+// ---- Tanlov va ommaviy amallar ----
+const selected = ref<string[]>([])
+const selectable = computed(
+  () => stage.value === 'during' && !!s.value && (s.value.canIntervene || s.value.canGrant),
+)
+/** Qidiruv/filtr tufayli ko'rinmay qolganlar tanlovdan chiqadi */
+const visibleSig = computed(() => visibleRows.value.map((r) => r.key).join('|'))
+watch(visibleSig, () => {
+  selected.value = pruneSelection(
+    selected.value,
+    visibleRows.value.map((r) => r.key),
   )
+})
+const selectedRows = computed(() => visibleRows.value.filter((r) => selected.value.includes(r.key)))
+function toggle(key: string) {
+  selected.value = selected.value.includes(key)
+    ? selected.value.filter((k) => k !== key)
+    : [...selected.value, key]
+}
+function toggleAll(keys: string[], on: boolean) {
+  const rest = selected.value.filter((k) => !keys.includes(k))
+  selected.value = on ? [...rest, ...keys] : rest
 }
 
-async function print() {
-  busy.value = true
-  try {
-    await examsApi.downloadPinSheet(id.value, printClass.value || undefined)
-  } catch (e) {
-    toast.error(errorMessage(e, t))
-  } finally {
-    busy.value = false
-  }
+const bulkMode = ref<BulkMode>(null)
+const bulkRows = ref<BoardRow[]>([])
+const bulkFromBar = ref(false)
+function openBulk(mode: Exclude<BulkMode, null>, list: BoardRow[], fromBar: boolean) {
+  bulkRows.value = list
+  bulkFromBar.value = fromBar
+  bulkMode.value = mode
+}
+function onBulkDone(remaining: string[]) {
+  if (bulkFromBar.value) selected.value = remaining
+  live.refreshNow()
+  attemptsPoll.refreshNow()
 }
 
-async function regenerate(p: ExamSessionParticipant) {
-  const ok = await confirm({
-    title: t('examSessions.participants.regenTitle'),
-    message: t('examSessions.participants.regenText', { name: p.fullName }),
-    confirmText: t('examSessions.participants.regen'),
-  })
-  if (ok) {
-    await run(() => examsApi.regeneratePin(id.value, p.key), 'examSessions.toast.pinRegenerated')
-    const next = { ...shownCodes.value }
-    delete next[p.key]
-    shownCodes.value = next
-  }
-}
-/** Shaxsiy kod: ro'yxatda maskalangan; "Ko'rsatish" alohida endpoint (audit bilan) orqali, qayta bosilsa yashirinadi */
+// ---- O'quvchi paneli (drawer) ----
+const openKey = ref<string | null>(null)
+const drawerRow = computed(() => rows.value.find((r) => r.key === openKey.value) ?? null)
+watch(drawerRow, (r) => {
+  if (openKey.value && !r) openKey.value = null
+})
+const resultKey = ref<string | null>(null)
 const shownCodes = ref<Record<string, string>>({})
-async function toggleCode(p: ExamSessionParticipant) {
-  if (shownCodes.value[p.key]) {
+const blockNames = computed<Record<string, string>>(() => {
+  const out: Record<string, string> = {}
+  for (const b of realBlocks.value) out[b.id] = b.subjectName ?? b.title
+  for (const b of results.value?.blocks ?? []) out[b.id] = b.subjectName ?? b.title
+  return out
+})
+
+/** Shaxsiy kod: maskalangan; "Ko'rsatish" alohida endpoint (audit bilan), qayta bosilsa yashirinadi */
+async function toggleCode(r: BoardRow) {
+  if (shownCodes.value[r.key]) {
     const next = { ...shownCodes.value }
-    delete next[p.key]
+    delete next[r.key]
     shownCodes.value = next
     return
   }
   try {
-    const r = await examsApi.participantCode(id.value, p.key)
-    if (r.code) shownCodes.value = { ...shownCodes.value, [p.key]: r.code }
+    const res = await examsApi.participantCode(id.value, r.key)
+    if (res.code) shownCodes.value = { ...shownCodes.value, [r.key]: res.code }
     else toast.info(t('examSessions.participants.codeMissingHint'))
   } catch (e) {
     toast.error(errorMessage(e, t))
   }
 }
-async function removeParticipant(p: ExamSessionParticipant) {
+async function regenerate(r: BoardRow) {
+  const ok = await confirm({
+    title: t('examSessions.participants.regenTitle'),
+    message: t('examSessions.participants.regenText', { name: r.fullName }),
+    confirmText: t('examSessions.participants.regen'),
+  })
+  if (!ok) return
+  await A.run(() => examsApi.regeneratePin(id.value, r.key), 'examSessions.toast.pinRegenerated')
+  const next = { ...shownCodes.value }
+  delete next[r.key]
+  shownCodes.value = next
+}
+async function removeParticipant(r: BoardRow) {
   const ok = await confirm({
     title: t('examSessions.participants.removeTitle'),
-    message: t('examSessions.participants.removeText', { name: p.fullName }),
+    message: t('examSessions.participants.removeText', { name: r.fullName }),
     confirmText: t('examSessions.participants.remove'),
     variant: 'danger',
   })
-  if (ok) await run(() => examsApi.removeParticipant(id.value, p.key))
+  if (ok) await A.run(() => examsApi.removeParticipant(id.value, r.key))
+}
+async function allowReentry(r: BoardRow) {
+  const ok = await confirm({
+    title: t('examSessions.attempt.reentryTitle'),
+    message: t('examSessions.attempt.reentryText', { name: r.fullName }),
+    confirmText: t('examSessions.attempt.reentry'),
+  })
+  if (ok) await A.run(() => examsApi.allowReentry(id.value, r.key), 'examSessions.toast.reentry')
 }
 
-function openGrant(p: ExamSessionParticipant) {
-  grantFor.value = p
-  grantFull.value = p.fullTimeGranted
-  grantExtra.value = String(p.extraMinutes)
-  grantError.value = ''
-}
-async function doGrant() {
-  const p = grantFor.value
-  if (!p) return
-  const extra = Number(grantExtra.value)
-  if (!Number.isInteger(extra) || extra < 0 || extra > 240) {
-    grantError.value = t('examSessions.participants.extraRange')
-    return
-  }
-  grantFor.value = null
-  await run(
-    () => examsApi.grantTime(id.value, p.key, { fullTime: grantFull.value, extraMinutes: extra }),
-    'examSessions.toast.granted',
-  )
-}
-
-const ATTEMPT_TONE: Record<
-  string,
-  'neutral' | 'success' | 'danger' | 'warning' | 'primary' | 'info'
-> = {
-  not_started: 'neutral',
-  joined: 'info',
-  in_progress: 'warning',
-  submitted: 'success',
-  auto_submitted: 'primary',
-}
-
-const phaseText = computed(() => (s.value?.phase ? t(`examSessions.phase.${s.value.phase}`) : ''))
+const joinAlert = computed(() =>
+  s.value?.canMonitor ? (live.data.value?.joinAlert ?? null) : (attempts.value?.joinAlert ?? null),
+)
+const avgByBlock = computed(() => subjectAverages(rows.value))
+const dist = computed(() => distribution(rows.value))
+const insightSubjects = computed(() =>
+  Object.entries(avgByBlock.value).map(([bid, pct]) => ({
+    id: bid,
+    name: blockNames.value[bid] ?? '—',
+    pct,
+  })),
+)
+const showInsights = computed(
+  () => stage.value === 'after' && !!s.value?.canViewResults && !!results.value,
+)
 const editable = computed(() => !!s.value?.canManageParticipants)
 </script>
 
@@ -532,613 +512,214 @@ const editable = computed(() => !!s.value?.canManageParticipants)
   </div>
 
   <template v-else>
-    <PageHeader
-      :title="s.title"
-      :description="
-        flow
-          ? metaLine
-          : `${t(`examSessions.type.${s.type}`)}${s.subjectName ? ' · ' + s.subjectName : ''}`
-      "
-    >
-      <template #actions>
-        <BaseBadge v-if="flow" :tone="FLOW_PILL_TONE[flow.pill]" data-testid="detail-status">
-          {{ t(`examFlow.pill.${flow.pill}`) }}
-        </BaseBadge>
-        <BaseBadge v-else :tone="STATUS_TONE[s.status]" data-testid="detail-status">
-          {{ t(`examSessions.status.${s.status}`) }}
-        </BaseBadge>
-        <BaseBadge v-if="s.timeUp" tone="danger" data-testid="time-up">
-          {{ t('examSessions.detail.timeUp') }}
-        </BaseBadge>
-      </template>
-    </PageHeader>
+    <ExamHero
+      :s="s"
+      :pill="pill"
+      :now-ms="live.nowMs.value"
+      :busy="A.busy.value"
+      :can-publish="canPublish"
+      :missing-names="missingNames"
+      :review-target="reviewTarget"
+      :can-remind="canRemind"
+      :has-blocks="hasBlocks"
+      @back="router.push({ name: 'exam-sessions' })"
+      @action="onHeroAction"
+      @copy-code="copyCode"
+    />
 
     <p
       v-if="meta && !meta.pinSecretConfigured && meta.isAdministration"
-      class="mb-4 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning"
+      class="mb-3 rounded-lg border border-warning bg-warning-soft px-4 py-2 text-sm text-warning"
     >
       {{ t('examSessions.pinSecretMissing') }}
     </p>
     <p
       v-if="s.approval.status === 'rejected' && s.status === 'draft'"
-      class="mb-4 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-sm text-danger"
+      class="mb-3 rounded-lg border border-danger bg-danger-soft px-4 py-2 text-sm text-danger"
       data-testid="rejected-note"
     >
       {{ t('examSessions.detail.rejected', { reason: s.approval.reason }) }}
     </p>
     <p
       v-if="s.status === 'pending_approval'"
-      class="mb-4 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning"
+      class="mb-3 rounded-lg border border-warning bg-warning-soft px-4 py-2 text-sm text-warning"
       data-testid="pending-note"
     >
       {{ t('examSessions.detail.pending') }}
     </p>
-
-    <component
-      :is="flow ? 'details' : 'div'"
-      class="card mb-5 p-4 text-sm"
-      data-testid="detail-info"
+    <p
+      v-if="joinAlert?.alertAt"
+      class="mb-3 rounded-lg border border-danger bg-danger-soft px-4 py-2 text-sm text-danger"
+      data-testid="join-alert"
     >
-      <summary v-if="flow" class="cursor-pointer text-sm font-semibold text-fg">
-        {{ t('examFlow.infoTitle') }}
-      </summary>
-      <div class="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3" :class="flow && 'mt-3'">
-        <div>
-          <p class="text-fg-muted">{{ t('examSessions.wizard.start') }}</p>
-          <p class="text-fg">{{ fmtDateTime(s.scheduledStart) }}</p>
-        </div>
-        <div>
-          <p class="text-fg-muted">{{ t('examSessions.detail.ends') }}</p>
-          <p class="text-fg">
-            {{ fmtDateTime(s.endsAt) }}
-            <span v-if="phaseText" class="text-fg-muted">({{ phaseText }})</span>
-          </p>
-        </div>
-        <div>
-          <p class="text-fg-muted">{{ t('examSessions.wizard.duration') }}</p>
-          <p class="text-fg">{{ t('examSessions.minutes', { n: s.durationMin }) }}</p>
-        </div>
-        <div>
-          <p class="text-fg-muted">{{ t('examSessions.detail.code') }}</p>
-          <p class="font-mono text-lg text-fg" data-testid="detail-code">{{ s.code ?? '—' }}</p>
-        </div>
-        <div>
-          <p class="text-fg-muted">{{ t('examSessions.wizard.classes') }}</p>
-          <p class="text-fg">{{ s.classes.map((c) => c.name).join(', ') || '—' }}</p>
-        </div>
-        <div>
-          <p class="text-fg-muted">{{ t('examSessions.wizard.resultsMode') }}</p>
-          <p class="text-fg">{{ t(`examSessions.results.${s.resultsMode}`) }}</p>
-        </div>
-        <div>
-          <p class="text-fg-muted">{{ t('examSessions.wizard.supervisors') }}</p>
-          <p class="text-fg">{{ s.supervisors.map((x) => x.fullName).join(', ') || '—' }}</p>
-        </div>
-        <div>
-          <p class="text-fg-muted">{{ t('examSessions.detail.author') }}</p>
-          <p class="text-fg">{{ s.createdByName ?? '—' }}</p>
-        </div>
-        <template v-if="realBlocks.length">
-          <div>
-            <p class="text-fg-muted">{{ t('examBlocks.scoringMode') }}</p>
-            <p class="text-fg" data-testid="detail-scoring">
-              {{ t(`examBlocks.scoring.${s.scoringMode ?? 'points'}`) }}
-            </p>
-          </div>
-          <div>
-            <p class="text-fg-muted">{{ t('examBlocks.timingMode') }}</p>
-            <p class="text-fg" data-testid="detail-timing">
-              {{ t(`examBlocks.timing.${s.timingMode ?? 'common'}`) }}
-            </p>
-          </div>
-          <div v-if="s.contribDeadline">
-            <p class="text-fg-muted">{{ t('examBlocks.contribDeadline') }}</p>
-            <p class="text-fg" data-testid="detail-contrib-deadline">
-              {{ fmtDateTime(s.contribDeadline) }}
-            </p>
-          </div>
-        </template>
-      </div>
-    </component>
+      {{ t('examSessions.attempt.joinAlert', { n: joinAlert.failures }) }}
+    </p>
+    <p
+      v-if="s.canMonitor && live.loadError.value"
+      class="mb-3 text-xs text-danger"
+      data-testid="live-error"
+    >
+      {{ t('examSessions.live.loadFailed') }}
+    </p>
 
-    <section v-if="flow" class="card mb-5 space-y-3 p-4" data-testid="stage-dashboard">
-      <ExamFlowStepper :stages="flow.stages" :deadline="contribShort" />
-      <p
-        v-if="s.status === 'draft' && missingApproval.length"
-        class="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning"
-        data-testid="stage-warning"
+    <p
+      v-if="resultsState === 'error'"
+      class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-warning bg-warning-soft px-4 py-2 text-sm text-warning"
+      data-testid="results-error"
+    >
+      {{ t('examBoard.resultsError') }}
+      <button
+        type="button"
+        class="font-medium underline"
+        data-testid="results-retry"
+        @click="loadClosed"
       >
-        {{ t('examFlow.needApproval') }} {{ missingApproval.join(', ') }}
-      </p>
-    </section>
+        {{ t('examBoard.retry') }}
+      </button>
+    </p>
 
-    <ExamSubjectsTable
-      v-if="flow"
+    <ExamStatStrip :cells="cells" :active="activeFilter" @filter="filter = $event" />
+
+    <ExamToolbar
+      :tabs="tabs"
+      :tab="tab"
+      :q="q"
+      :show-search="tab === 'students'"
+      :can-add="editable"
+      :selected-count="selectedRows.length"
+      :can-warn="s.canIntervene"
+      :can-grant="s.canGrant"
+      :can-stop="s.canIntervene"
+      @update:tab="tabSel = $event"
+      @update:q="q = $event"
+      @add="showAdd = true"
+      @warn="openBulk('warn', selectedRows, true)"
+      @grant="openBulk('grant', selectedRows, true)"
+      @stop="openBulk('stop', selectedRows, true)"
+      @clear="selected = []"
+    />
+
+    <template v-if="tab === 'students'">
+      <ResultsInsights v-if="showInsights" :bins="dist" :subjects="insightSubjects" />
+      <p
+        v-if="s.participants.length === 0"
+        class="card p-4 text-sm text-fg-muted"
+        data-testid="participants-empty"
+      >
+        {{ t('examBoard.section.empty') }}
+      </p>
+      <div
+        v-else-if="visibleRows.length === 0"
+        class="card p-4 text-sm text-fg-muted"
+        data-testid="board-empty"
+      >
+        {{ t('examBoard.section.emptyFiltered') }}
+        <button
+          type="button"
+          class="ml-2 text-primary-700 hover:underline"
+          @click="((filter = 'all'), (q = ''))"
+        >
+          {{ t('examBoard.section.resetFilter') }}
+        </button>
+      </div>
+      <template v-else>
+        <div v-if="classSections.length" :class="layout.wrap" data-testid="class-grid">
+          <ClassSection
+            v-for="sec in classSections"
+            :key="sec.id"
+            :section="sec"
+            :total="totals.get(sec.id) ?? sec.rows.length"
+            :stage="stage"
+            :selectable="selectable"
+            :selected="selected"
+            :active-key="openKey"
+            :grid-class="layout.grid"
+            @open="openKey = $event"
+            @toggle="toggle"
+            @toggle-all="toggleAll"
+          />
+        </div>
+        <ClassSection
+          v-for="sec in otherSections"
+          :key="sec.id"
+          :section="sec"
+          :total="totals.get(sec.id) ?? sec.rows.length"
+          :stage="stage"
+          :selectable="selectable"
+          :selected="selected"
+          :active-key="openKey"
+          :grid-class="FULL_GRID"
+          @open="openKey = $event"
+          @toggle="toggle"
+          @toggle-all="toggleAll"
+        />
+      </template>
+    </template>
+
+    <SubjectCards
+      v-else-if="tab === 'subjects'"
       :session="s"
-      :busy="busy"
+      :stage="stage"
+      :busy="A.busy.value"
+      :stages="flow && s.status !== 'cancelled' ? flow.stages : null"
+      :deadline="contribShort"
+      :missing-names="missingNames"
+      :avg-by-block="avgByBlock"
       @open="openBlock"
       @review="reviewBlock"
-      @remind="remind"
+      @remind="A.remind"
       @settings="editSettings"
     />
 
-    <div class="mb-5 flex flex-wrap gap-2" data-testid="detail-actions">
-      <BaseButton
-        v-if="s.canEdit"
-        variant="secondary"
-        data-testid="act-edit"
-        @click="router.push({ name: 'exam-session-edit', params: { id: s.id } })"
-      >
-        {{ t('common.edit') }}
-      </BaseButton>
-      <BaseButton
-        v-if="s.canSubmit"
-        :loading="busy"
-        :disabled="!!flow && missingApproval.length > 0"
-        :title="flow && missingApproval.length ? t('examFlow.needApproval') : undefined"
-        data-testid="act-submit"
-        @click="submitSession"
-      >
-        {{ t('examSessions.detail.submit') }}
-      </BaseButton>
-      <template v-if="s.canApprove">
-        <BaseButton
-          :loading="busy"
-          data-testid="act-approve"
-          @click="act('approve', 'examSessions.toast.approved')"
-        >
-          {{ t('examSessions.detail.approve') }}
-        </BaseButton>
-        <BaseButton variant="danger" data-testid="act-reject" @click="openReject">
-          {{ t('examSessions.detail.reject') }}
-        </BaseButton>
-      </template>
-      <BaseButton
-        v-if="s.canOpen"
-        variant="secondary"
-        :loading="busy"
-        data-testid="act-open"
-        @click="act('open', 'examSessions.toast.opened')"
-      >
-        {{ t('examSessions.detail.open') }}
-      </BaseButton>
-      <BaseButton
-        v-if="s.canViewResults"
-        variant="secondary"
-        data-testid="act-results"
-        @click="router.push({ name: 'exam-session-results', params: { id: s.id } })"
-      >
-        {{ t('examSessions.detail.results') }}
-      </BaseButton>
-      <BaseButton
-        v-if="s.canExtend"
-        variant="secondary"
-        data-testid="act-extend"
-        @click="openExtend"
-      >
-        {{ t('examSessions.detail.extend') }}
-      </BaseButton>
-      <BaseButton
-        v-if="s.canReopen"
-        variant="secondary"
-        data-testid="act-reopen"
-        @click="openReopen"
-      >
-        {{ t('examSessions.detail.reopen') }}
-      </BaseButton>
-      <BaseButton v-if="s.canClose" variant="secondary" data-testid="act-close" @click="closeNow">
-        {{ t('examSessions.detail.close') }}
-      </BaseButton>
-      <BaseButton v-if="s.canCancel" variant="danger" data-testid="act-cancel" @click="cancel">
-        {{ t('examSessions.detail.cancel') }}
-      </BaseButton>
-      <BaseButton
-        v-if="s.canReturnToDraft && !s.hasAttempts"
-        variant="secondary"
-        :loading="busy"
-        data-testid="act-return"
-        @click="returnToDraft"
-      >
-        {{ t('examSessions.detail.returnToDraft') }}
-      </BaseButton>
-      <BaseButton
-        v-if="s.canCopy"
-        variant="secondary"
-        :loading="busy"
-        data-testid="act-copy"
-        @click="copySession"
-      >
-        {{ t('examSessions.detail.copy') }}
-      </BaseButton>
-      <BaseButton v-if="s.canDelete" variant="danger" data-testid="act-delete" @click="remove">
-        {{ t('common.delete') }}
-      </BaseButton>
-    </div>
+    <InfoPanel v-else :s="s" :has-blocks="hasBlocks" @edit="editSettings" />
 
-    <section
-      v-if="s.canPrint"
-      class="card mb-5 flex flex-col gap-3 p-4 sm:flex-row sm:items-end"
-      data-testid="print-block"
-    >
-      <BaseSelect
-        v-model="printClass"
-        class="sm:w-64"
-        :label="t('examSessions.detail.printFor')"
-        :options="classOptions"
-        data-testid="print-class"
-      />
-      <BaseButton variant="secondary" :loading="busy" data-testid="print-pins" @click="print">
-        <Printer class="h-4 w-4" aria-hidden="true" />
-        {{ t('examSessions.detail.printPins') }}
-      </BaseButton>
-      <p class="text-xs text-fg-muted sm:ml-2">{{ t('examSessions.detail.printHint') }}</p>
-    </section>
-
-    <p
-      v-if="attempts?.joinAlert.alertAt"
-      class="mb-4 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-sm text-danger"
-      data-testid="join-alert"
-    >
-      {{ t('examSessions.attempt.joinAlert', { n: attempts.joinAlert.failures }) }}
-    </p>
-
-    <section class="card mb-5 p-4">
-      <div class="mb-3 flex items-center justify-between gap-2">
-        <h2 class="text-base font-semibold text-fg">
-          <span v-if="flow" class="text-fg-muted">4.</span>
-          {{ t('examSessions.participants.title') }} ({{ s.participants.length }})
-        </h2>
-        <BaseButton
-          v-if="editable"
-          size="sm"
-          variant="secondary"
-          data-testid="toggle-add"
-          @click="showAdd = !showAdd"
-        >
-          {{ t('examSessions.participants.add') }}
-        </BaseButton>
-      </div>
-      <div v-if="showAdd && editable" class="mb-4 rounded-lg border border-border p-3">
-        <ParticipantsPanel :session="s" :meta="meta" @changed="refresh" />
-      </div>
-
-      <p v-if="s.participants.length === 0" class="text-sm text-fg-muted">
-        {{ t('examSessions.participants.empty') }}
-      </p>
-      <div v-else class="overflow-x-auto">
-        <table class="w-full min-w-[960px] text-left text-sm" data-testid="participants-table">
-          <thead class="text-xs uppercase text-fg-muted">
-            <tr>
-              <th class="py-2 pr-3">{{ t('examSessions.participants.name') }}</th>
-              <th class="py-2 pr-3">{{ t('examSessions.participants.classOrigin') }}</th>
-              <th class="py-2 pr-3">{{ t('examSessions.participants.kind') }}</th>
-              <th class="py-2 pr-3">{{ t('examSessions.participants.pin') }}</th>
-              <th class="py-2 pr-3">{{ t('examSessions.participants.time') }}</th>
-              <th v-if="attempts" class="py-2 pr-3">{{ t('examSessions.attempt.status') }}</th>
-              <th v-if="attempts" class="py-2 pr-3">{{ t('examSessions.attempt.answered') }}</th>
-              <th v-if="attempts" class="py-2 pr-3">{{ t('examSessions.attempt.warnings') }}</th>
-              <th class="py-2 text-right">{{ t('examSessions.participants.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <tr v-for="p in s.participants" :key="p.key" data-testid="participant-row">
-              <td class="py-2 pr-3 font-medium text-fg">{{ p.fullName }}</td>
-              <td class="py-2 pr-3 text-fg-muted">{{ p.className ?? p.origin ?? '—' }}</td>
-              <td class="py-2 pr-3">
-                <BaseBadge>{{ t(`examSessions.participants.kinds.${p.kind}`) }}</BaseBadge>
-              </td>
-              <td class="py-2 pr-3">
-                <div class="mb-1 flex items-center gap-1.5" data-testid="code-cell">
-                  <template v-if="p.hasCode">
-                    <code
-                      class="whitespace-nowrap font-mono text-xs tracking-wider text-fg"
-                      data-testid="code-text"
-                    >
-                      {{ shownCodes[p.key] ?? '•••-•••-•••' }}
-                    </code>
-                    <button
-                      type="button"
-                      class="text-xs text-primary-700 hover:underline"
-                      data-testid="code-toggle"
-                      @click="toggleCode(p)"
-                    >
-                      {{
-                        shownCodes[p.key]
-                          ? t('examSessions.participants.codeHide')
-                          : t('examSessions.participants.codeShow')
-                      }}
-                    </button>
-                  </template>
-                  <span v-else class="text-xs text-warning" data-testid="code-missing">
-                    {{ t('examSessions.participants.codeMissing') }}
-                  </span>
-                </div>
-                <BaseBadge :tone="p.hasPin ? 'success' : 'danger'" data-testid="pin-status">
-                  {{
-                    p.hasPin
-                      ? t('examSessions.participants.pinReady')
-                      : t('examSessions.participants.pinMissing')
-                  }}
-                </BaseBadge>
-              </td>
-              <td class="py-2 pr-3 text-xs text-fg-muted" data-testid="time-status">
-                <template v-if="p.fullTimeGranted">{{
-                  t('examSessions.participants.fullTime')
-                }}</template>
-                <template v-if="p.extraMinutes">
-                  +{{ p.extraMinutes }} {{ t('examSessions.participants.min') }}</template
-                >
-                <template v-if="!p.fullTimeGranted && !p.extraMinutes">—</template>
-              </td>
-              <template v-if="attempts">
-                <td class="py-2 pr-3" data-testid="attempt-status">
-                  <BaseBadge
-                    :tone="
-                      attemptByKey.get(p.key)?.terminated
-                        ? 'danger'
-                        : ATTEMPT_TONE[attemptByKey.get(p.key)?.status ?? 'not_started']
-                    "
-                  >
-                    {{
-                      attemptByKey.get(p.key)?.terminated
-                        ? t('examSessions.attempt.statuses.terminated')
-                        : t(
-                            `examSessions.attempt.statuses.${attemptByKey.get(p.key)?.status ?? 'not_started'}`,
-                          )
-                    }}
-                  </BaseBadge>
-                </td>
-                <td class="py-2 pr-3 text-fg-muted" data-testid="attempt-answered">
-                  <template v-if="(attemptByKey.get(p.key)?.total ?? 0) > 0">
-                    {{ attemptByKey.get(p.key)!.answered }} / {{ attemptByKey.get(p.key)!.total }}
-                  </template>
-                  <template v-else>—</template>
-                </td>
-                <td class="py-2 pr-3" data-testid="attempt-warnings">
-                  <BaseBadge v-if="(attemptByKey.get(p.key)?.warnings ?? 0) > 0" tone="warning">
-                    {{ attemptByKey.get(p.key)!.warnings }}
-                  </BaseBadge>
-                  <span v-else class="text-fg-muted">0</span>
-                </td>
-              </template>
-              <td class="py-2 text-right">
-                <div class="flex min-w-[230px] flex-wrap justify-end gap-1">
-                  <BaseButton
-                    v-if="
-                      s.canClose &&
-                      ['joined', 'in_progress'].includes(attemptByKey.get(p.key)?.status ?? '')
-                    "
-                    size="sm"
-                    variant="ghost"
-                    data-testid="allow-reentry"
-                    @click="allowReentry(p)"
-                  >
-                    {{ t('examSessions.attempt.reentry') }}
-                  </BaseButton>
-                  <BaseButton
-                    v-if="s.canGrant"
-                    size="sm"
-                    variant="secondary"
-                    data-testid="grant-open"
-                    @click="openGrant(p)"
-                  >
-                    {{ t('examSessions.participants.grant') }}
-                  </BaseButton>
-                  <BaseButton
-                    v-if="editable"
-                    size="sm"
-                    variant="ghost"
-                    data-testid="regen-pin"
-                    @click="regenerate(p)"
-                  >
-                    {{ t('examSessions.participants.regen') }}
-                  </BaseButton>
-                  <BaseButton
-                    v-if="editable"
-                    size="sm"
-                    variant="ghost"
-                    data-testid="remove-participant"
-                    @click="removeParticipant(p)"
-                  >
-                    {{ t('examSessions.participants.remove') }}
-                  </BaseButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <div v-if="s.canMonitor" data-testid="stage-run">
-      <LiveMonitor :session-id="s.id" :stage="flow ? '5.' : undefined" @changed="loadAttempts" />
-    </div>
+    <StudentDrawer
+      v-if="drawerRow"
+      :row="drawerRow"
+      :stage="stage"
+      :shown-code="shownCodes[drawerRow.key]"
+      :block-names="blockNames"
+      :can-grant="s.canGrant"
+      :can-intervene="s.canIntervene"
+      :can-close="s.canClose"
+      :editable="editable"
+      :can-view-results="s.canViewResults"
+      @close="openKey = null"
+      @toggle-code="toggleCode(drawerRow)"
+      @regenerate="regenerate(drawerRow)"
+      @remove="removeParticipant(drawerRow)"
+      @grant="openBulk('grantOne', [drawerRow], false)"
+      @reentry="allowReentry(drawerRow)"
+      @warn="openBulk('warn', [drawerRow], false)"
+      @stop="openBulk('stop', [drawerRow], false)"
+      @view-answers="resultKey = drawerRow.key"
+    />
 
     <BaseModal
-      :open="deleteOpen"
-      :title="t('examSessions.detail.deleteTitle')"
-      persistent
-      @close="deleteOpen = false"
+      :open="showAdd && editable"
+      :title="t('examBoard.toolbar.addTitle')"
+      size="xl"
+      @close="showAdd = false"
     >
-      <div class="space-y-4" data-testid="delete-dialog">
-        <p class="text-sm text-fg-muted">{{ t('examSessions.detail.deleteChoice') }}</p>
-        <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-border p-3">
-          <input
-            v-model="deleteMode"
-            type="radio"
-            value="exam_only"
-            data-testid="delete-exam-only"
-          />
-          <span class="text-sm">
-            <b class="block text-fg">{{ t('examSessions.detail.deleteExamOnly') }}</b>
-            {{ t('examSessions.detail.deleteExamOnlyHint') }}
-          </span>
-        </label>
-        <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-danger p-3">
-          <input
-            v-model="deleteMode"
-            type="radio"
-            value="with_results"
-            data-testid="delete-with-results"
-          />
-          <span class="text-sm">
-            <b class="block text-danger">{{ t('examSessions.detail.deleteWithResults') }}</b>
-            {{ t('examSessions.detail.deleteWithResultsHint') }}
-          </span>
-        </label>
-        <div
-          v-if="deleteMode === 'with_results'"
-          class="space-y-2"
-          data-testid="delete-confirm-box"
-        >
-          <p class="rounded-lg bg-danger-soft px-3 py-2 text-sm font-medium text-danger">
-            {{ t('examSessions.detail.deleteIrreversible') }}
-          </p>
-          <BaseInput
-            v-model="deleteTitle"
-            :label="t('examSessions.detail.deleteTypeTitle', { title: s?.title ?? '' })"
-            :error="deleteError"
-            data-testid="delete-title"
-          />
-        </div>
-      </div>
-      <template #footer>
-        <BaseButton variant="secondary" @click="deleteOpen = false">{{
-          t('common.cancel')
-        }}</BaseButton>
-        <BaseButton
-          variant="danger"
-          :loading="busy"
-          :disabled="deleteMode === 'with_results' && deleteTitle !== s?.title"
-          data-testid="delete-confirm"
-          @click="doDelete"
-        >
-          {{ t('common.delete') }}
-        </BaseButton>
-      </template>
+      <ParticipantsPanel :session="s" :meta="meta" @changed="refresh" />
     </BaseModal>
 
-    <BaseModal
-      :open="reopenOpen"
-      :title="t('examSessions.detail.reopenTitle')"
-      persistent
-      @close="reopenOpen = false"
-    >
-      <div class="space-y-4">
-        <p class="text-sm text-fg-muted">{{ t('examSessions.detail.reopenHint') }}</p>
-        <BaseInput
-          v-model="reopenReason"
-          :label="t('examSessions.detail.reopenReason')"
-          :error="reopenError.reason"
-          :maxlength="500"
-          data-testid="reopen-reason"
-        />
-        <BaseInput
-          v-model="reopenEnd"
-          type="datetime-local"
-          :label="t('examSessions.detail.reopenEnd')"
-          :error="reopenError.end"
-          data-testid="reopen-end"
-        />
-      </div>
-      <template #footer>
-        <BaseButton variant="secondary" @click="reopenOpen = false">{{
-          t('common.cancel')
-        }}</BaseButton>
-        <BaseButton :loading="busy" data-testid="reopen-confirm" @click="doReopen">{{
-          t('examSessions.detail.reopen')
-        }}</BaseButton>
-      </template>
-    </BaseModal>
-
-    <BaseModal
-      :open="extendOpen"
-      :title="t('examSessions.detail.extendTitle')"
-      persistent
-      @close="extendOpen = false"
-    >
-      <div class="space-y-4">
-        <p class="text-sm text-fg-muted">{{ t('examSessions.detail.extendHint') }}</p>
-        <BaseInput
-          v-model="extendMinutes"
-          type="number"
-          inputmode="numeric"
-          min="1"
-          max="180"
-          :label="t('examSessions.detail.extendMinutes')"
-          :error="extendError"
-          data-testid="extend-minutes"
-        />
-        <BaseInput
-          v-model="extendReason"
-          :label="t('examSessions.detail.extendReason')"
-          :maxlength="500"
-          data-testid="extend-reason"
-        />
-      </div>
-      <template #footer>
-        <BaseButton variant="secondary" @click="extendOpen = false">{{
-          t('common.cancel')
-        }}</BaseButton>
-        <BaseButton :loading="busy" data-testid="extend-confirm" @click="doExtend">{{
-          t('examSessions.detail.extend')
-        }}</BaseButton>
-      </template>
-    </BaseModal>
-
-    <BaseModal
-      :open="rejectOpen"
-      :title="t('examSessions.detail.rejectTitle')"
-      persistent
-      @close="rejectOpen = false"
-    >
-      <BaseInput
-        v-model="rejectReason"
-        :label="t('examSessions.detail.reason')"
-        :error="rejectError"
-        :maxlength="500"
-        data-testid="reject-reason"
-      />
-      <template #footer>
-        <BaseButton variant="secondary" @click="rejectOpen = false">{{
-          t('common.cancel')
-        }}</BaseButton>
-        <BaseButton variant="danger" data-testid="reject-confirm" @click="doReject">{{
-          t('examSessions.detail.reject')
-        }}</BaseButton>
-      </template>
-    </BaseModal>
-
-    <BaseModal
-      :open="!!grantFor"
-      :title="t('examSessions.participants.grantTitle', { name: grantFor?.fullName ?? '' })"
-      persistent
-      @close="grantFor = null"
-    >
-      <div class="space-y-4">
-        <BaseSwitch
-          v-model="grantFull"
-          :label="t('examSessions.participants.grantFull')"
-          data-testid="grant-full"
-        />
-        <p class="text-xs text-fg-muted">{{ t('examSessions.participants.grantFullHint') }}</p>
-        <BaseInput
-          v-model="grantExtra"
-          type="number"
-          inputmode="numeric"
-          min="0"
-          max="240"
-          :label="t('examSessions.participants.grantExtra')"
-          :error="grantError"
-          data-testid="grant-extra"
-        />
-      </div>
-      <template #footer>
-        <BaseButton variant="secondary" @click="grantFor = null">{{
-          t('common.cancel')
-        }}</BaseButton>
-        <BaseButton data-testid="grant-confirm" @click="doGrant">{{ t('common.save') }}</BaseButton>
-      </template>
-    </BaseModal>
+    <BulkDialogs
+      :mode="bulkMode"
+      :rows="bulkRows"
+      :session-id="id"
+      @close="bulkMode = null"
+      @done="onBulkDone"
+      @changed="refresh"
+    />
+    <SessionActionDialogs :s="s" :a="A" />
+    <ParticipantResultModal
+      :open="!!resultKey"
+      :session-id="id"
+      :participant-key="resultKey"
+      :can-grade="s.canViewResults"
+      @close="resultKey = null"
+      @changed="loadResults"
+    />
   </template>
 </template>
