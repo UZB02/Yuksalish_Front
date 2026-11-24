@@ -8,6 +8,7 @@ import AnswerInput from './AnswerInput.vue'
 import AnswerSheet from './AnswerSheet.vue'
 import FileViewer from './FileViewer.vue'
 import RichBlocks from './RichBlocks.vue'
+import VariantPicker from './VariantPicker.vue'
 
 const store = useStore()
 const s = store.state
@@ -16,6 +17,8 @@ const q = computed(() => s.questions[s.index])
 /** "Fayl + kalit" bloki: joriy savol shu blokda bo'lsa fayl ko'rsatkichi va javob varaqasi chiqadi */
 const fileBlock = computed(() => s.files.find((f) => f.blockId === q.value?.blockId) ?? null)
 const fileQuestions = computed(() => s.questions.filter((x) => x.blockId === q.value?.blockId))
+/** Qog'oz yetkazish: variant hali tanlanmagan bloklar (savollari tanlangandan keyin paydo bo'ladi) */
+const pendingPaper = computed(() => s.files.filter((f) => f.delivery === 'paper' && !f.variant))
 const cells = computed(() => gridCells(s.questions, s.answers))
 const unanswered = computed(() => countUnanswered(s.questions, s.answers))
 const flagged = computed(() => countFlagged(s.questions, s.answers))
@@ -36,12 +39,14 @@ const currentBlockTitle = computed(() =>
 /** Umumiy vaqtda bir nechta blok: blok tablari (blokka o'tish) */
 const chips = computed(() => {
   if (perBlock.value || s.blocks.length < 2) return []
-  return s.blocks.map((b) => ({
-    id: b.id,
-    title: b.title,
-    first: s.questions.findIndex((x) => x.blockId === b.id),
-    count: s.questions.filter((x) => x.blockId === b.id).length,
-  }))
+  return s.blocks
+    .map((b) => ({
+      id: b.id,
+      title: b.title,
+      first: s.questions.findIndex((x) => x.blockId === b.id),
+      count: s.questions.filter((x) => x.blockId === b.id).length,
+    }))
+    .filter((c) => c.count > 0)
 })
 
 const saveText = computed(() => {
@@ -79,7 +84,7 @@ const noCopy = (e: Event) => e.preventDefault()
 </script>
 
 <template>
-  <div v-if="q" class="pb-28" data-testid="exam">
+  <div v-if="q || pendingPaper.length" class="pb-28" data-testid="exam">
     <div class="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur">
       <div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2">
         <div class="min-w-0 flex-1">
@@ -108,14 +113,23 @@ const noCopy = (e: Event) => e.preventDefault()
       </div>
     </div>
 
+    <div v-if="pendingPaper.length" class="mx-auto max-w-3xl space-y-4 px-4 pt-4">
+      <VariantPicker
+        v-for="pb in pendingPaper"
+        :key="pb.blockId"
+        :block="pb"
+        :title="blockTitle(pb.blockId)"
+      />
+    </div>
+
     <div
-      v-if="fileBlock"
+      v-if="q && fileBlock"
       class="mx-auto flex max-w-7xl flex-col gap-3 px-2 pt-2 pb-16 lg:flex-row lg:items-start lg:px-4 lg:pb-0"
       data-testid="file-exam"
     >
       <nav
-        v-if="chips.length"
-        class="flex flex-wrap gap-2 lg:hidden"
+        v-if="chips.length > 1"
+        class="flex flex-wrap gap-2"
         aria-label="Bloklar"
         data-testid="block-tabs-file"
       >
@@ -133,6 +147,7 @@ const noCopy = (e: Event) => e.preventDefault()
         </button>
       </nav>
       <FileViewer
+        v-if="fileBlock.delivery !== 'paper'"
         :key="fileBlock.blockId"
         :file="fileBlock"
         class="h-[calc(100svh-11rem)] min-h-72 lg:h-[calc(100vh-9rem)] lg:flex-1"
@@ -140,14 +155,15 @@ const noCopy = (e: Event) => e.preventDefault()
       <AnswerSheet
         :questions="fileQuestions"
         :answers="s.answers"
+        :paper="fileBlock.delivery === 'paper'"
         @pick="(qq, id) => store.pickOption(qq, id)"
         @text="(id, v) => store.setAnswer(id, v)"
       />
     </div>
 
-    <div v-else class="mx-auto max-w-3xl space-y-4 px-4 pt-4">
+    <div v-else-if="q" class="mx-auto max-w-3xl space-y-4 px-4 pt-4">
       <nav
-        v-if="chips.length"
+        v-if="chips.length > 1"
         class="flex flex-wrap gap-2"
         aria-label="Bloklar"
         data-testid="block-tabs"

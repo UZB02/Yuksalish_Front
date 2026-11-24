@@ -294,6 +294,33 @@ export function createStore(opts: StoreOptions = {}) {
   }
 
   /** Server bu blokka javob qabul qilmadi (blok yopilgan): holat qayta yuklanadi */
+  /** Qog'oz yetkazish: variantni tanlash (server tasdiqlaydi va qulflaydi), ko'rinish yangilanadi */
+  async function chooseVariant(blockId: string, variant: string): Promise<boolean> {
+    if (state.busy) return false
+    state.busy = true
+    try {
+      // Javoblar navbati avval yuboriladi: ko'rinish yangilanganda mahalliy javoblar yo'qolmasin
+      if (queue)
+        await Promise.race([queue.flushNow(), new Promise<void>((r) => setTimeout(r, 4000))])
+      const r = await api.chooseVariant({ blockId, variant })
+      applyView(r)
+      // Umumiy vaqtda bir nechta blok: o'quvchi shu blokda qoladi
+      const at = state.questions.findIndex((q) => q.blockId === blockId)
+      if (at >= 0) state.index = at
+      return true
+    } catch (e) {
+      toast(errText(e, 'Variantni tanlab bo‘lmadi'), 'error')
+      try {
+        await start() // boshqa qurilmada allaqachon tanlangan bo'lishi mumkin: holat qayta yuklanadi
+      } catch {
+        /* keyingi heartbeat tiklaydi */
+      }
+      return false
+    } finally {
+      state.busy = false
+    }
+  }
+
   async function onRejected(n: number) {
     toast(`${n} ta javob saqlanmadi: blok vaqti tugagan`, 'warn')
     try {
@@ -561,6 +588,7 @@ export function createStore(opts: StoreOptions = {}) {
     leave,
     setAnswer,
     pickOption,
+    chooseVariant,
     toggleFlag,
     ackWarning,
     goto,

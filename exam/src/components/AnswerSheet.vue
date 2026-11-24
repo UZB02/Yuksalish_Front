@@ -11,6 +11,8 @@ import type { AnswerEntry, ClientQuestion } from '../lib/types'
 const props = defineProps<{
   questions: ClientQuestion[]
   answers: Record<string, AnswerEntry>
+  /** Qog'oz yetkazish: fayl ko'rsatkichi yo'q, varaqa asosiy ekran (doim ochiq, pastga qotirilmaydi) */
+  paper?: boolean
 }>()
 const emit = defineEmits<{
   pick: [q: ClientQuestion, optionId: string]
@@ -36,7 +38,11 @@ const label = (q: ClientQuestion) => q.no ?? props.questions.indexOf(q) + 1
 
 <template>
   <section
-    class="fixed inset-x-0 bottom-[4.75rem] z-20 border-t-2 border-brand bg-surface shadow-[0_-4px_12px_rgba(0,0,0,0.12)] lg:static lg:z-auto lg:w-80 lg:shrink-0 lg:rounded-xl lg:border-2 lg:shadow-none"
+    :class="
+      paper
+        ? 'mx-auto w-full max-w-2xl rounded-xl border-2 border-brand bg-surface'
+        : 'fixed inset-x-0 bottom-[4.75rem] z-20 border-t-2 border-brand bg-surface shadow-[0_-4px_12px_rgba(0,0,0,0.12)] lg:static lg:z-auto lg:w-80 lg:shrink-0 lg:rounded-xl lg:border-2 lg:shadow-none'
+    "
     aria-label="Javob varaqasi"
     data-testid="answer-sheet"
   >
@@ -53,12 +59,15 @@ const label = (q: ClientQuestion) => q.no ?? props.questions.indexOf(q) + 1
         :class="done === questions.length ? 'text-ok' : 'text-fg-soft'"
       >
         <span data-testid="sheet-count">{{ done }} / {{ questions.length }}</span>
-        <span class="ml-2 lg:hidden" aria-hidden="true">{{ open ? '▼' : '▲' }}</span>
+        <span v-if="!paper" class="ml-2 lg:hidden" aria-hidden="true">{{ open ? '▼' : '▲' }}</span>
       </span>
     </button>
     <div
-      class="max-h-[42vh] space-y-1.5 overflow-y-auto px-3 pb-3 lg:block lg:max-h-[calc(100vh-14rem)]"
-      :class="open ? 'block' : 'hidden'"
+      class="space-y-1.5 overflow-y-auto px-3 pb-3 lg:block"
+      :class="[
+        open || paper ? 'block' : 'hidden',
+        paper ? '' : 'max-h-[42vh] lg:max-h-[calc(100vh-14rem)]',
+      ]"
       data-testid="sheet-body"
     >
       <div

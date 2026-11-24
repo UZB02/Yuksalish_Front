@@ -32,6 +32,8 @@ const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const
 const MAX_ITEMS = 200
 
 const view = ref<FileTestView | null>(null)
+/** Yetkazish: 'screen' - fayl ekranda (serverda vaqtincha), 'paper' - fayl yo'q, faqat kalit (§23) */
+const delivery = ref<'screen' | 'paper'>('screen')
 const vars = ref<EditVariant[]>([])
 const active = ref<EditVariant['letter']>('A')
 const loading = ref(true)
@@ -50,6 +52,7 @@ const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T
 
 function adopt(v: FileTestView) {
   view.value = v
+  delivery.value = v.delivery === 'paper' ? 'paper' : 'screen'
   vars.value = clone(v.variants) as EditVariant[]
   if (!vars.value.some((x) => x.letter === active.value))
     active.value = vars.value[0]?.letter ?? 'A'
@@ -69,6 +72,53 @@ async function load() {
 }
 onMounted(load)
 
+/** Yetkazishni almashtirish: qog'ozga o'tganda fayllar saqlashda olib tashlanadi (tasdiq bilan) */
+async function setDelivery(d: 'screen' | 'paper') {
+  if (d === delivery.value) return
+  if (d === 'paper' && vars.value.some((v) => v.files.length)) {
+    const ok = await confirm({
+      title: t('fileTest.deliveryPaper'),
+      message: t('fileTest.deliveryPaperHelp'),
+      confirmText: t('fileTest.switchConfirm'),
+    })
+    if (!ok) return
+    for (const v of vars.value) v.files = []
+  }
+  delivery.value = d
+  touch()
+}
+/** Muddati tugagan faylni qayta yuklash (faqat tuzuvchi): yozuv id si va kalit o'zgarmaydi */
+async function replaceFile(f: FileTestFileInfo, e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  uploading.value = true
+  try {
+    const keepDirty = dirty.value
+    const v = await examsApi.replaceTestFile(props.sessionId, props.blockId, f.id, file)
+    const local = clone(vars.value)
+    adopt(v)
+    if (keepDirty) {
+      // Saqlanmagan o'zgarishlar yo'qolmasin: faqat shu faylning holati yangilanadi
+      vars.value = local
+      for (const lv of vars.value) {
+        const sv = v.variants.find((x) => x.letter === lv.letter)
+        for (const lf of lv.files) {
+          const nf = sv?.files.find((x) => x.id === lf.id)
+          if (nf) Object.assign(lf, nf)
+        }
+      }
+      dirty.value = true
+    }
+    toast.success(t('fileTest.replaced'))
+    emit('changed')
+  } catch (err) {
+    toast.error(errorMessage(err, t))
+  } finally {
+    uploading.value = false
+  }
+}
 const touch = () => {
   dirty.value = true
 }
@@ -285,6 +335,7 @@ async function save() {
   saving.value = true
   try {
     const saved = await examsApi.saveFileTest(props.sessionId, props.blockId, {
+      delivery: delivery.value,
       variants: vars.value.map((v) => ({
         letter: v.letter,
         kind: v.kind,
@@ -313,6 +364,35 @@ defineExpose({ save, dirty })
     </div>
     <template v-else-if="view">
       <p class="text-sm text-fg-muted">{{ t('fileTest.help') }}</p>
+
+      <div class="space-y-1" data-testid="delivery-box">
+        <p class="text-sm font-medium text-fg">{{ t('fileTest.delivery') }}</p>
+        <div class="flex flex-wrap gap-2" role="radiogroup">
+          <button
+            v-for="d in ['screen', 'paper'] as const"
+            :key="d"
+            type="button"
+            role="radio"
+            :aria-checked="delivery === d"
+            :disabled="locked"
+            class="rounded-lg border px-4 py-1.5 text-sm font-medium disabled:opacity-60"
+            :class="
+              delivery === d
+                ? 'border-primary-600 bg-primary-600 text-white'
+                : 'border-border bg-surface text-fg hover:bg-surface-muted'
+            "
+            :data-testid="`delivery-${d}`"
+            @click="setDelivery(d)"
+          >
+            {{ t(d === 'screen' ? 'fileTest.deliveryScreen' : 'fileTest.deliveryPaper') }}
+          </button>
+        </div>
+        <p class="text-xs text-fg-muted" data-testid="delivery-help">
+          {{
+            t(delivery === 'screen' ? 'fileTest.deliveryScreenHelp' : 'fileTest.deliveryPaperHelp')
+          }}
+        </p>
+      </div>
 
       <div class="flex flex-wrap items-center gap-2" role="tablist" data-testid="variant-tabs">
         <button
@@ -362,11 +442,12 @@ defineExpose({ save, dirty })
 
       <div
         v-else
-        class="grid gap-4 lg:grid-cols-2"
+        class="grid gap-4"
+        :class="delivery === 'screen' ? 'lg:grid-cols-2' : ''"
         :data-testid="`variant-panel-${current.letter}`"
       >
-        <!-- Fayl -->
-        <section class="card space-y-3 p-4">
+        <!-- Fayl (faqat ekranda yetkazishda) -->
+        <section v-if="delivery === 'screen'" class="card space-y-3 p-4">
           <div class="flex flex-wrap items-center gap-2">
             <h3 class="text-sm font-semibold text-fg">{{ t('fileTest.fileTitle') }}</h3>
             <div v-if="!locked" class="ml-auto flex gap-1" role="radiogroup">
@@ -410,6 +491,13 @@ defineExpose({ save, dirty })
             </BaseButton>
             <p class="text-xs text-fg-muted">{{ t('fileTest.fileHint') }}</p>
           </div>
+          <p
+            v-if="current.key.length && !current.files.length"
+            class="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning"
+            data-testid="file-reupload-hint"
+          >
+            {{ t('fileTest.reuploadHelp') }}
+          </p>
           <ul v-if="current.files.length" class="space-y-1 text-sm" data-testid="file-list">
             <li
               v-for="(f, i) in current.files"
@@ -425,6 +513,26 @@ defineExpose({ save, dirty })
                   · {{ t('fileTest.pagesCount', { n: f.pages }) }}</template
                 >
               </span>
+              <span
+                v-if="f.state === 'expired'"
+                class="rounded-full bg-warning-soft px-2 py-0.5 text-xs text-warning"
+                :data-testid="`file-expired-${i}`"
+              >
+                {{ t('fileTest.expired') }}
+              </span>
+              <label
+                v-if="f.state === 'expired' && view?.role === 'composer'"
+                class="cursor-pointer rounded-lg border border-border px-2 py-1 text-xs hover:bg-surface-muted"
+              >
+                {{ t('fileTest.replace') }}
+                <input
+                  type="file"
+                  class="sr-only"
+                  :accept="current.kind === 'pdf' ? 'application/pdf' : 'image/jpeg,image/png'"
+                  :data-testid="`file-replace-${i}`"
+                  @change="replaceFile(f, $event)"
+                />
+              </label>
               <template v-if="!locked">
                 <BaseButton
                   v-if="current.kind === 'image'"
@@ -461,6 +569,7 @@ defineExpose({ save, dirty })
             </li>
           </ul>
           <FilePreview
+            v-if="current.files.length && !current.files.some((f) => f.state === 'expired')"
             :session-id="sessionId"
             :block-id="blockId"
             :kind="current.kind"

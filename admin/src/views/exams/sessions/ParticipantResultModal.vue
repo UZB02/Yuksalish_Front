@@ -58,6 +58,31 @@ async function load() {
 watch(() => [props.open, props.participantKey], load, { immediate: true })
 
 const summary = computed(() => detail.value?.score ?? null)
+/** Qog'oz yetkazish (§23): o'quvchi tanlagan variantni tuzatish */
+const paperBlocks = computed(() =>
+  (detail.value?.fileBlocks ?? []).filter((b) => b.delivery === 'paper'),
+)
+const fixing = reactive<Record<string, { letter: string; busy: boolean }>>({})
+const fixOf = (b: { blockId: string; variant: string | null; letters: string[] }) =>
+  (fixing[b.blockId] ??= { letter: b.variant ?? b.letters[0] ?? 'A', busy: false })
+async function applyFix(b: { blockId: string; variant: string | null; letters: string[] }) {
+  if (!props.participantKey) return
+  const f = fixOf(b)
+  f.busy = true
+  try {
+    await examsApi.correctVariant(props.sessionId, props.participantKey, {
+      blockId: b.blockId,
+      variant: f.letter,
+    })
+    toast.success(t('fileTest.corrected'))
+    await load()
+    emit('changed')
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+  } finally {
+    f.busy = false
+  }
+}
 /** Blok bo'yicha ballar (bir nechta blokli imtihonda) */
 const blockRows = computed(() => {
   const d = detail.value
@@ -175,6 +200,38 @@ async function save(q: ExamResultQuestion) {
         <BaseBadge v-if="summary.essayPending" tone="warning">
           {{ t('examResults.essayN', { n: summary.essayPending }) }}
         </BaseBadge>
+      </div>
+      <div
+        v-for="pb in paperBlocks"
+        :key="pb.blockId"
+        class="space-y-2 rounded-lg border border-border p-3 text-sm"
+        :data-testid="`variant-fix-${pb.blockId}`"
+      >
+        <p class="font-medium text-fg">
+          {{ t('fileTest.correctTitle') }}<template v-if="pb.title">: {{ pb.title }}</template>
+          <span class="ml-2 text-fg-muted">
+            {{ pb.variant ?? t('fileTest.notChosen') }}
+          </span>
+        </p>
+        <p class="text-xs text-fg-muted">{{ t('fileTest.correctHelp') }}</p>
+        <div v-if="canGrade" class="flex flex-wrap items-center gap-2">
+          <select
+            v-model="fixOf(pb).letter"
+            class="rounded-lg border border-border bg-surface px-2 py-1 text-fg"
+            data-testid="variant-fix-select"
+          >
+            <option v-for="l in pb.letters" :key="l" :value="l">{{ l }}</option>
+          </select>
+          <BaseButton
+            size="sm"
+            :loading="fixOf(pb).busy"
+            :disabled="fixOf(pb).letter === pb.variant"
+            data-testid="variant-fix-apply"
+            @click="applyFix(pb)"
+          >
+            {{ t('fileTest.correctApply') }}
+          </BaseButton>
+        </div>
       </div>
       <ul
         v-if="blockRows.length"

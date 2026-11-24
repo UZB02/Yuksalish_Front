@@ -21,7 +21,12 @@ export interface ClientQuestion {
 /** "Fayl + kalit" bloki: o'quvchiga berilgan variant fayli (PDF yoki tartiblangan rasmlar) */
 export interface FileBlockView {
   blockId: string
-  variant: string
+  /** 'screen': fayl ekranda; 'paper': fayl yo'q, o'quvchi qog'ozidagi variantni tanlaydi */
+  delivery: 'screen' | 'paper'
+  /** Berilgan/tanlangan variant; qog'ozda tanlanmaguncha null */
+  variant: string | null
+  /** Qog'oz: tanlash mumkin bo'lgan variant harflari */
+  variants: string[]
   kind: 'pdf' | 'image'
   files: { id: string }[]
 }

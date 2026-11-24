@@ -183,6 +183,32 @@ const isComposer = computed(() => data.value?.role === 'composer')
 const isReady = computed(() => data.value?.block.status === 'ready')
 /** "Fayl + kalit" bloki (§22): savollar banki o'rniga fayl testi tahrirlanadi */
 const isFile = computed(() => data.value?.block.content === 'file')
+/** Usulni almashtirish (savollar banki <-> fayl+kalit): tahrir ochiq bo'lganda; boshqa usul mazmuni o'chmaydi */
+async function switchMode(to: 'bank' | 'file') {
+  const d = data.value
+  if (!d || busy.value) return
+  const from = d.block.content === 'file' ? 'file' : 'bank'
+  if (to === from) return
+  if (d.block.hasBank || d.block.hasFile || d.block.count > 0) {
+    const ok = await confirm({
+      title: t('fileTest.switchTitle'),
+      message: t(to === 'file' ? 'fileTest.switchToFile' : 'fileTest.switchToBank'),
+      confirmText: t('fileTest.switchConfirm'),
+    })
+    if (!ok) return
+  }
+  busy.value = true
+  try {
+    await examsApi.setBlockContent(sessionId.value, blockId.value, { content: to, from })
+    toast.success(t('fileTest.switched'))
+    await load()
+  } catch (e) {
+    toast.error(errorMessage(e, t))
+    await load()
+  } finally {
+    busy.value = false
+  }
+}
 const fileEditor = ref<InstanceType<typeof FileTestEditor> | null>(null)
 async function toggleReady() {
   if (!data.value) return
@@ -344,6 +370,33 @@ onMounted(() => void loadTopics().catch(() => undefined))
       <BaseBadge v-if="isReady" tone="success" data-testid="myblock-ready-badge">
         {{ isComposer ? t('examFlow.blockState.approved') : t('examBlocks.ready') }}
       </BaseBadge>
+    </div>
+    <div
+      v-if="!data.block.locked"
+      class="flex flex-wrap items-center gap-2"
+      role="radiogroup"
+      :aria-label="t('fileTest.modeTitle')"
+      data-testid="myblock-mode"
+    >
+      <span class="text-sm font-medium text-fg">{{ t('fileTest.modeTitle') }}:</span>
+      <button
+        v-for="m in ['bank', 'file'] as const"
+        :key="m"
+        type="button"
+        role="radio"
+        :aria-checked="(isFile ? 'file' : 'bank') === m"
+        :disabled="busy"
+        class="rounded-lg border px-4 py-1.5 text-sm font-medium disabled:opacity-60"
+        :class="
+          (isFile ? 'file' : 'bank') === m
+            ? 'border-primary-600 bg-primary-600 text-white'
+            : 'border-border bg-surface text-fg hover:bg-surface-muted'
+        "
+        :data-testid="`mode-${m}`"
+        @click="switchMode(m)"
+      >
+        {{ t(m === 'bank' ? 'fileTest.modeBank' : 'fileTest.modeFile') }}
+      </button>
     </div>
     <FileTestEditor
       v-if="isFile"

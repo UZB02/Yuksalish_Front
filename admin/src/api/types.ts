@@ -1921,13 +1921,12 @@ export interface ExamBlockInput {
   durationMin?: number | null
   contributorIds: string[]
   items: ExamSectionItem[]
-  /** Blok mazmuni: savollar banki (odatiy) yoki fayl + kalit. Berilmasa mavjud blokda o'zgarmaydi */
-  content?: ExamBlockContent
 }
 export type ExamBlockContent = 'bank' | 'file'
 /** Fayl + kalit blokining qisqa xulosasi (kalitsiz) */
 export interface FileTestSummary {
   questions: number
+  delivery?: FileDelivery
   variants: {
     letter: string
     kind: 'pdf' | 'image'
@@ -2306,6 +2305,9 @@ export interface MyBlockDetail {
     /** 'file': savollar banki o'rniga fayl testi (PDF/rasm) va javob kaliti tahrirlanadi */
     content?: ExamBlockContent
     fileTest?: FileTestSummary | null
+    /** Almashtirish tasdig'i uchun: ikkala usulda mazmun bormi */
+    hasBank?: boolean
+    hasFile?: boolean
     locked: boolean
     lockReason: BlockLockReason
   }
@@ -2325,8 +2327,12 @@ export interface FileKeyItem {
   accepted?: string[]
   points: number
 }
+/** Yetkazish: 'screen' - fayl serverda vaqtincha turadi (ekranda); 'paper' - fayl yuklanmaydi, qog'ozda tarqatiladi */
+export type FileDelivery = 'screen' | 'paper'
 export interface FileTestFileInfo {
   id: string
+  /** 'expired': baytlar o'chirilgan (imtihon yopilgandan 14 kun keyin), kalit saqlangan */
+  state?: 'pending' | 'ready' | 'expired'
   kind: 'pdf' | 'image'
   contentType: string
   size: number
@@ -2343,6 +2349,10 @@ export interface FileTestVariant {
 export interface FileTestView {
   role: 'composer' | 'contributor'
   content: ExamBlockContent
+  delivery: FileDelivery
+  /** Almashtirish tasdig'i uchun: ikkala usulda mazmun bormi */
+  hasBank: boolean
+  hasFile: boolean
   locked: boolean
   lockReason: BlockLockReason
   status: 'open' | 'ready'
@@ -2351,6 +2361,7 @@ export interface FileTestView {
   questions: number
 }
 export interface FileTestSaveBody {
+  delivery: FileDelivery
   variants: {
     letter: FileTestVariant['letter']
     kind: 'pdf' | 'image'
@@ -2614,6 +2625,14 @@ export interface ExamResultDetail {
   /** Fayl + kalit: berilgan variant harflari ("A") va blokma-blok {blockId: 'A'} */
   variant?: string | null
   variants?: Record<string, string>
+  /** Fayl bloklari: qog'oz yetkazishda variantni tuzatish uchun */
+  fileBlocks?: {
+    blockId: string
+    title: string
+    delivery: FileDelivery
+    letters: string[]
+    variant: string | null
+  }[]
   questions: ExamResultQuestion[]
 }
 export interface ExamAnalysisQuestion {

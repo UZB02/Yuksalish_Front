@@ -18,6 +18,10 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useToast } from '@/composables/useToast'
 
 const api = {
+  setBlockContent: vi.fn(),
+  replaceTestFile: vi.fn(),
+  correctVariant: vi.fn(),
+  resultDetail: vi.fn(),
   fileTest: vi.fn(),
   saveFileTest: vi.fn(),
   parseFileKey: vi.fn(),
@@ -66,10 +70,14 @@ const file = (id: string, kind: 'pdf' | 'image' = 'pdf', size = 400_000) => ({
   width: 0,
   height: 0,
   pages: kind === 'pdf' ? 8 : 1,
+  state: 'ready' as const,
 })
 const view = (over: Partial<FileTestView> = {}): FileTestView => ({
   role: 'contributor',
   content: 'file',
+  delivery: 'screen',
+  hasBank: false,
+  hasFile: true,
   locked: false,
   lockReason: null,
   status: 'open',
@@ -343,7 +351,7 @@ describe('MyBlockView: fayl bloki', () => {
     },
   })
 
-  async function mountBlock(content: 'bank' | 'file') {
+  async function mountBlock(content: 'bank' | 'file', over: Partial<MyBlockDetail['block']> = {}) {
     const pinia = createPinia()
     setActivePinia(pinia)
     useAuthStore().setSession('t', {
@@ -352,7 +360,7 @@ describe('MyBlockView: fayl bloki', () => {
       schoolId: 's1',
       permissions: [],
     } as unknown as User)
-    api.myBlock.mockResolvedValue(detail(content))
+    api.myBlock.mockResolvedValue(detail(content, over))
     api.listTopics.mockResolvedValue([])
     api.myBlocksSummary.mockResolvedValue({ pending: 0, total: 0 })
     api.myBlocks.mockResolvedValue([])
@@ -395,6 +403,39 @@ describe('MyBlockView: fayl bloki', () => {
     expect($('myblock-questions')).toBeTruthy()
   })
 
+  it('usul almashtirish: mazmun bo`lsa tasdiq, `from` bilan so`rov; bekor qilinsa yuborilmaydi; qulf bo`lsa tugma yo`q', async () => {
+    api.setBlockContent.mockResolvedValue({})
+    await mountBlock('bank', { hasBank: true })
+    expect($('myblock-mode')).toBeTruthy()
+    expect($('mode-bank').getAttribute('aria-checked')).toBe('true')
+    $('mode-file').click()
+    await flushPromises()
+    expect(useConfirm().state.open).toBe(true)
+    expect(useConfirm().state.options.message).toContain('yashirin')
+    useConfirm().settle(false)
+    await flushPromises()
+    expect(api.setBlockContent).not.toHaveBeenCalled()
+    $('mode-file').click()
+    await flushPromises()
+    useConfirm().settle(true)
+    await flushPromises()
+    expect(api.setBlockContent).toHaveBeenCalledWith('s1', 'b1', { content: 'file', from: 'bank' })
+    expect(api.myBlock.mock.calls.length).toBeGreaterThanOrEqual(2) // qayta yuklandi
+    mounted.pop()!.unmount()
+    document.body.innerHTML = ''
+    api.setBlockContent.mockClear()
+    // mazmun yo'q: tasdiqsiz
+    await mountBlock('bank', { hasBank: false, hasFile: false, count: 0 })
+    $('mode-file').click()
+    await flushPromises()
+    expect(api.setBlockContent).toHaveBeenCalledTimes(1)
+    mounted.pop()!.unmount()
+    document.body.innerHTML = ''
+    // qulf: almashtirish yo'q
+    await mountBlock('bank', { locked: true, lockReason: 'status' })
+    expect($('myblock-mode')).toBeNull()
+  })
+
   it('"Tugatdim": saqlanmagan fayl testi avval saqlanadi', async () => {
     api.markBlockReady.mockResolvedValue({ blockId: 'b1', status: 'ready' })
     await mountBlock('file')
@@ -409,89 +450,179 @@ describe('MyBlockView: fayl bloki', () => {
 })
 
 // ---------------------------------------------------------------------------------------------
-describe('BlocksEditor: blok manbai', () => {
-  const blocks = (over: Partial<ExamBlockInput> = {}): ExamBlockInput[] => [
-    {
-      subjectId: 'sub1',
-      title: '',
-      targetCount: 10,
-      coefficient: 1,
-      durationMin: 30,
-      contributorIds: [],
-      items: [],
-      ...over,
-    },
-  ]
-  function mountEd(modelValue: ExamBlockInput[], serverBlocks: ExamBlock[] = []) {
+describe('BlocksEditor: ustada usul tanlanmaydi (§23)', () => {
+  it('"Savollar manbai" tanlovi yo`q, maqsad maydoni avvalgidek', async () => {
     const w = mount(BlocksEditor, {
       props: {
-        modelValue,
+        modelValue: [
+          {
+            subjectId: 'sub1',
+            title: '',
+            targetCount: 10,
+            coefficient: 1,
+            durationMin: 30,
+            contributorIds: [],
+            items: [],
+          },
+        ] as ExamBlockInput[],
         subjects: [{ id: 'sub1', name: 'Matematika' }],
         meta: null,
         scoringMode: 'points',
         timingMode: 'common',
-        serverBlocks,
+        serverBlocks: [] as ExamBlock[],
         simple: true,
       },
       global: { plugins: [i18n], stubs: { RouterLink: { template: '<a><slot /></a>' } } },
       attachTo: document.body,
     })
     mounted.push(w)
-    return w
-  }
-
-  it('standart: savollar banki, maqsad maydoni bor; "Fayl + kalit" tanlansa yangi qiymat chiqadi', async () => {
-    const w = mountEd(blocks())
     await flushPromises()
     expect($('block-target-0')).toBeTruthy()
-    expect($('block-content-0')).toBeTruthy()
-    expect($('block-file-hint-0')).toBeNull()
-    // BaseSelect: manba tanlash (komponent hodisasi)
-    const sel = w
-      .findAllComponents({ name: 'BaseSelect' })
-      .find((c) => c.props('label') === 'Savollar manbai')
-    expect(sel).toBeTruthy()
-    sel!.vm.$emit('update:modelValue', 'file')
-    await flushPromises()
-    const emitted = w.emitted('update:modelValue') as ExamBlockInput[][][]
-    expect((emitted.at(-1)![0] as unknown as ExamBlockInput[])[0]!.content).toBe('file')
-  })
-
-  it('file blok: maqsad maydoni yashirin, izoh va (saqlangan blokda) fayl xulosasi + tahrirlash havolasi', async () => {
-    mountEd(blocks({ blockId: 'x1'.padEnd(24, '0'), content: 'file' }), [
-      {
-        id: 'x1'.padEnd(24, '0'),
-        legacy: false,
-        subjectId: 'sub1',
-        subjectName: 'Matematika',
-        title: '',
-        targetCount: 4,
-        coefficient: 1,
-        durationMin: 30,
-        status: 'open',
-        count: 4,
-        content: 'file',
-        fileTest: {
-          questions: 4,
-          variants: [
-            { letter: 'A', kind: 'pdf', files: 1, questions: 4, points: 5 },
-            { letter: 'B', kind: 'pdf', files: 1, questions: 4, points: 5 },
-          ],
-        },
-        contributors: [],
-        items: [],
-        contribQuestions: [],
-      } as ExamBlock,
-    ])
-    await flushPromises()
-    expect($('block-target-0')).toBeNull()
-    expect($('block-file-hint-0')).toBeTruthy()
-    expect($('block-file-summary-0').textContent).toContain('4 ta savol, 2 ta variant')
-    expect($('block-file-edit-0')).toBeNull() // sessionId berilmagan: havola yo'q
+    expect($('block-content-0')).toBeNull()
+    expect(document.body.textContent).not.toContain('Savollar manbai')
   })
 })
 
-// ---------------------------------------------------------------------------------------------
+describe('FileTestEditor: yetkazish (ekranda/qog`ozda), muddati tugagan fayl', () => {
+  it('qog`ozga o`tish: fayl bo`limi yo`qoladi, fayllar olib tashlanadi (tasdiq), saqlashda delivery=paper va files=[]', async () => {
+    mountEditor()
+    await flushPromises()
+    expect($('file-pick')).toBeTruthy()
+    expect($('delivery-screen').getAttribute('aria-checked')).toBe('true')
+    $('delivery-paper').click()
+    await flushPromises()
+    useConfirm().settle(true)
+    await flushPromises()
+    expect($('file-pick')).toBeNull()
+    expect($('file-preview-stub')).toBeNull()
+    expect($('delivery-paper').getAttribute('aria-checked')).toBe('true')
+    expect($('delivery-help').textContent).toContain('chop etib')
+    api.saveFileTest.mockImplementation(
+      async (_s: string, _b: string, body: { delivery: string }) =>
+        view({ delivery: body.delivery as 'paper' }),
+    )
+    await click('filetest-save')
+    const body = api.saveFileTest.mock.calls[0]![2] as {
+      delivery: string
+      variants: { files: string[]; key: unknown[] }[]
+    }
+    expect(body.delivery).toBe('paper')
+    expect(body.variants[0]!.files).toEqual([])
+    expect(body.variants[0]!.key).toHaveLength(2)
+  })
+
+  it('qog`ozda yuklangan fayl bo`lmasa tasdiq so`ralmaydi', async () => {
+    mountEditor(
+      view({
+        delivery: 'paper',
+        variants: [{ letter: 'A', kind: 'pdf', files: [], key: view().variants[0]!.key }],
+      }),
+    )
+    await flushPromises()
+    expect($('delivery-paper').getAttribute('aria-checked')).toBe('true')
+    expect($('file-pick')).toBeNull()
+    expect($('key-row-1')).toBeTruthy()
+    $('delivery-screen').click()
+    await flushPromises()
+    expect($('file-pick')).toBeTruthy()
+    expect($('file-reupload-hint')).toBeTruthy() // kalit bor, fayl yo'q: nusxadan keyingi holat
+  })
+
+  it('muddati tugagan fayl: belgi, ko`rinish yo`q, tuzuvchi qayta yuklaydi (kalit o`zgarmaydi); o`qituvchida tugma yo`q', async () => {
+    const expired = view({
+      role: 'composer',
+      variants: [
+        {
+          letter: 'A',
+          kind: 'pdf',
+          files: [{ ...file('f1'), state: 'expired' }],
+          key: view().variants[0]!.key,
+        },
+      ],
+    })
+    mountEditor(expired)
+    await flushPromises()
+    expect($('file-expired-0').textContent).toContain('fayl muddati tugagan')
+    expect($('file-preview-stub')).toBeNull()
+    api.replaceTestFile.mockResolvedValue(view({ role: 'composer' }))
+    const input = $('file-replace-0') as HTMLInputElement
+    Object.defineProperty(input, 'files', {
+      value: [new File(['%PDF'], 'n.pdf')],
+      configurable: true,
+    })
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushPromises()
+    expect(api.replaceTestFile).toHaveBeenCalledWith('s1', 'b1', 'f1', expect.any(File))
+    expect($('file-expired-0')).toBeNull()
+    expect($('key-row-2')).toBeTruthy()
+    mounted.pop()!.unmount()
+    document.body.innerHTML = ''
+    mountEditor(view({ role: 'contributor', variants: expired.variants }))
+    await flushPromises()
+    expect($('file-expired-0')).toBeTruthy()
+    expect($('file-replace-0')).toBeNull()
+  })
+})
+
+describe('qog`oz variantini tuzatish (natijalar oynasi)', () => {
+  it('qog`ozli blok: variant tanlanadi, tuzatish so`rovi yuboriladi va tafsilot yangilanadi; ekranli blokda yo`q', async () => {
+    const { default: Modal } = await import('./ParticipantResultModal.vue')
+    const detail = (variant: string | null, delivery: 'paper' | 'screen' = 'paper') => ({
+      participant: { key: 'k1', fullName: 'Aliyev Bobur', className: '7-A' },
+      status: 'submitted',
+      score: { earned: 3, max: 5, essayPending: 0 },
+      variant,
+      fileBlocks: [{ blockId: 'b1', title: 'Matematika', delivery, letters: ['A', 'B'], variant }],
+      questions: [
+        {
+          id: 'fk:b1:A:1',
+          blockId: 'b1',
+          index: 1,
+          type: 'single',
+          points: 1,
+          content: [{ type: 'text', text: 'A varianti: 1-savol' }],
+          options: [],
+          given: 'A',
+          flagged: false,
+          correct: { optionIds: ['A'] },
+          got: 1,
+          ok: true,
+          graded: null,
+          grade: null,
+        },
+      ],
+    })
+    api.resultDetail.mockResolvedValueOnce(detail('A')).mockResolvedValueOnce(detail('B'))
+    api.correctVariant.mockResolvedValue({ variant: 'B', previous: 'A' })
+    const w = mount(Modal, {
+      props: { open: true, sessionId: 's1', participantKey: 'k1', canGrade: true },
+      global: { plugins: [createPinia(), i18n] },
+      attachTo: document.body,
+    })
+    mounted.push(w)
+    await flushPromises()
+    expect($('variant-fix-b1').textContent).toContain('Qog')
+    expect(($('variant-fix-apply') as HTMLButtonElement).disabled).toBe(true) // joriy variant tanlangan
+    await type($('variant-fix-select'), 'B', 'change')
+    expect(($('variant-fix-apply') as HTMLButtonElement).disabled).toBe(false)
+    await click('variant-fix-apply')
+    expect(api.correctVariant).toHaveBeenCalledWith('s1', 'k1', { blockId: 'b1', variant: 'B' })
+    expect(api.resultDetail).toHaveBeenCalledTimes(2)
+    expect(w.emitted('changed')).toBeTruthy()
+    mounted.pop()!.unmount()
+    document.body.innerHTML = ''
+    api.resultDetail.mockResolvedValue(detail('A', 'screen'))
+    const w2 = mount(Modal, {
+      props: { open: true, sessionId: 's1', participantKey: 'k1', canGrade: true },
+      global: { plugins: [createPinia(), i18n] },
+      attachTo: document.body,
+    })
+    mounted.push(w2)
+    await flushPromises()
+    expect($('variant-fix-b1')).toBeNull()
+  })
+})
+
 describe('natijalar: variant ustuni', () => {
   it('jadvalda faqat variantli ishtirokchi bo`lsa "Variant" ustuni chiqadi', async () => {
     const { default: ExamResultsView } = await import('./ExamResultsView.vue')

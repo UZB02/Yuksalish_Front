@@ -3914,19 +3914,7 @@
       "ruleNotEnough": "Bankda hozircha yetarli savol yo'q (kerak {n}, bor {have}). Rejalashtirishdan oldin yetarli faol savol bo'lishi shart."
     },
     "inClasses": "shu sinflarda",
-    "noSuggestion": "Tanlangan sinflarda bu fanni o'qitadigan o'qituvchi topilmadi: o'qituvchini ro'yxatdan qo'lda tanlang.",
-    "content": {
-      "label": "Savollar manbai",
-      "bank": "Savollar banki",
-      "file": "Fayl + kalit (PDF yoki rasm)",
-      "fileHint": "Test PDF/rasm holida yuklanadi, javoblar kalit bo'yicha tekshiriladi. Savollar sonini va kalitni o'qituvchi (yoki siz) blok sahifasida kiritadi.",
-      "switchTitle": "Manbani almashtirasizmi?",
-      "switchText": "Blokdagi tanlangan savollar/qoidalar saqlanadi, lekin faqat tanlangan manba ishlatiladi. Fayl rejimiga o'tilsa \"tayyor\" belgisi bekor bo'ladi.",
-      "fileSummary": "{n} ta savol, {v} ta variant",
-      "fileEmpty": "Fayl testi hali to'ldirilmagan",
-      "editFile": "Fayl testini tahrirlash",
-      "badge": "Fayl + kalit"
-    }
+    "noSuggestion": "Tanlangan sinflarda bu fanni o'qitadigan o'qituvchi topilmadi: o'qituvchini ro'yxatdan qo'lda tanlang."
   },
   "examResultsList": {
     "title": "Natijalar",
@@ -4198,7 +4186,32 @@
     "save": "Saqlash",
     "saved": "Fayl testi saqlandi",
     "unsaved": "Saqlanmagan o'zgarishlar bor",
-    "saveFirst": "Avval fayl testini saqlang"
+    "saveFirst": "Avval fayl testini saqlang",
+    "modeTitle": "Savol qo‘shish usuli",
+    "modeBank": "Savollar banki va boshqa usullar",
+    "modeFile": "Fayl + kalit",
+    "switchTitle": "Usulni almashtirasizmi?",
+    "switchToFile": "Savollar banki mazmuni saqlanadi (yashirin), lekin faqat \"Fayl + kalit\" hisobga olinadi. Qaytganingizda tiklanadi. \"Tayyor\" belgisi bekor bo'ladi.",
+    "switchToBank": "Fayl testi va kalit saqlanadi (yashirin), lekin faqat savollar banki mazmuni hisobga olinadi. Qaytganingizda tiklanadi. \"Tayyor\" belgisi bekor bo'ladi.",
+    "switchConfirm": "Almashtirish",
+    "switched": "Usul almashtirildi",
+    "delivery": "Yetkazish usuli",
+    "deliveryScreen": "Ekranda",
+    "deliveryPaper": "Qog'ozda",
+    "deliveryScreenHelp": "Fayl serverda VAQTINCHA turadi (imtihon yopilgandan 14 kun keyin o'chadi), o'quvchi ekranda ko'radi. Kalit doimiy saqlanadi.",
+    "deliveryPaperHelp": "Fayl yuklanmaydi: testni chop etib tarqatasiz. O'quvchi ekranda faqat javob varaqasini to'ldiradi va qog'ozidagi variantni o'zi tanlaydi (tasdiq bilan; xato bo'lsa natijalar sahifasida tuzatasiz).",
+    "expired": "fayl muddati tugagan",
+    "expiredHelp": "Test fayli muddati tugagani uchun o'chirilgan. Kalit va natijalar saqlangan. Imtihonni qayta ochish uchun faylni qayta yuklang.",
+    "reupload": "Faylni qayta yuklang",
+    "reuploadHelp": "Kalit nusxadan olingan, lekin fayl ko'chirilmaydi: faylni qayta yuklang.",
+    "replace": "Qayta yuklash",
+    "replaced": "Fayl qayta yuklandi",
+    "noFileNeeded": "Qog'ozda fayl kerak emas: faqat har variant uchun kalitni kiriting.",
+    "correctTitle": "Qog'oz varianti",
+    "correctHelp": "O'quvchi tanlagan variant xato bo'lsa tuzating: javoblar savol raqami bo'yicha ko'chadi va ball qayta hisoblanadi (auditga yoziladi).",
+    "correctApply": "Tuzatish",
+    "corrected": "Variant tuzatildi",
+    "notChosen": "tanlanmagan"
   },
   "ocr": {
     "hint": "Aniq, tekis, yorug' rasm yuklang: sahifa to'g'ri turgan, soyasiz, matn xira emas bo'lsin.",

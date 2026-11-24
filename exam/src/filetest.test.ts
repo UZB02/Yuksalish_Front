@@ -93,12 +93,16 @@ const bankQ: ClientQuestion = {
 }
 const pdfFile: FileBlockView = {
   blockId: 'F1',
+  delivery: 'screen',
+  variants: [],
   variant: 'A',
   kind: 'pdf',
   files: [{ id: 'f'.repeat(24) }],
 }
 const imgFile: FileBlockView = {
   blockId: 'F1',
+  delivery: 'screen',
+  variants: [],
   variant: 'A',
   kind: 'image',
   files: [{ id: '1'.repeat(24) }, { id: '2'.repeat(24) }],
@@ -181,6 +185,7 @@ function mkApi(startResp: StartResponse, over: Record<string, unknown> = {}) {
     result: vi.fn(),
     asset: vi.fn().mockResolvedValue(new Blob(['x'])),
     file: vi.fn().mockResolvedValue(new Blob(['%PDF-1.4'])),
+    chooseVariant: vi.fn(),
     ...over,
   } as never as Record<string, ReturnType<typeof vi.fn>>
 }
@@ -419,5 +424,107 @@ describe('natija ekrani: fayl savollari', () => {
     expect(items[0]!.text().replace(/\s+/g, '')).toContain('To‘g‘rijavob:BD')
     expect(items[1]!.text()).toContain('Savol 2')
     expect(items[1]!.text()).toContain('25 / 25,0')
+  })
+})
+
+describe('qog`oz yetkazish: variant tanlash', () => {
+  const paperPending: FileBlockView = {
+    blockId: 'F1',
+    delivery: 'paper',
+    variants: ['A', 'B'],
+    variant: null,
+    kind: 'pdf',
+    files: [],
+  }
+  const paperChosen: FileBlockView = { ...paperPending, variant: 'B' }
+  const chosenView = (): StartResponse =>
+    view({
+      questions: fileQs.map((q) => ({ ...q, id: q.id.replace(':A:', ':B:'), variant: 'B' })),
+      files: [paperChosen],
+    })
+
+  it('tanlashdan oldin savollar yo`q: tanlash kartochkasi; tasdiq dialogi; tasdiqlagach server chaqiriladi, javob varaqasi (fayl ko`rsatkichisiz) chiqadi', async () => {
+    const { s, api } = await started(
+      view({ questions: [], files: [paperPending], timingMode: 'common', block: null }),
+    )
+    api.chooseVariant.mockResolvedValue(chosenView())
+    const w = mountWith(s)
+    await flushPromises()
+    expect(w.find('[data-testid="variant-picker"]').exists()).toBe(true)
+    expect(w.find('[data-testid="file-viewer"]').exists()).toBe(false)
+    expect(w.find('[data-testid="answer-sheet"]').exists()).toBe(false)
+    expect((w.get('[data-testid="variant-continue"]').element as HTMLButtonElement).disabled).toBe(
+      true,
+    )
+    expect(w.findAll('[data-testid^="variant-"][role="radio"]').map((b) => b.text())).toEqual([
+      'A',
+      'B',
+    ])
+    await w.get('[data-testid="variant-B"]').trigger('click')
+    await w.get('[data-testid="variant-continue"]').trigger('click')
+    expect(w.get('[data-testid="variant-dialog"]').text()).toContain(
+      '“B” variantini tasdiqlaysizmi?',
+    )
+    expect(w.get('[data-testid="variant-dialog"]').text()).toContain('o‘zgartirib bo‘lmaydi')
+    await w.get('[data-testid="variant-back"]').trigger('click')
+    expect(api.chooseVariant).not.toHaveBeenCalled()
+    await w.get('[data-testid="variant-continue"]').trigger('click')
+    await w.get('[data-testid="variant-confirm"]').trigger('click')
+    await flushPromises()
+    expect(api.chooseVariant).toHaveBeenCalledWith({ blockId: 'F1', variant: 'B' })
+    expect(w.find('[data-testid="variant-picker"]').exists()).toBe(false)
+    expect(w.find('[data-testid="file-viewer"]').exists()).toBe(false) // qog'oz: fayl yo'q
+    expect(w.findAll('[data-testid^="sheet-row-"]')).toHaveLength(4)
+    expect(api.file).not.toHaveBeenCalled()
+    // javob varaqasi doim ochiq (qog'ozda), javoblar yangi savol id lari bilan
+    await w.get('[data-testid="sheet-opt-1-C"]').trigger('click')
+    expect(s.state.answers['fk:F1:B:1']!.value).toBe('C')
+  })
+
+  it('xato bo`lsa (boshqa qurilmada tanlangan): xabar va holat qayta yuklanadi; blokma-blok rejimda savollarsiz blok ko`rsatiladi', async () => {
+    const { s, api } = await started(view({ questions: [], files: [paperPending] }))
+    api.chooseVariant.mockRejectedValue(new Error('x'))
+    api.start.mockResolvedValue(chosenView())
+    const w = mountWith(s)
+    await flushPromises()
+    // per_block + savollar yo'q: butun ekran yo'qolmaydi, tanlash kartochkasi turadi
+    expect(w.find('[data-testid="exam"]').exists()).toBe(true)
+    expect(w.find('[data-testid="variant-picker"]').exists()).toBe(true)
+    expect(w.find('[data-testid="question"]').exists()).toBe(false)
+    await w.get('[data-testid="variant-A"]').trigger('click')
+    await w.get('[data-testid="variant-continue"]').trigger('click')
+    await w.get('[data-testid="variant-confirm"]').trigger('click')
+    await flushPromises()
+    expect(s.state.files[0]!.variant).toBe('B') // /start dan qayta yuklandi
+    expect(w.find('[data-testid="variant-picker"]').exists()).toBe(false)
+  })
+
+  it('ekranli blok va qog`ozli blok aralash (umumiy vaqt): qog`oz bloki tanlanmaguncha boshqa blok ishlaydi', async () => {
+    const { s } = await started(
+      view({
+        timingMode: 'common',
+        block: null,
+        questions: [bankQ],
+        files: [paperPending],
+      }),
+    )
+    const w = mountWith(s)
+    await flushPromises()
+    expect(w.find('[data-testid="variant-picker"]').exists()).toBe(true)
+    expect(w.get('[data-testid="question"]').text()).toContain('Lang 1') // bank savoli ishlaydi
+    expect(w.find('[data-testid="block-tabs"]').exists()).toBe(false) // savolsiz blok yorlig'i yo'q
+  })
+
+  it('fayl muddati tugagan (410): ko`rsatkichda aniq xabar', async () => {
+    const { ApiError } = await import('./lib/api')
+    const { s } = await started(view(), {
+      file: vi.fn().mockRejectedValue(new ApiError(410, 'FILE_EXPIRED', 'Fayl muddati tugagan')),
+    })
+    const w = mountWith(s)
+    await flushPromises()
+    expect(w.get('[data-testid="file-error"]').text()).toContain('Fayl muddati tugagan')
+    // javob varaqasi baribir ishlaydi
+    await w.get('[data-testid="sheet-opt-1-C"]').trigger('click')
+    expect(s.state.answers['fk:F1:A:1']!.value).toBe('C')
   })
 })

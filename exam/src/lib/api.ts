@@ -51,8 +51,10 @@ export interface ExamApi {
   finishBlock(body: { blockId: string }): Promise<FinishBlockResponse>
   result(): Promise<ResultResponse>
   asset(id: string): Promise<Blob>
-  /** "Fayl + kalit" bloki fayli (PDF/rasm), token bilan */
+  /** "Fayl + kalit" bloki fayli (PDF/rasm), token bilan. Muddati tugagan bo'lsa ApiError(410) */
   file(id: string): Promise<Blob>
+  /** Qog'oz yetkazish: qog'ozdagi variantni tanlash (bir marta; tasdiqdan keyin qulflanadi) */
+  chooseVariant(body: { blockId: string; variant: string }): Promise<StartResponse>
 }
 
 /**
@@ -130,8 +132,10 @@ export function createApi(getToken: () => string | null, fetchFn: typeof fetch =
       } catch {
         throw new ApiError(0, 'NETWORK', "Internet yo'q")
       }
+      if (res.status === 410) throw new ApiError(410, 'FILE_EXPIRED', 'Fayl muddati tugagan')
       if (!res.ok) throw new ApiError(res.status, 'ERROR', 'Fayl yuklanmadi')
       return res.blob()
     },
+    chooseVariant: (b) => call('POST', '/variant', b),
   }
 }

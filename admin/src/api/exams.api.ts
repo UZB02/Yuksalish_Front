@@ -22,6 +22,7 @@ import type {
   ExamSection,
   ExamSectionsPreview,
   ExamBlockInput,
+  ExamBlockContent,
   FileKeyParse,
   FileTestFileInfo,
   FileTestSaveBody,
@@ -310,6 +311,34 @@ export const examsApi = {
     getData<FileTestView>(`/exams/my-blocks/${sessionId}/${blockId}/file-test`),
   saveFileTest: (sessionId: string, blockId: string, body: FileTestSaveBody) =>
     sendData<FileTestView>('put', `/exams/my-blocks/${sessionId}/${blockId}/file-test`, body),
+  setBlockContent: (
+    sessionId: string,
+    blockId: string,
+    body: { content: ExamBlockContent; from: ExamBlockContent },
+  ) => sendData<FileTestView>('put', `/exams/my-blocks/${sessionId}/${blockId}/content`, body),
+  /** Muddati tugagan faylni qayta yuklash (faqat tuzuvchi): fayl id si va kalit o'zgarmaydi */
+  async replaceTestFile(
+    sessionId: string,
+    blockId: string,
+    fileId: string,
+    file: File,
+  ): Promise<FileTestView> {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await http.post<ApiSuccess<FileTestView>>(
+      `/exams/my-blocks/${sessionId}/${blockId}/files/${fileId}/replace`,
+      form,
+      { timeout: 120000 },
+    )
+    return res.data.data
+  },
+  /** Qog'oz yetkazish: o'quvchi tanlagan variantni tuzatish */
+  correctVariant: (sessionId: string, key: string, body: { blockId: string; variant: string }) =>
+    sendData<{ variant: string; previous: string | null }>(
+      'put',
+      `/exams/sessions/${sessionId}/results/${key}/variant`,
+      body,
+    ),
   parseFileKey: (
     sessionId: string,
     blockId: string,
