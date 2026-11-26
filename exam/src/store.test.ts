@@ -493,7 +493,7 @@ describe('komponentlar', () => {
     expect(w.get('[data-testid="timer"]').text()).toBe('40:00')
     await w.get('[data-testid="submit"]').trigger('click')
     expect(w.get('[data-testid="submit-summary"]').text()).toContain('Javobsiz savollar: 2')
-    expect(w.get('[data-testid="submit-summary"]').text()).toContain('belgilanganlar: 1')
+    expect(w.get('[data-testid="submit-summary"]').text()).toContain('belgilangan savollar: 1')
     await w.get('[data-testid="submit-cancel"]').trigger('click')
     expect(w.find('[data-testid="submit-dialog"]').exists()).toBe(false)
     // matn javob
@@ -543,6 +543,29 @@ describe('komponentlar', () => {
     await flushPromises()
     expect(w.get('[data-testid="result-title"]').text()).toMatch(/Vaqt tugadi/)
     expect(w.get('[data-testid="result-note"]').text()).toMatch(/ko‘rsatilmaydi/)
+    expect(w.find('[data-testid="result-ring"]').exists()).toBe(false)
+    expect(w.find('[data-testid="result-icon"]').exists()).toBe(true)
+  })
+
+  it('ResultScreen: halqa aria-label, ball, fan qatorlari rangi', async () => {
+    const store = mk(mkApi())
+    await store.init()
+    store.state.result = resultResp({
+      score: { earned: 4, max: 24, autoMax: 24, essayPending: 0 },
+      blocks: [
+        { id: 'a', title: 'Matematika', earned: 8, max: 10 },
+        { id: 'b', title: 'Fizika', earned: 5, max: 10 },
+        { id: 'c', title: 'Tarix', earned: 1, max: 10 },
+      ],
+    })
+    const w = mountWith(store, ResultScreen)
+    expect(w.get('[data-testid="result-ring"]').attributes('aria-label')).toBe('Natija 17 foiz')
+    expect(w.get('[data-testid="result-score"]').text()).toBe('4 / 24 ball')
+    const rows = w.findAll('[data-testid="result-block"]')
+    expect(rows).toHaveLength(3)
+    expect(rows[0]!.html()).toContain('bg-ok')
+    expect(rows[1]!.html()).toContain('bg-warn')
+    expect(rows[2]!.html()).toContain('bg-bad')
   })
 })
 

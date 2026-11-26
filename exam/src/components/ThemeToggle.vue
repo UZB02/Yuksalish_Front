@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import Icon from './Icon.vue'
 
+defineProps<{ testid?: string }>()
 const dark = ref(document.documentElement.classList.contains('dark'))
 function toggle() {
   dark.value = !dark.value
@@ -16,11 +18,11 @@ function toggle() {
 <template>
   <button
     type="button"
-    class="min-h-10 rounded-xl border border-line bg-surface px-3 text-sm text-fg-soft"
+    class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-fg"
     :aria-label="dark ? 'Yorug‘ mavzu' : 'Qorong‘i mavzu'"
-    data-testid="theme-toggle"
+    :data-testid="testid ?? 'theme-toggle'"
     @click="toggle"
   >
-    {{ dark ? 'Yorug‘' : 'Qorong‘i' }}
+    <Icon :name="dark ? 'sun' : 'moon'" />
   </button>
 </template>

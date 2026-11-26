@@ -242,10 +242,12 @@ const noCopy = (e: Event) => e.preventDefault()
 
 <template>
   <div
-    class="flex min-h-0 flex-col rounded-xl border border-line bg-muted"
+    class="flex min-h-0 flex-col rounded-2xl border-2 border-line bg-muted"
     data-testid="file-viewer"
   >
-    <div class="flex items-center gap-2 border-b border-line bg-surface px-2 py-1.5 text-sm">
+    <div
+      class="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line bg-surface px-2 py-1.5 text-sm"
+    >
       <span class="whitespace-nowrap font-semibold" data-testid="file-variant"
         >{{ file.variant }} varianti</span
       >

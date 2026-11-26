@@ -225,7 +225,7 @@ describe('blokma-blok navigatsiya va taymer', () => {
     expect(w.get('[data-testid="timer"]').text()).toBe('30:00')
     expect(w.get('[data-testid="total-time"]').text()).toBe('50:00')
     expect(w.get('[data-testid="submit"]').text()).toBe('Blokni yakunlash')
-    expect(w.find('[data-testid="block-tabs"]').exists()).toBe(false) // blokma-blokda tab yo'q
+    expect(w.find('[data-testid="block-tab-B2"]').attributes('disabled')).toBeDefined() // keyingi fan qulflangan
     await w.get('[data-testid="option-a"]').trigger('click')
     await w.get('[data-testid="submit"]').trigger('click')
     expect(w.get('[data-testid="submit-title"]').text()).toBe('Blokni yakunlaysizmi?')
@@ -267,7 +267,9 @@ describe('blokma-blok navigatsiya va taymer', () => {
     expect(s.state.result?.blocks).toHaveLength(2)
     const w = mountWith(s as never, ResultScreen)
     const items = w.findAll('[data-testid="result-block"]').map((x) => x.text())
-    expect(items).toEqual(['Matematika: 4.65 / 6.2', 'Ona tili: 2.1 / 4.2'])
+    expect(items).toHaveLength(2)
+    expect(items[0]).toMatch(/^Matematika\s*4,65 \/ 6,2\s*75%$/)
+    expect(items[1]).toMatch(/^Ona tili\s*2,1 \/ 4,2\s*50%$/)
     const review = w.findAll('[data-testid="review-item"]')
     expect(review).toHaveLength(2)
     expect(review[0]!.text()).toContain('Math 1') // oldingi blok savoli matni saqlangan
@@ -390,7 +392,7 @@ describe('umumiy vaqt, bir nechta blok: erkin navigatsiya va blok sarlavhalari',
     const w = mountWith(s as never, ExamScreen)
     expect(w.find('[data-testid="block-header"]').exists()).toBe(false)
     const tabs = w.findAll('[data-testid^="block-tab-"]')
-    expect(tabs.map((t) => t.text())).toEqual(['Matematika (2)', 'Ona tili (1)'])
+    expect(tabs.map((t) => t.text())).toEqual(['Matematika0/2', 'Ona tili0/1'])
     expect(w.get('[data-testid="question-block"]').text()).toBe('Matematika')
     // tab: 2-blok birinchi savoliga o'tadi (erkin: orqaga ham mumkin)
     await w.get('[data-testid="block-tab-B2"]').trigger('click')
@@ -433,5 +435,278 @@ describe('umumiy vaqt, bir nechta blok: erkin navigatsiya va blok sarlavhalari',
     expect(w.find('[data-testid="block-tabs"]').exists()).toBe(false)
     expect(w.find('[data-testid="question-block"]').exists()).toBe(false)
     expect(w.find('[data-testid="block-header"]').exists()).toBe(false)
+  })
+})
+
+describe('imtihon ekrani: B dizayni (fan yorliqlari, savollar xaritasi, telefon paneli)', () => {
+  it('xarita fan bo`yicha guruhlanadi; holatlar va izoh sanoqlari; katak bosilsa savolga o`tadi', async () => {
+    const { s } = await started('common')
+    const w = mountWith(s as never, ExamScreen)
+    const aside = w.get('[data-testid="map-aside"]')
+    const groups = aside.findAll('section')
+    expect(groups.map((g) => g.get('h3').text())).toEqual(['Matematika', 'Ona tili'])
+    expect(groups.map((g) => g.findAll('button').length)).toEqual([2, 1])
+    await w.get('[data-testid="option-a"]').trigger('click') // 1-savol: javob
+    await w.get('[data-testid="cell-1"]').trigger('click')
+    await w.get('[data-testid="flag"]').trigger('click') // 2-savol: keyinroq qaytaman
+    expect(w.get('[data-testid="cell-0"]').attributes('data-state')).toBe('answered')
+    expect(w.get('[data-testid="cell-1"]').attributes('data-state')).toBe('flagged')
+    expect(w.get('[data-testid="cell-2"]').attributes('data-state')).toBe('empty')
+    expect(w.get('[data-testid="cell-1"]').attributes('aria-current')).toBe('step') // joriy ajralgan
+    expect(w.get('[data-testid="cell-0"]').attributes('aria-current')).toBeUndefined()
+    expect(w.get('[data-testid="cell-1"]').attributes('aria-label')).toBe(
+      '2-savol, belgilangan, hozirgi',
+    )
+    const legend = aside.get('ul').text()
+    expect(legend).toMatch(/Javob berilgan\s*1/)
+    expect(legend).toMatch(/Belgilangan\s*1/)
+    expect(legend).toMatch(/Javobsiz\s*1/)
+    expect(aside.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('33')
+    await w.get('[data-testid="cell-2"]').trigger('click')
+    expect(w.get('[data-testid="question-index"]').text()).toBe('Savol 3 / 3')
+    expect(w.get('[data-testid="question-block"]').text()).toBe('Ona tili')
+  })
+
+  it('fan yorlig`i: javoblangan/jami sanog`i va joriy fan belgisi', async () => {
+    const { s } = await started('common')
+    const w = mountWith(s as never, ExamScreen)
+    const t1 = w.get('[data-testid="block-tab-B1"]')
+    const t2 = w.get('[data-testid="block-tab-B2"]')
+    expect(t1.text()).toBe('Matematika0/2')
+    expect(t1.attributes('aria-current')).toBe('true')
+    expect(t2.attributes('aria-current')).toBeUndefined()
+    await w.get('[data-testid="option-a"]').trigger('click')
+    expect(w.get('[data-testid="block-tab-B1"]').text()).toBe('Matematika1/2')
+    expect(w.get('[data-testid="block-tab-B2"]').text()).toBe('Ona tili0/1')
+  })
+
+  it('taymer: 5 daqiqadan kam bo`lsa qizil, ko`p bo`lsa neytral; sarlavhada ism va sinf', async () => {
+    const { s } = await started('common')
+    const w = mountWith(s as never, ExamScreen)
+    expect(w.get('[data-testid="timer"]').classes()).toContain('bg-muted')
+    expect(w.get('[data-testid="exam-student"]').text()).toBe('Aliyev Bobur · 7-A')
+    s.state.remaining = min(5) + 1000
+    await flushPromises()
+    expect(w.get('[data-testid="timer"]').classes()).toContain('bg-muted')
+    s.state.remaining = min(5)
+    await flushPromises()
+    expect(w.get('[data-testid="timer"]').classes()).toContain('bg-bad')
+    expect(w.get('[data-testid="timer"]').attributes('role')).toBe('timer')
+  })
+
+  it('telefon: "Xarita" paneli ochiladi, katak savolga o`tkazib panelni yopadi; Topshirish tasdiqqa olib boradi', async () => {
+    const { s, api } = await started('common')
+    const w = mountWith(s as never, ExamScreen)
+    expect(w.find('[data-testid="map-panel"]').exists()).toBe(false)
+    await w.get('[data-testid="map-open"]').trigger('click')
+    const panel = w.get('[data-testid="map-panel"]')
+    expect(panel.attributes('role')).toBe('dialog')
+    expect(panel.findAll('[data-testid^="m-cell-"]')).toHaveLength(3)
+    await w.get('[data-testid="m-cell-2"]').trigger('click')
+    expect(w.find('[data-testid="map-panel"]').exists()).toBe(false)
+    expect(w.get('[data-testid="question-index"]').text()).toBe('Savol 3 / 3')
+    // yopish tugmasi va Escape
+    await w.get('[data-testid="map-open"]').trigger('click')
+    await w.get('[data-testid="map-close"]').trigger('click')
+    expect(w.find('[data-testid="map-panel"]').exists()).toBe(false)
+    await w.get('[data-testid="map-open"]').trigger('click')
+    await w.get('[data-testid="map-backdrop"]').trigger('keydown', { key: 'Escape' })
+    expect(w.find('[data-testid="map-panel"]').exists()).toBe(false)
+    // panel ichidan topshirish: panel yopiladi, tasdiq oynasi chiqadi, tasdiqlansa server chaqiriladi
+    await w.get('[data-testid="map-open"]').trigger('click')
+    await w.get('[data-testid="submit-panel"]').trigger('click')
+    expect(w.find('[data-testid="map-panel"]').exists()).toBe(false)
+    expect(w.get('[data-testid="submit-dialog"]').attributes('role')).toBe('dialog')
+    expect(w.get('[data-testid="submit-summary"]').text()).toContain('Javobsiz savollar: 3')
+    await w.get('[data-testid="submit-confirm"]').trigger('click')
+    await flushPromises()
+    expect(api.submit).toHaveBeenCalledTimes(1)
+  })
+
+  it('telefon: oxirgi savolda "Topshirish" tugmasi tasdiq oynasini ochadi (Keyingi o`chirilgan)', async () => {
+    const { s } = await started('common')
+    const w = mountWith(s as never, ExamScreen)
+    expect(w.find('[data-testid="submit-last"]').exists()).toBe(false)
+    await w.get('[data-testid="cell-2"]').trigger('click')
+    expect((w.get('[data-testid="next"]').element as HTMLButtonElement).disabled).toBe(true)
+    await w.get('[data-testid="submit-last"]').trigger('click')
+    expect(w.find('[data-testid="submit-dialog"]').exists()).toBe(true)
+    expect(w.get('[data-testid="submit-title"]').text()).toBe('Imtihonni topshirasizmi?')
+  })
+
+  it('blokma-blok: boshqa fanga o`tish cheklovi ko`rinadi (keyingi fan qulflangan, bosilmaydi); yakunlangach oldingisi yopiq', async () => {
+    const { s } = await started('per_block')
+    const w = mountWith(s as never, ExamScreen)
+    const t1 = w.get('[data-testid="block-tab-B1"]')
+    const t2 = w.get('[data-testid="block-tab-B2"]')
+    expect(t1.attributes('data-state')).toBe('current')
+    expect(t2.attributes('data-state')).toBe('locked')
+    expect(t2.attributes('disabled')).toBeDefined()
+    expect(t2.attributes('title')).toMatch(/yakunlagach ochiladi/)
+    expect(t2.text()).toContain('Keyin')
+    await t2.trigger('click')
+    expect(s.state.block?.id).toBe('B1')
+    expect(w.findAll('[data-testid="grid"] button')).toHaveLength(2) // faqat joriy blok xaritada
+    await w.get('[data-testid="submit"]').trigger('click')
+    await w.get('[data-testid="submit-confirm"]').trigger('click')
+    await flushPromises()
+    expect(s.state.block?.id).toBe('B2')
+    expect(w.get('[data-testid="block-tab-B1"]').attributes('data-state')).toBe('done')
+    expect(w.get('[data-testid="block-tab-B1"]').attributes('disabled')).toBeDefined()
+    expect(w.get('[data-testid="block-tab-B2"]').attributes('data-state')).toBe('current')
+  })
+})
+
+describe('telefon tuzatishlari: pastki qator, yorliqlar, xarita paneli, o`nlik vergul', () => {
+  it('pastki Oldingi/Belgilash/Keyingi qatori 3 teng ustunli grid (min-w-0), qisqa ekranda ikonka yashirin', async () => {
+    const { s } = await started('common')
+    const w = mountWith(s as never, ExamScreen)
+    const row = w.get('[data-testid="prev"]').element.parentElement!
+    expect(row.className).toContain('grid-cols-3')
+    for (const id of ['prev', 'flag', 'next']) {
+      const b = w.get(`[data-testid="${id}"]`)
+      expect(b.classes()).toContain('min-w-0')
+      expect(b.find('svg').classes().join(' ')).toContain('max-[400px]:hidden')
+    }
+  })
+
+  it('fan yorliqlari: 3 tagacha teng grid, ko`p bo`lsa gorizontal scroll va chetida soya', async () => {
+    const { s } = await started('per_block')
+    const w = mountWith(s as never, ExamScreen)
+    const nav = w.get('[data-testid="block-tabs"]')
+    expect(nav.classes()).toContain('grid')
+    expect(nav.attributes('style')).toContain('repeat(2, minmax(0, 1fr))')
+    expect(w.find('[data-testid="tabs-fade"]').exists()).toBe(false)
+    s.state.blocks = [
+      ...s.state.blocks,
+      { id: 'B3', title: 'Fizika', questionCount: 1, durationMin: 10 },
+      { id: 'B4', title: 'Kimyo', questionCount: 1, durationMin: 10 },
+    ]
+    await flushPromises()
+    const nav2 = w.get('[data-testid="block-tabs"]')
+    expect(nav2.classes()).toContain('overflow-x-auto')
+    expect(w.find('[data-testid="tabs-fade"]').exists()).toBe(true)
+    expect(w.get('[data-testid="block-tab-B3"]').classes()).toContain('shrink-0')
+  })
+
+  it('xarita panelida katak bosilsa panel yopiladi va fokus savol kartasiga qaytadi', async () => {
+    const { s } = await started('common')
+    const w = mount(ExamScreen, {
+      attachTo: document.body,
+      global: { provide: { [STORE_KEY as symbol]: s } },
+    })
+    await w.get('[data-testid="map-open"]').trigger('click')
+    await w.get('[data-testid="m-cell-1"]').trigger('click')
+    await flushPromises()
+    expect(w.find('[data-testid="map-panel"]').exists()).toBe(false)
+    expect(w.get('[data-testid="question-index"]').text()).toBe('Savol 2 / 3')
+    expect(document.activeElement).toBe(w.get('[data-testid="question"]').element)
+    w.unmount()
+  })
+
+  it('natija: ball va fanlar bo`yicha ballar o`zbekcha vergul bilan', async () => {
+    const { s } = await started('common')
+    s.state.result = result()
+    const w = mountWith(s as never, ResultScreen)
+    expect(w.get('[data-testid="result-score"]').text()).toContain('6,75')
+    expect(w.get('[data-testid="result-score"]').text()).toContain('10,4')
+    expect(w.get('[data-testid="result-score"]').text()).not.toContain('.')
+    expect(w.text()).not.toMatch(/\d\.\d/)
+  })
+})
+
+describe('kompyuter maketi: butun balandlik, kengaytirilgan konteyner, o`zgaruvchan katak, 2 ustunli variantlar', () => {
+  it('lg+ da ekran balandligi to`ldiriladi; savol kartasi ichida Oldingi/Keyingi; xarita ustuni 360/400px', async () => {
+    const { s } = await started('common')
+    const w = mountWith(s as never, ExamScreen)
+    const root = w.get('[data-testid="exam"]').classes()
+    expect(root).toEqual(expect.arrayContaining(['lg:h-dvh', 'lg:overflow-hidden', 'lg:flex-col']))
+    const card = w.get('[data-testid="question"]')
+    expect(card.classes()).toEqual(expect.arrayContaining(['lg:flex-1', 'lg:flex-col', '2xl:p-10']))
+    expect(card.find('[data-testid="prev"]').exists()).toBe(true) // tugmalar kartaning ichida
+    expect(card.find('[data-testid="next"]').exists()).toBe(true)
+    expect(card.get('[data-testid="question-body"]').classes()).toContain('lg:overflow-y-auto')
+    const grid = card.element.parentElement!.parentElement!
+    expect(grid.className).toContain('2xl:max-w-[1600px]')
+    expect(grid.className).toContain('xl:grid-cols-[minmax(0,1fr)_360px]')
+    expect(grid.className).toContain('2xl:grid-cols-[minmax(0,1fr)_400px]')
+    expect(w.get('[data-testid="map-aside"]').classes()).toContain('lg:h-full')
+    // savol matni 2xl da text-3xl
+    expect(card.html()).toContain('2xl:text-3xl')
+  })
+
+  it('xarita kataklari: auto-fill minmax(2.25rem,1fr), ixcham h-9, holat klasslari (telefon paneli o`zgarmagan)', async () => {
+    const { s } = await started('common')
+    const w = mountWith(s as never, ExamScreen)
+    const cells = w.get('[data-testid="map-aside"]').get('[data-testid="map-cells"]')
+    expect(cells.attributes('style')).toContain('repeat(auto-fill, minmax(2.25rem, 1fr))')
+    expect(w.get('[data-testid="cell-0"]').classes()).toEqual(
+      expect.arrayContaining(['h-9', '2xl:h-10', 'bg-surface']),
+    )
+    expect(w.get('[data-testid="cell-0"]').classes()).not.toContain('aspect-square')
+    await w.get('[data-testid="map-open"]').trigger('click')
+    const pc = w.get('[data-testid="map-panel"]').get('[data-testid="map-cells"]')
+    expect(pc.classes()).toContain('grid-cols-6')
+    expect(w.get('[data-testid="m-cell-0"]').classes()).toContain('h-11')
+  })
+
+  it('xarita katagi: javob/belgi/ikkalasi/joriy klass va aria-label', async () => {
+    const { mount } = await import('@vue/test-utils')
+    const QuestionMap = (await import('./components/QuestionMap.vue')).default
+    const mk = (index: number, state: 'answered' | 'flagged' | 'empty', answered: boolean) => ({
+      index,
+      id: 'q' + index,
+      state,
+      answered,
+    })
+    const w = mount(QuestionMap, {
+      props: {
+        fluid: true,
+        current: 3,
+        groups: [
+          {
+            key: 'g',
+            title: 'Fan',
+            cells: [
+              mk(0, 'answered', true),
+              mk(1, 'flagged', false),
+              mk(2, 'flagged', true),
+              mk(3, 'empty', false),
+            ],
+          },
+        ],
+      },
+    })
+    const c = (i: number) => w.get(`[data-testid="cell-${i}"]`)
+    expect(c(0).classes()).toEqual(expect.arrayContaining(['bg-ok', 'text-white']))
+    expect(c(1).classes()).toEqual(
+      expect.arrayContaining(['bg-warn/15', 'border-warn', 'text-warn']),
+    )
+    expect(c(1).find('svg').exists()).toBe(true)
+    expect(c(2).classes()).toContain('bg-ok')
+    expect(c(2).find('svg').exists()).toBe(true)
+    expect(c(3).classes()).toEqual(expect.arrayContaining(['bg-surface', 'ring-brand']))
+    expect(c(0).find('svg').exists()).toBe(false)
+    expect(c(0).attributes('aria-label')).toBe('1-savol, javob berilgan')
+    expect(c(1).attributes('aria-label')).toBe('2-savol, belgilangan')
+    expect(c(2).attributes('aria-label')).toBe('3-savol, javob berilgan, belgilangan')
+    expect(c(3).attributes('aria-label')).toBe('4-savol, javobsiz, hozirgi')
+    expect(c(3).attributes('aria-current')).toBe('step')
+    const legend = w.get('ul').text()
+    expect(legend).toMatch(/Javob berilgan\s*2/)
+    expect(legend).toMatch(/Belgilangan\s*2/)
+    expect(legend).toMatch(/Javobsiz\s*1/)
+  })
+
+  it('qisqa variantlar xl da 2 ustun, uzun bo`lsa bitta ustun', async () => {
+    const { s } = await started('common')
+    const w = mountWith(s as never, ExamScreen)
+    const g = w.get('[role="radiogroup"]')
+    expect(g.attributes('data-cols')).toBe('2') // 'A' / 'B'
+    expect(g.classes()).toContain('xl:grid-cols-2')
+    s.state.questions[0]!.options[0]!.content = [{ type: 'text', text: 'u'.repeat(60) }]
+    await flushPromises()
+    expect(w.get('[role="radiogroup"]').attributes('data-cols')).toBe('1')
+    expect(w.get('[role="radiogroup"]').classes()).not.toContain('xl:grid-cols-2')
   })
 })
