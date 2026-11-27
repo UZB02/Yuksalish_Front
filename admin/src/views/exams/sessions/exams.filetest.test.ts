@@ -703,6 +703,8 @@ describe('natijalar: variant ustuni', () => {
       await flushPromises()
       await new Promise((r) => setTimeout(r, 0))
       await flushPromises()
+      ;($('view-table') as HTMLElement).click()
+      await flushPromises()
       if (v) {
         expect($('col-variant').textContent).toContain('Variant')
         expect($('cell-variant').textContent).toContain('B')

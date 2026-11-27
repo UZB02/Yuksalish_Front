@@ -3,27 +3,43 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
-import { Download } from 'lucide-vue-next'
+import { LayoutGrid, List, Search } from 'lucide-vue-next'
 import { examsApi } from '@/api/exams.api'
-import type { ExamAnalysis, ExamResultRow, ExamResultsResponse } from '@/api/types'
-import BlocksView from '@/components/exams/BlocksView.vue'
-import ExamBreadcrumb from '@/components/exams/ExamBreadcrumb.vue'
+import type { ExamAnalysis, ExamResultsResponse } from '@/api/types'
+import AnalysisGrid from '@/components/exams/results/AnalysisGrid.vue'
+import ClassResults from '@/components/exams/results/ClassResults.vue'
+import ResultsHero from '@/components/exams/results/ResultsHero.vue'
+import ResultsInsights from '@/components/exams/results/ResultsInsights.vue'
+import ResultsStrip from '@/components/exams/results/ResultsStrip.vue'
+import ResultsTable from '@/components/exams/results/ResultsTable.vue'
+import {
+  classNames,
+  classStat,
+  filterCounts,
+  matchFilter,
+  sortRows,
+  type ResultFilter,
+  type SortKey,
+} from '@/components/exams/results/resultsModel'
 import NeedsSchool from '@/components/domain/NeedsSchool.vue'
-import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import BaseInput from '@/components/ui/BaseInput.vue'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import PageHeader from '@/components/ui/PageHeader.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useNeedsSchool } from '@/composables/useNeedsSchool'
 import { useToast } from '@/composables/useToast'
 import { useSchoolContextStore } from '@/stores/school-context'
 import { errorMessage } from '@/utils/errors'
+import { fmtDateTime } from '@/utils/examSessions'
 import ParticipantResultModal from './ParticipantResultModal.vue'
 
-/** Imtihon ichidagi natijalar: jadval (o'rin, ball, %), tafsilot, esse baholash, e'lon qilish, tahlil va eksport */
+/**
+ * Imtihon natijalari ("B: reyting + sinflar yonma-yon"): gradient sarlavha, filtr kataklari (STRIP), 3 ta tahlil kartasi,
+ * asboblar qatori, sinflar kartalari yoki jadval, savollar tahlili. O'quvchini bosish tafsilot oynasini ochadi (esse baholash).
+ *
+ * Eski amal -> yangi joy: Excel/PDF -> sarlavha; e'lon qilish -> sarlavhaning asosiy tugmasi; e'londan olish -> sarlavha menyusi;
+ * ko'rsatkichlar -> STRIP + "O'tish va taqsimot" kartasi; holat filtri -> STRIP kataklari; qidiruv/sinf/saralash -> asboblar qatori.
+ */
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -41,32 +57,18 @@ const tab = ref<'results' | 'analysis'>('results')
 const analysisLoading = ref(false)
 const busy = ref(false)
 const openKey = ref<string | null>(null)
+const view = ref<'cards' | 'table'>('cards')
 
 /** Blok ustunlari faqat bir nechta blokli imtihonda (eski/yagona blokli: jadval o'zgarmaydi) */
 const blockCols = computed(() => ((data.value?.blocks?.length ?? 0) > 1 ? data.value!.blocks! : []))
 /** "Fayl + kalit" bloki bor imtihon: ishtirokchiga berilgan variant ustuni */
 const hasVariant = computed(() => !!data.value?.rows.some((r) => r.variant))
-const blockCell = (
-  r: { blocks?: { blockId: string; earned: number; max: number }[] },
-  id: string,
-) => {
-  const b = r.blocks?.find((x) => x.blockId === id)
-  return b ? `${b.earned}/${b.max}` : '—'
-}
-const analysisGroups = computed(() => {
-  const qs = analysis.value?.questions ?? []
-  const heads = analysis.value?.blocks ?? []
-  if (heads.length <= 1) return [{ id: '', title: '', questions: qs }]
-  return heads.map((h) => ({
-    id: h.id,
-    title: h.title || h.subjectName || '',
-    questions: qs.filter((q) => q.blockId === h.id),
-  }))
-})
+const hasPass = computed(() => data.value?.summary.passPercent != null)
+
 const search = ref('')
 const classFilter = ref('')
-const statusFilter = ref('')
-type SortKey = 'rank' | 'name' | 'percent' | 'time'
+const filter = ref<ResultFilter>('all')
+const absentOpen = ref(false)
 const sortKey = ref<SortKey>('rank')
 const sortDir = ref<1 | -1>(1)
 
@@ -103,47 +105,74 @@ async function openAnalysis() {
   }
 }
 
-const classOptions = computed(() => {
-  const names = [
-    ...new Set((data.value?.rows ?? []).map((r) => r.className).filter(Boolean)),
-  ] as string[]
-  return [
-    { value: '', label: t('examResults.filters.allClasses') },
-    ...names.map((n) => ({ value: n, label: n })),
-  ]
-})
-const statusOptions = computed(() => [
-  { value: '', label: t('examResults.filters.allStatuses') },
-  ...(['not_started', 'joined', 'in_progress', 'submitted', 'auto_submitted'] as const).map(
-    (s) => ({
-      value: s,
-      label: t(`examResults.status.${s}`),
-    }),
-  ),
+const rows = computed(() => data.value?.rows ?? [])
+const classes = computed(() => classNames(rows.value))
+const classOptions = computed(() => [
+  { value: '', label: t('examResults.filters.allClasses') },
+  ...classes.value.filter(Boolean).map((n) => ({ value: n, label: n })),
 ])
+const sortOptions = computed(() =>
+  (['rank', 'name', 'percent', 'time'] as const).map((k) => ({
+    value: k,
+    label: t(`examResults.toolbar.sort_${k}`),
+  })),
+)
+const counts = computed(() => filterCounts(rows.value))
 
-const cmp = (a: ExamResultRow, b: ExamResultRow): number => {
-  const nz = (v: number | null) => (v === null ? Number.POSITIVE_INFINITY : v)
-  let r = 0
-  if (sortKey.value === 'name') r = a.fullName.localeCompare(b.fullName)
-  else if (sortKey.value === 'percent')
-    r = (b.percent ?? -1) - (a.percent ?? -1) // yuqori foiz birinchi, baholanmaganlar oxirida (dir=1)
-  else if (sortKey.value === 'time') r = nz(a.timeSpentSec) - nz(b.timeSpentSec)
-  else r = nz(a.rank) - nz(b.rank)
-  if (r === 0) r = a.fullName.localeCompare(b.fullName)
-  return r * sortDir.value
-}
-const shown = computed(() => {
+const matchesText = (r: { fullName: string; className: string | null }) => {
   const q = search.value.trim().toLowerCase()
-  return (data.value?.rows ?? [])
-    .filter(
-      (r) =>
-        (!q || r.fullName.toLowerCase().includes(q)) &&
-        (!classFilter.value || r.className === classFilter.value) &&
-        (!statusFilter.value || r.status === statusFilter.value),
-    )
-    .sort(cmp)
+  return (
+    (!q || r.fullName.toLowerCase().includes(q)) &&
+    (!classFilter.value || r.className === classFilter.value)
+  )
+}
+/** Filtr (STRIP) + qidiruv + sinf bo'yicha ko'rinadigan qatorlar */
+const visible = computed(() =>
+  rows.value.filter((r) => matchesText(r) && matchFilter(r, filter.value, absentOpen.value)),
+)
+/** Kirmaganlar (chiplar uchun): qidiruv va sinfga mos */
+const absentRows = computed(() =>
+  rows.value.filter((r) => r.status === 'not_started' && matchesText(r)),
+)
+const showAbsent = computed(() => filter.value === 'all' || filter.value === 'n')
+
+const tableRows = computed(() => sortRows(visible.value, sortKey.value, sortDir.value))
+const tableAbsent = computed(() =>
+  filter.value === 'all' && !absentOpen.value ? absentRows.value.map((r) => r.fullName) : [],
+)
+/** Sinflar kartalari: har sinfning kirgan o'quvchilari saralangan + kirmaganlar chiplari */
+const classCards = computed(() => {
+  const entered = sortRows(
+    visible.value.filter((r) => r.status !== 'not_started'),
+    sortKey.value,
+    sortDir.value,
+  )
+  return classes.value
+    .filter((c) => !classFilter.value || c === classFilter.value)
+    .map((c) => ({
+      stat: classStat(rows.value, c),
+      rows: entered.filter((r) => (r.className ?? '') === c),
+      absent: showAbsent.value
+        ? absentRows.value.filter((r) => (r.className ?? '') === c).map((r) => r.fullName)
+        : [],
+    }))
+    .filter((c) => c.rows.length || c.absent.length)
 })
+const hasResults = computed(() =>
+  view.value === 'table'
+    ? tableRows.value.length > 0 || tableAbsent.value.length > 0
+    : classCards.value.length > 0,
+)
+
+function setFilter(f: ResultFilter) {
+  filter.value = f
+  absentOpen.value = false
+  tab.value = 'results'
+}
+function setSort(k: string) {
+  sortKey.value = k as SortKey
+  sortDir.value = 1
+}
 function sortBy(k: SortKey) {
   if (sortKey.value === k) sortDir.value = sortDir.value === 1 ? -1 : 1
   else {
@@ -151,17 +180,10 @@ function sortBy(k: SortKey) {
     sortDir.value = 1
   }
 }
-
-const fmtTime = (sec: number | null) =>
-  sec === null ? '—' : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
-const statusTone = (s: string) =>
-  s === 'submitted'
-    ? 'success'
-    : s === 'auto_submitted'
-      ? 'primary'
-      : s === 'in_progress'
-        ? 'warning'
-        : 'neutral'
+function gradeEssays() {
+  setFilter('ep')
+  tab.value = 'results'
+}
 
 async function download(format: 'xlsx' | 'pdf') {
   busy.value = true
@@ -200,8 +222,33 @@ async function publish(published: boolean) {
   }
 }
 
-const flagTone = (f: string) =>
-  f === 'too_easy' ? 'info' : f === 'too_hard' ? 'danger' : 'warning'
+const afterPublish = computed(() => data.value?.session.resultsMode === 'after_publish')
+const pill = computed(() => {
+  const s = data.value?.session
+  if (!s) return ''
+  if (s.resultsMode !== 'after_publish') return t(`examResults.publish.immediate.${s.resultsMode}`)
+  return t(
+    s.resultsPublished ? 'examResults.publish.published' : 'examResults.publish.notPublished',
+  )
+})
+const meta = computed(() =>
+  [classes.value.filter(Boolean).join(', '), fmtDateTime(data.value?.session.scheduledStart)]
+    .filter(Boolean)
+    .join(' · '),
+)
+const goBack = () =>
+  void router.push(
+    data.value?.session.examDeleted
+      ? { name: 'exam-results-list' }
+      : { name: 'exam-session', params: { id: id.value } },
+  )
+
+const field =
+  'h-9 min-w-0 rounded-lg border border-border bg-surface px-2 text-sm text-fg focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20'
+const views = [
+  { key: 'cards', icon: LayoutGrid },
+  { key: 'table', icon: List },
+] as const
 </script>
 
 <template>
@@ -222,298 +269,178 @@ const flagTone = (f: string) =>
   </div>
 
   <template v-else>
-    <ExamBreadcrumb
-      :items="[
-        data.session.examDeleted
-          ? { label: t('examResultsList.title'), to: { name: 'exam-results-list' } }
-          : { label: t('examResults.breadcrumbRoot'), to: { name: 'exam-sessions' } },
-        data.session.examDeleted
-          ? { label: data.session.title }
-          : { label: data.session.title, to: { name: 'exam-session', params: { id } } },
-        { label: t('examResults.title') },
-      ]"
+    <ResultsHero
+      :title="data.session.title"
+      :meta="meta"
+      :pill="pill"
+      :pill-test-id="afterPublish ? 'publish-state' : 'immediate-info'"
+      :busy="busy"
+      :can-publish="afterPublish && !data.session.resultsPublished"
+      :can-unpublish="afterPublish && data.session.resultsPublished"
+      :has-exam-page="!data.session.examDeleted"
+      @back="goBack"
+      @excel="download('xlsx')"
+      @pdf="download('pdf')"
+      @publish="publish(true)"
+      @unpublish="publish(false)"
+      @exam-page="router.push({ name: 'exam-session', params: { id } })"
     />
-    <PageHeader :title="data.session.title" :description="t('examResults.title')">
-      <template #actions>
-        <BaseButton
-          variant="secondary"
-          :loading="busy"
-          data-testid="export-xlsx"
-          @click="download('xlsx')"
-        >
-          <Download class="h-4 w-4" aria-hidden="true" /> {{ t('examResults.export.xlsx') }}
-        </BaseButton>
-        <BaseButton
-          variant="secondary"
-          :loading="busy"
-          data-testid="export-pdf"
-          @click="download('pdf')"
-        >
-          <Download class="h-4 w-4" aria-hidden="true" /> {{ t('examResults.export.pdf') }}
-        </BaseButton>
-      </template>
-    </PageHeader>
 
-    <!-- Umumiy ko'rsatkichlar -->
-    <div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" data-testid="summary">
-      <div class="card p-3">
-        <p class="text-xs text-fg-muted">{{ t('examResults.summary.participants') }}</p>
-        <p class="text-xl font-semibold" data-testid="sum-participants">
-          {{ data.summary.participants }}
-        </p>
+    <ResultsStrip
+      :active="filter"
+      :submitted="data.summary.submitted"
+      :participants="data.summary.participants"
+      :ok="counts.ok"
+      :no="counts.no"
+      :terminated="counts.t"
+      :absent="counts.n"
+      :essay="counts.ep"
+      :has-pass="hasPass"
+      @filter="setFilter"
+    />
+
+    <ResultsInsights
+      v-if="tab === 'results'"
+      :data="data"
+      :show-essay-hint="afterPublish && !data.session.resultsPublished"
+      @open="openKey = $event"
+    />
+
+    <!-- Asboblar qatori -->
+    <div
+      class="mb-3 flex min-h-[44px] flex-wrap items-center gap-2 rounded-xl border border-border bg-surface px-2 py-1"
+    >
+      <div class="flex gap-1" role="tablist" :aria-label="t('examResults.toolbar.tabsAria')">
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="tab === 'results'"
+          class="h-9 whitespace-nowrap rounded-lg px-3 text-sm font-medium"
+          :class="
+            tab === 'results' ? 'bg-primary-100 text-primary-700' : 'text-fg-muted hover:text-fg'
+          "
+          data-testid="tab-results"
+          @click="tab = 'results'"
+        >
+          {{ t('examResults.tabs.results') }}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="tab === 'analysis'"
+          class="h-9 whitespace-nowrap rounded-lg px-3 text-sm font-medium"
+          :class="
+            tab === 'analysis' ? 'bg-primary-100 text-primary-700' : 'text-fg-muted hover:text-fg'
+          "
+          data-testid="tab-analysis"
+          @click="openAnalysis"
+        >
+          {{ t('examResults.tabs.analysis') }}
+        </button>
       </div>
-      <div class="card p-3">
-        <p class="text-xs text-fg-muted">{{ t('examResults.summary.submitted') }}</p>
-        <p class="text-xl font-semibold" data-testid="sum-submitted">
-          {{ data.summary.submitted }}
-        </p>
-      </div>
-      <div class="card p-3">
-        <p class="text-xs text-fg-muted">{{ t('examResults.summary.average') }}</p>
-        <p class="text-xl font-semibold" data-testid="sum-average">
-          {{ data.summary.averagePercent ?? '—'
-          }}<span v-if="data.summary.averagePercent !== null">%</span>
-        </p>
-      </div>
-      <div class="card p-3">
-        <p class="text-xs text-fg-muted">
-          {{ t('examResults.summary.max') }} / {{ t('examResults.summary.min') }}
-        </p>
-        <p class="text-xl font-semibold" data-testid="sum-maxmin">
-          {{ data.summary.maxPercent ?? '—' }} / {{ data.summary.minPercent ?? '—' }}
-        </p>
-      </div>
-      <div v-if="data.summary.passPercent !== null" class="card p-3">
-        <p class="text-xs text-fg-muted">
-          {{ t('examResults.summary.passRate', { percent: data.summary.passPercent }) }}
-        </p>
-        <p class="text-xl font-semibold" data-testid="sum-pass">
-          {{ data.summary.passRate ?? '—' }}<span v-if="data.summary.passRate !== null">%</span>
-        </p>
-      </div>
-      <div class="card p-3">
-        <p class="text-xs text-fg-muted">{{ t('examResults.summary.essayPending') }}</p>
-        <p class="text-xl font-semibold" data-testid="sum-essay">{{ data.summary.essayPending }}</p>
-      </div>
+      <span class="flex-1" />
+      <template v-if="tab === 'results'">
+        <label class="relative block w-full sm:w-52">
+          <Search
+            class="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-fg-muted"
+            aria-hidden="true"
+          />
+          <input
+            v-model="search"
+            type="search"
+            :class="[field, 'w-full pl-8 placeholder:text-fg-muted']"
+            :placeholder="t('examResults.filters.search')"
+            :aria-label="t('examResults.filters.search')"
+            data-testid="filter-search"
+          />
+        </label>
+        <span class="flex gap-2 max-sm:w-full [&>select]:max-sm:flex-1">
+          <select
+            v-model="classFilter"
+            :class="field"
+            :aria-label="t('examResults.filters.cls')"
+            data-testid="filter-class"
+          >
+            <option v-for="o in classOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
+          <select
+            :value="sortKey"
+            :class="field"
+            :aria-label="t('examResults.toolbar.sort')"
+            data-testid="sort-select"
+            @change="setSort(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="o in sortOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
+        </span>
+        <span
+          class="inline-flex rounded-lg border border-border p-0.5"
+          role="group"
+          :aria-label="t('examResults.toolbar.viewAria')"
+        >
+          <button
+            v-for="v in views"
+            :key="v.key"
+            type="button"
+            class="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium"
+            :class="view === v.key ? 'bg-primary-100 text-primary-700' : 'text-fg-muted'"
+            :aria-pressed="view === v.key"
+            :aria-label="t(`examResults.toolbar.view_${v.key}`)"
+            :data-testid="`view-${v.key}`"
+            @click="view = v.key"
+          >
+            <component :is="v.icon" class="h-4 w-4" aria-hidden="true" />
+            <span class="hidden md:inline">{{ t(`examResults.toolbar.view_${v.key}`) }}</span>
+          </button>
+        </span>
+      </template>
     </div>
 
-    <!-- E'lon qilish / rejim -->
-    <section class="card mb-4 flex flex-wrap items-center gap-3 p-4" data-testid="publish-block">
-      <template v-if="data.session.resultsMode === 'after_publish'">
-        <div class="mr-auto">
-          <p class="font-medium text-fg">{{ t('examResults.publish.title') }}</p>
-          <p class="text-sm text-fg-muted">{{ t('examResults.publish.modeInfo') }}</p>
-        </div>
-        <BaseBadge
-          :tone="data.session.resultsPublished ? 'success' : 'neutral'"
-          data-testid="publish-state"
-        >
-          {{
-            data.session.resultsPublished
-              ? t('examResults.publish.published')
-              : t('examResults.publish.notPublished')
-          }}
-        </BaseBadge>
-        <BaseButton
-          v-if="!data.session.resultsPublished"
-          :loading="busy"
-          data-testid="publish"
-          @click="publish(true)"
-        >
-          {{ t('examResults.publish.publish') }}
-        </BaseButton>
-        <BaseButton
-          v-else
-          variant="secondary"
-          :loading="busy"
-          data-testid="unpublish"
-          @click="publish(false)"
-        >
-          {{ t('examResults.publish.unpublish') }}
-        </BaseButton>
-      </template>
-      <p v-else class="text-sm text-fg-muted" data-testid="immediate-info">
-        {{ t(`examResults.publish.immediate.${data.session.resultsMode}`) }}
-      </p>
-    </section>
-
-    <div class="mb-3 flex gap-2" role="tablist">
-      <BaseButton
-        :variant="tab === 'results' ? 'primary' : 'secondary'"
-        size="sm"
-        data-testid="tab-results"
-        @click="tab = 'results'"
-      >
-        {{ t('examResults.tabs.results') }}
-      </BaseButton>
-      <BaseButton
-        :variant="tab === 'analysis' ? 'primary' : 'secondary'"
-        size="sm"
-        data-testid="tab-analysis"
-        @click="openAnalysis"
-      >
-        {{ t('examResults.tabs.analysis') }}
-      </BaseButton>
-    </div>
-
-    <!-- Natijalar jadvali -->
-    <div v-if="tab === 'results'" class="card p-4">
-      <div class="mb-3 grid gap-3 sm:grid-cols-3">
-        <BaseInput
-          v-model="search"
-          type="search"
-          :label="t('examResults.filters.search')"
-          data-testid="filter-search"
-        />
-        <BaseSelect
-          v-model="classFilter"
-          :label="t('examResults.filters.cls')"
-          :options="classOptions"
-          data-testid="filter-class"
-        />
-        <BaseSelect
-          v-model="statusFilter"
-          :label="t('examResults.filters.status')"
-          :options="statusOptions"
-          data-testid="filter-status"
-        />
-      </div>
-      <p v-if="data.rows.length === 0" class="text-sm text-fg-muted">
+    <!-- Natijalar -->
+    <template v-if="tab === 'results'">
+      <p v-if="rows.length === 0" class="card p-8 text-center text-sm text-fg-muted">
         {{ t('examResults.empty') }}
       </p>
-      <p v-else-if="shown.length === 0" class="text-sm text-fg-muted" data-testid="no-match">
+      <p
+        v-else-if="!hasResults"
+        class="card p-8 text-center text-sm text-fg-muted"
+        data-testid="no-match"
+      >
         {{ t('examResults.noMatch') }}
       </p>
-      <div v-else class="overflow-x-auto">
-        <table class="w-full min-w-[860px] text-left text-sm" data-testid="results-table">
-          <thead class="text-xs uppercase text-fg-muted">
-            <tr>
-              <th class="py-2 pr-3">
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-1"
-                  data-testid="sort-rank"
-                  @click="sortBy('rank')"
-                >
-                  {{ t('examResults.cols.rank') }}
-                  <span v-if="sortKey === 'rank'" aria-hidden="true">{{
-                    sortDir === 1 ? '▲' : '▼'
-                  }}</span>
-                </button>
-              </th>
-              <th class="py-2 pr-3">
-                <button type="button" data-testid="sort-name" @click="sortBy('name')">
-                  {{ t('examResults.cols.name') }}
-                </button>
-              </th>
-              <th class="py-2 pr-3">{{ t('examResults.cols.cls') }}</th>
-              <th v-if="hasVariant" class="py-2 pr-3" data-testid="col-variant">
-                {{ t('examResults.cols.variant') }}
-              </th>
-              <th class="py-2 pr-3">{{ t('examResults.cols.status') }}</th>
-              <th
-                v-for="(h, hi) in blockCols"
-                :key="h.id"
-                class="py-2 pr-3"
-                :data-testid="`block-col-${hi}`"
-              >
-                {{ h.title || h.subjectName }}
-              </th>
-              <th class="py-2 pr-3">{{ t('examResults.cols.score') }}</th>
-              <th class="py-2 pr-3">
-                <button type="button" data-testid="sort-percent" @click="sortBy('percent')">
-                  {{ t('examResults.cols.percent') }}
-                </button>
-              </th>
-              <th v-if="data.summary.passPercent !== null" class="py-2 pr-3">
-                {{ t('examResults.cols.passed') }}
-              </th>
-              <th class="py-2 pr-3">{{ t('examResults.cols.answered') }}</th>
-              <th class="py-2 pr-3">
-                <button type="button" data-testid="sort-time" @click="sortBy('time')">
-                  {{ t('examResults.cols.time') }}
-                </button>
-              </th>
-              <th class="py-2 pr-3">{{ t('examResults.cols.warnings') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <tr
-              v-for="r in shown"
-              :key="r.key"
-              class="cursor-pointer hover:bg-surface-muted"
-              tabindex="0"
-              data-testid="result-row"
-              @click="openKey = r.key"
-              @keydown.enter="openKey = r.key"
-            >
-              <td class="py-2 pr-3 font-semibold" data-testid="cell-rank">{{ r.rank ?? '—' }}</td>
-              <td class="py-2 pr-3 font-medium text-fg" data-testid="cell-name">
-                {{ r.fullName }}
-              </td>
-              <td class="py-2 pr-3 text-fg-muted">{{ r.className ?? '—' }}</td>
-              <td v-if="hasVariant" class="py-2 pr-3 font-semibold" data-testid="cell-variant">
-                {{ r.variant ?? '—' }}
-              </td>
-              <td class="py-2 pr-3">
-                <BaseBadge :tone="statusTone(r.status)" data-testid="cell-status">{{
-                  t(`examResults.status.${r.status}`)
-                }}</BaseBadge>
-                <p
-                  v-if="r.terminated"
-                  class="mt-0.5 text-xs text-danger"
-                  data-testid="cell-terminated"
-                >
-                  {{ t('examResults.terminated', { reason: r.terminated.reason }) }}
-                </p>
-              </td>
-              <td
-                v-for="(h, hi) in blockCols"
-                :key="h.id"
-                class="py-2 pr-3"
-                :data-testid="`cell-block-${hi}`"
-              >
-                {{ r.earned !== null ? blockCell(r, h.id) : '—' }}
-              </td>
-              <td class="py-2 pr-3" data-testid="cell-score">
-                <template v-if="r.earned !== null">{{ r.earned }} / {{ r.max }}</template>
-                <template v-else>—</template>
-                <BaseBadge
-                  v-if="r.essayPending"
-                  tone="warning"
-                  class="ml-1"
-                  data-testid="essay-badge"
-                  >{{ t('examResults.essayN', { n: r.essayPending }) }}</BaseBadge
-                >
-              </td>
-              <td class="py-2 pr-3" data-testid="cell-percent">
-                {{ r.percent ?? '—' }}<span v-if="r.percent !== null">%</span>
-              </td>
-              <td v-if="data.summary.passPercent !== null" class="py-2 pr-3">
-                <BaseBadge
-                  v-if="r.passed !== null"
-                  :tone="r.passed ? 'success' : 'danger'"
-                  data-testid="cell-passed"
-                  >{{ r.passed ? t('examResults.yes') : t('examResults.no') }}</BaseBadge
-                >
-                <span v-else class="text-fg-muted">—</span>
-              </td>
-              <td class="py-2 pr-3 text-fg-muted">
-                {{ r.total ? `${r.answered}/${r.total}` : '—' }}
-              </td>
-              <td class="py-2 pr-3 text-fg-muted">{{ fmtTime(r.timeSpentSec) }}</td>
-              <td class="py-2 pr-3">
-                <BaseBadge v-if="r.warnings > 0" tone="warning">{{ r.warnings }}</BaseBadge>
-                <span v-else class="text-fg-muted">0</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <ResultsTable
+        v-else-if="view === 'table'"
+        :rows="tableRows"
+        :block-cols="blockCols"
+        :has-variant="hasVariant"
+        :has-pass="hasPass"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
+        :absent="tableAbsent"
+        @sort="sortBy"
+        @open="openKey = $event"
+        @expand-absent="absentOpen = true"
+      />
+      <div
+        v-else
+        class="grid items-start gap-3"
+        :class="classFilter ? '' : 'xl:grid-cols-2'"
+        data-testid="class-cards"
+      >
+        <ClassResults
+          v-for="c in classCards"
+          :key="c.stat.name"
+          :stat="c.stat"
+          :rows="c.rows"
+          :absent="c.absent"
+          :has-pass="hasPass"
+          @open="openKey = $event"
+        />
       </div>
-    </div>
+    </template>
 
     <!-- Savollar tahlili -->
-    <div v-else class="space-y-3" data-testid="analysis">
+    <div v-else data-testid="analysis">
       <p v-if="analysisLoading" class="text-sm text-fg-muted">{{ t('common.loading') }}</p>
       <p
         v-else-if="!analysis || analysis.submittedAttempts === 0"
@@ -522,67 +449,7 @@ const flagTone = (f: string) =>
       >
         {{ t('examResults.analysis.empty') }}
       </p>
-      <template v-else>
-        <template v-for="g in analysisGroups" :key="g.id">
-          <h3
-            v-if="g.title"
-            class="pt-2 text-sm font-semibold text-fg"
-            data-testid="analysis-block-title"
-          >
-            {{ g.title }}
-          </h3>
-          <article
-            v-for="q in g.questions"
-            :key="q.id"
-            class="card space-y-2 p-4"
-            data-testid="analysis-question"
-          >
-            <div class="flex flex-wrap items-center gap-2 text-sm text-fg-muted">
-              <span class="font-semibold text-fg">{{
-                t('examResults.detail.question', { n: q.index })
-              }}</span>
-              <span>{{ t('examResults.analysis.shown') }}: {{ q.shown }}</span>
-              <span v-if="q.correctPercent !== null" data-testid="q-correct"
-                >{{ t('examResults.analysis.correctPercent') }}: {{ q.correctPercent }}%</span
-              >
-              <span v-if="q.averagePoints !== null"
-                >{{ t('examResults.analysis.averagePoints') }}: {{ q.averagePoints }} /
-                {{ q.points }}</span
-              >
-              <BaseBadge v-for="f in q.flags" :key="f" :tone="flagTone(f)" data-testid="q-flag">{{
-                t(`examResults.analysis.flags.${f}`)
-              }}</BaseBadge>
-            </div>
-            <BlocksView :blocks="q.content" />
-            <ul v-if="q.options.length" class="space-y-1">
-              <li v-for="o in q.options" :key="o.id" class="text-sm" data-testid="q-option">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="min-w-0 flex-1 truncate"
-                    :class="o.correct ? 'font-semibold text-success' : 'text-fg'"
-                  >
-                    {{
-                      o.content
-                        .map((b) => (b.type === 'text' ? b.text : b.type === 'math' ? b.tex : ''))
-                        .join(' ') || o.id
-                    }}
-                  </span>
-                  <span class="w-24 text-right text-fg-muted"
-                    >{{ o.chosen }} ({{ o.percent }}%)</span
-                  >
-                </div>
-                <div class="h-1.5 rounded bg-surface-muted">
-                  <div
-                    class="h-1.5 rounded"
-                    :class="o.correct ? 'bg-success' : 'bg-danger'"
-                    :style="{ width: `${Math.min(100, o.percent)}%` }"
-                  />
-                </div>
-              </li>
-            </ul>
-          </article>
-        </template>
-      </template>
+      <AnalysisGrid v-else :analysis="analysis" @grade-essays="gradeEssays" />
     </div>
 
     <ParticipantResultModal

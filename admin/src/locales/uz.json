@@ -3822,7 +3822,69 @@
         "distractor": "Chalg'ituvchi variant ko'p tanlangan"
       }
     },
-    "terminated": "Nazoratchi to'xtatgan: {reason}"
+    "terminated": "Nazoratchi to'xtatgan: {reason}",
+    "hero": {
+      "back": "Imtihon sahifasiga qaytish",
+      "publish": "E'lon qilish",
+      "unpublish": "E'londan olish",
+      "more": "Boshqa amallar",
+      "examPage": "Imtihon sahifasi"
+    },
+    "strip": {
+      "aria": "Natijalar filtri",
+      "all": "Topshirgan",
+      "ok": "O'tdi",
+      "no": "O'tmadi",
+      "terminated": "To'xtatilgan",
+      "absent": "Kirmagan",
+      "essay": "Esse kutmoqda"
+    },
+    "insights": {
+      "top": "Eng yaxshilar",
+      "topEmpty": "Hali baholangan ish yo'q",
+      "pass": "O'tish va taqsimot",
+      "scored": "{n} o'quvchi",
+      "passLabel": "o'tdi",
+      "avgLabel": "o'rtacha",
+      "threshold": "Chegara",
+      "histThreshold": "chegara {n}%",
+      "histTitle": "{from}–{to}%: {n} o'quvchi",
+      "subjects": "Fanlar bo'yicha",
+      "classes": "Sinflar bo'yicha",
+      "classLine": "o'rtacha {avg} · o'tdi {ok}/{n}",
+      "essayHint": "{n} ta esse tekshirilmagan: e'londan oldin baholang"
+    },
+    "toolbar": {
+      "tabsAria": "Natijalar bo'limlari",
+      "sort": "Saralash",
+      "sort_rank": "O'rin bo'yicha",
+      "sort_name": "Ism bo'yicha",
+      "sort_percent": "Foiz bo'yicha",
+      "sort_time": "Vaqt bo'yicha",
+      "viewAria": "Ko'rinish",
+      "view_cards": "Kartalar",
+      "view_table": "Jadval"
+    },
+    "cards": {
+      "submittedOf": "{n}/{total} topshirgan",
+      "avg": "o'rtacha",
+      "passed": "o'tdi",
+      "absent": "Kirmagan · {n}:",
+      "showInList": "Ro'yxatda ko'rsatish",
+      "noClass": "Sinfsiz",
+      "min": "{n} daq",
+      "warnings": "{n} ta ogohlantirish",
+      "open": "{name} natijasini ochish",
+      "essayShort": "Esse ?"
+    },
+    "qa": {
+      "caption": "{n} ta topshirgan ish bo'yicha",
+      "low": "40% dan past",
+      "blocks": "Fan bo'yicha filtr",
+      "all": "Hammasi",
+      "essay": "Esse",
+      "toGrading": "Tekshirishga o'tish"
+    }
   },
   "examBlocks": {
     "title": "Fanlar",

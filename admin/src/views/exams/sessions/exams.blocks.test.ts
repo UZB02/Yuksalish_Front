@@ -1021,6 +1021,7 @@ describe('Natijalar: blok ustunlari', () => {
 
   it('har blok uchun ustun ("Matematika" 24/30), umumiy ball ham', async () => {
     const { w } = await mountResults(multiResults())
+    await w.get('[data-testid="view-table"]').trigger('click')
     expect(w.get('[data-testid="block-col-0"]').text()).toBe('Matematika')
     expect(w.get('[data-testid="block-col-1"]').text()).toBe('Ona tili')
     const row = w.get('[data-testid="result-row"]')
@@ -1033,6 +1034,7 @@ describe('Natijalar: blok ustunlari', () => {
     const d = multiResults()
     d.blocks = [d.blocks![0]!]
     const { w } = await mountResults(d)
+    await w.get('[data-testid="view-table"]').trigger('click')
     expect(w.find('[data-testid="block-col-0"]').exists()).toBe(false)
     expect(w.find('[data-testid="cell-block-0"]').exists()).toBe(false)
     const d2 = multiResults()

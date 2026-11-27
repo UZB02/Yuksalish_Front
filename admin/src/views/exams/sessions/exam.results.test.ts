@@ -209,16 +209,48 @@ beforeEach(() => {
   api.resultDetail.mockResolvedValue(detail())
 })
 
+/** Jadval ko'rinishiga o'tish (Kartalar/Jadval almashtirgichi) */
+const toTable = async (w: { get: (s: string) => { trigger: (e: string) => Promise<unknown> } }) => {
+  await w.get('[data-testid="view-table"]').trigger('click')
+  await flushPromises()
+}
+
 describe('ExamResultsView (natijalar)', () => {
-  it('breadcrumb, umumiy ko`rsatkichlar va jadval (o`rinlar, %, o`tdi, esse belgisi)', async () => {
+  it('sarlavha, filtr kataklari, ko`rsatkichlar va jadval (o`rinlar, %, o`tdi, esse belgisi)', async () => {
     const { w } = await mountView()
-    expect(w.get('[data-testid="exam-breadcrumb"]').text()).toContain('Imtihonlar')
-    expect(w.get('[data-testid="exam-breadcrumb"]').text()).toContain('Nazorat 1')
-    expect(w.get('[data-testid="sum-participants"]').text()).toBe('4')
-    expect(w.get('[data-testid="sum-submitted"]').text()).toBe('3')
+    expect(w.get('[data-testid="hero-title"]').text()).toContain('Nazorat 1')
+    expect(w.get('[data-testid="hero-title"]').text()).toContain('natijalar')
+    const val = (k: string) =>
+      w.get(`[data-testid="strip-${k}"] [data-testid="strip-value"]`).text()
+    expect(val('all')).toBe('3 / 4')
+    expect(val('ok')).toBe('1')
+    expect(val('no')).toBe('2')
+    expect(val('t')).toBe('0')
+    expect(val('n')).toBe('1')
+    expect(val('ep')).toBe('1')
     expect(w.get('[data-testid="sum-average"]').text()).toBe('61.7%')
-    expect(w.get('[data-testid="sum-maxmin"]').text()).toBe('90 / 40')
+    expect(w.get('[data-testid="sum-max"]').text()).toBe('90%')
+    expect(w.get('[data-testid="sum-min"]').text()).toBe('40%')
+    expect(w.get('[data-testid="sum-threshold"]').text()).toBe('60%')
     expect(w.get('[data-testid="sum-pass"]').text()).toBe('66.7%')
+    await toTable(w)
+    const rows = w.findAll('[data-testid="result-row"]')
+    // "Topshirgan" filtri: kirmagan jadvalda ko'rinmaydi (chip bo'lib turadi)
+    expect(rows).toHaveLength(3)
+    expect(w.findAll('[data-testid="absent-chip"]').map((c) => c.text())).toEqual([
+      'Dilnoza Yusupova',
+    ])
+    await w.get('[data-testid="absent-expand"]').trigger('click')
+    await flushPromises()
+    expect(w.findAll('[data-testid="result-row"]')).toHaveLength(4)
+    expect(w.find('[data-testid="absent-chips"]').exists()).toBe(false)
+  })
+
+  it('jadval qatorlari: o`rin, o`tdi, esse belgisi, holat', async () => {
+    const { w } = await mountView()
+    await toTable(w)
+    await w.get('[data-testid="absent-expand"]').trigger('click')
+    await flushPromises()
     const rows = w.findAll('[data-testid="result-row"]')
     expect(rows.map((r) => r.get('[data-testid="cell-rank"]').text())).toEqual(['1', '2', '2', '—'])
     expect(rows[0]!.get('[data-testid="cell-passed"]').text()).toBe('Ha')
@@ -240,6 +272,12 @@ describe('ExamResultsView (natijalar)', () => {
       terminated: { reason: 'Telefon', at: '2026-11-25T05:00:00Z', byName: 'N' },
     })
     const { w } = await mountView()
+    // Kartalarda: qizil sabab matni va "To'xtatilgan" kataki
+    const tile = w.findAll('[data-testid="result-row"]').find((x) => x.text().includes('Aliyev'))!
+    expect(tile.get('[data-testid="cell-sub"]').text()).toBe("Nazoratchi to'xtatgan: Telefon")
+    expect(tile.attributes('data-tone')).toBe('t')
+    expect(w.get('[data-testid="strip-t"] [data-testid="strip-value"]').text()).toBe('1')
+    await toTable(w)
     const rows = w.findAll('[data-testid="result-row"]')
     expect(rows[0]!.get('[data-testid="cell-terminated"]').text()).toBe(
       "Nazoratchi to'xtatgan: Telefon",
@@ -257,24 +295,32 @@ describe('ExamResultsView (natijalar)', () => {
     api.sessionResults.mockResolvedValue(r)
     const { w } = await mountView()
     expect(w.find('[data-testid="sum-pass"]').exists()).toBe(false)
+    expect(w.find('[data-testid="strip-ok"]').exists()).toBe(false)
+    expect(w.find('[data-testid="strip-no"]').exists()).toBe(false)
+    expect(w.find('[data-testid="hist-threshold"]').exists()).toBe(false)
+    await toTable(w)
     expect(w.find('[data-testid="cell-passed"]').exists()).toBe(false)
   })
 
-  it('filtrlar (qidiruv, sinf, holat) va saralash', async () => {
+  it('filtrlar: qidiruv, sinf, filtr kataklari (STRIP) va saralash', async () => {
     const { w } = await mountView()
+    await toTable(w)
     const names = () => w.findAll('[data-testid="cell-name"]').map((x) => x.text())
+    expect(names()).toEqual(['Aliyev Vali', 'Bobur Karimov', 'Zilola Rahimova'])
     await w.get('[data-testid="filter-search"]').setValue('bobur')
     expect(names()).toEqual(['Bobur Karimov'])
     await w.get('[data-testid="filter-search"]').setValue('')
     await w.get('[data-testid="filter-class"]').setValue('7-A')
-    expect(names()).toEqual(['Aliyev Vali', 'Zilola Rahimova', 'Dilnoza Yusupova'])
-    await w.get('[data-testid="filter-status"]').setValue('not_started')
+    expect(names()).toEqual(['Aliyev Vali', 'Zilola Rahimova'])
+    await w.get('[data-testid="strip-n"]').trigger('click')
+    expect(w.get('[data-testid="strip-n"]').attributes('aria-pressed')).toBe('true')
     expect(names()).toEqual(['Dilnoza Yusupova'])
     await w.get('[data-testid="filter-search"]').setValue('yo`q')
     expect(w.find('[data-testid="no-match"]').exists()).toBe(true)
     await w.get('[data-testid="filter-search"]').setValue('')
     await w.get('[data-testid="filter-class"]').setValue('')
-    await w.get('[data-testid="filter-status"]').setValue('')
+    await w.get('[data-testid="strip-all"]').trigger('click')
+    await w.get('[data-testid="absent-expand"]').trigger('click')
     await w.get('[data-testid="sort-name"]').trigger('click')
     expect(names()).toEqual(['Aliyev Vali', 'Bobur Karimov', 'Dilnoza Yusupova', 'Zilola Rahimova'])
     await w.get('[data-testid="sort-name"]').trigger('click') // teskari
@@ -283,11 +329,82 @@ describe('ExamResultsView (natijalar)', () => {
     expect(names()[0]).toBe('Bobur Karimov') // eng tez (300 s)
     await w.get('[data-testid="sort-percent"]').trigger('click')
     expect(names()[0]).toBe('Aliyev Vali')
+    // asboblar qatoridagi saralash tanlovi
+    await w.get('[data-testid="sort-select"]').setValue('time')
+    expect(names()[0]).toBe('Bobur Karimov')
+  })
+
+  it('STRIP: O`tdi / O`tmadi / Esse kutmoqda kataklari ro`yxatni filtrlaydi (kartalarda ham)', async () => {
+    const { w } = await mountView()
+    const tiles = () =>
+      w.findAll('[data-testid="result-row"] [data-testid="cell-name"]').map((x) => x.text())
+    expect(tiles()).toEqual(['Aliyev Vali', 'Zilola Rahimova', 'Bobur Karimov'])
+    await w.get('[data-testid="strip-ok"]').trigger('click')
+    expect(tiles()).toEqual(['Aliyev Vali'])
+    await w.get('[data-testid="strip-no"]').trigger('click')
+    expect(tiles()).toEqual(['Zilola Rahimova', 'Bobur Karimov'])
+    await w.get('[data-testid="strip-ep"]').trigger('click')
+    expect(tiles()).toEqual(['Bobur Karimov'])
+    // kirmaganlar: kartalar o`rniga faqat chiplar
+    await w.get('[data-testid="strip-n"]').trigger('click')
+    expect(tiles()).toEqual([])
+    expect(w.findAll('[data-testid="absent-chip"]').map((c) => c.text())).toEqual([
+      'Dilnoza Yusupova',
+    ])
+  })
+
+  it('sinflar kesimi: har sinf alohida karta (topshirgan/jami, o`rtacha, o`tdi) va kirmaganlar chiplari', async () => {
+    const { w } = await mountView()
+    const cards = w.findAll('[data-testid="class-card"]')
+    expect(cards.map((c) => c.get('[data-testid="class-title"]').text())).toEqual(['7-A', '7-B'])
+    const a = cards[0]!
+    expect(a.get('[data-testid="class-submitted"]').text()).toBe('2/3 topshirgan') // Dilnoza kirmagan
+    expect(a.get('[data-testid="class-avg"]').text()).toBe('72.8%') // (90 + 55.5) / 2 = 72.75
+    expect(a.get('[data-testid="class-passed"]').text()).toBe('1')
+    expect(a.findAll('[data-testid="result-row"]')).toHaveLength(2)
+    expect(a.get('[data-testid="absent-chips"]').text()).toContain('Dilnoza Yusupova')
+    const b = cards[1]!
+    expect(b.findAll('[data-testid="result-row"]')).toHaveLength(1)
+    expect(b.find('[data-testid="absent-chips"]').exists()).toBe(false)
+    // bitta sinf tanlansa faqat shu karta
+    await w.get('[data-testid="filter-class"]').setValue('7-B')
+    expect(w.findAll('[data-testid="class-card"]')).toHaveLength(1)
+  })
+
+  it('Kartalar/Jadval almashtirgichi', async () => {
+    const { w } = await mountView()
+    expect(w.find('[data-testid="class-cards"]').exists()).toBe(true)
+    expect(w.find('[data-testid="results-table"]').exists()).toBe(false)
+    expect(w.get('[data-testid="view-cards"]').attributes('aria-pressed')).toBe('true')
+    await toTable(w)
+    expect(w.find('[data-testid="class-cards"]').exists()).toBe(false)
+    expect(w.find('[data-testid="results-table"]').exists()).toBe(true)
+    expect(w.get('[data-testid="view-table"]').attributes('aria-pressed')).toBe('true')
+    await w.get('[data-testid="view-cards"]').trigger('click')
+    expect(w.find('[data-testid="class-cards"]').exists()).toBe(true)
+  })
+
+  it('tepa kartalar: podium (top-3), taqsimot gistogrammasi va chegara chizig`i', async () => {
+    const { w } = await mountView()
+    const podium = w.findAll('[data-testid="podium-item"]').map((x) => x.text())
+    expect(podium).toHaveLength(3)
+    expect(podium[1]).toContain('Aliyev Vali') // 1-o`rin o`rtada
+    expect(w.findAll('[data-testid="hist-bar"]')).toHaveLength(10)
+    // 90% -> 9-oraliq, 55.5% (2 ta) -> 5-oraliq
+    const counts = w.findAll('[data-testid="hist-bar"]').map((x) => x.find('span').text())
+    expect(counts[9]).toBe('1')
+    expect(counts[5]).toBe('2')
+    expect(w.get('[data-testid="hist-threshold"]').text()).toContain('60%')
+    // podium bosilsa tafsilot ochiladi
+    await w.findAll('[data-testid="podium-item"]')[1]!.trigger('click')
+    await flushPromises()
+    expect(api.resultDetail).toHaveBeenCalledWith('e1', 'a')
   })
 
   it('ishtirokchi tafsiloti: javob/to`g`ri javob; esse oddiy matn (HTML ishlamaydi), mezon; baholash formasi validatsiyasi va saqlash', async () => {
     api.gradeEssay.mockResolvedValue({ earned: 8, max: 10, essayPending: 0 })
     const { w } = await mountView()
+    await toTable(w)
     await w.findAll('[data-testid="result-row"]')[1]!.trigger('click')
     await flushPromises()
     expect(api.resultDetail).toHaveBeenCalledWith('e1', 'b')
@@ -323,6 +440,7 @@ describe('ExamResultsView (natijalar)', () => {
     const { w } = await mountView()
     expect(w.find('[data-testid="immediate-info"]').exists()).toBe(false)
     expect(w.get('[data-testid="publish-state"]').text()).toBe(uz.examResults.publish.notPublished)
+    expect(w.get('[data-testid="essay-hint"]').text()).toContain('1 ta esse')
     await w.get('[data-testid="publish"]').trigger('click')
     await flushPromises()
     const c = useConfirm()
@@ -340,8 +458,10 @@ describe('ExamResultsView (natijalar)', () => {
     const m = await mountView()
     expect(m.w.find('[data-testid="publish"]').exists()).toBe(false)
     api.publishResults.mockResolvedValue({ published: false, publishedAt: null })
-    await m.w.get('[data-testid="unpublish"]').trigger('click')
+    expect(m.w.get('[data-testid="publish-state"]').text()).toBe(uz.examResults.publish.published)
+    await m.w.get('[data-testid="menu-trigger"]').trigger('click') // E'londan olish menyuda
     await flushPromises()
+    await click($('menu-item-unpublish'))
     expect(api.publishResults).toHaveBeenLastCalledWith('e1', {
       published: false,
       confirmPending: false,
@@ -439,9 +559,9 @@ describe('ExamResultsView (natijalar)', () => {
       'Juda qiyin',
       "Chalg'ituvchi variant ko'p tanlangan",
     ])
-    expect(w.find('[data-testid="results-table"]').exists()).toBe(false)
+    expect(w.find('[data-testid="class-cards"]').exists()).toBe(false)
     await w.get('[data-testid="tab-results"]').trigger('click')
-    expect(w.find('[data-testid="results-table"]').exists()).toBe(true)
+    expect(w.find('[data-testid="class-cards"]').exists()).toBe(true)
     await w.get('[data-testid="tab-analysis"]').trigger('click')
     expect(api.resultsAnalysis).toHaveBeenCalledTimes(1) // keshlangan
   })
